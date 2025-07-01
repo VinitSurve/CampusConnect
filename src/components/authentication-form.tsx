@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth"
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ import { Fingerprint, Lock, Mail, Eye, EyeOff } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { auth } from "@/lib/firebase"
-import { loginWithCredentials, loginOrRegisterWithGoogle } from "@/app/actions"
+import { createSession } from "@/app/actions"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -26,7 +26,7 @@ const loginSchema = z.object({
 
 export default function AuthenticationForm() {
   const [showPassword, setShowPassword] = React.useState(false)
-  const [loginError, setLoginError] = React.useState<string | null>(null)
+  const [authError, setAuthError] = React.useState<string | null>(null)
   const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast()
 
@@ -40,43 +40,60 @@ export default function AuthenticationForm() {
   })
 
   async function onSubmit(values: z.infer<typeof loginSchema>) {
-    setLoginError(null)
+    setAuthError(null)
     startTransition(async () => {
       try {
-        await loginWithCredentials(values.email)
-        toast({ title: "Login Successful!" })
-      } catch (error) {
-        if (error instanceof Error) {
-          setLoginError(error.message)
+        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+        if (userCredential.user && userCredential.user.email) {
+          await createSession(userCredential.user.email)
+          toast({ title: "Login Successful!" })
         } else {
-          setLoginError("An unknown error occurred.")
+            throw new Error("Could not retrieve user information after login.")
+        }
+      } catch (error: any) {
+        if (error.code) {
+            switch(error.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    setAuthError("Invalid email or password. Please try again.");
+                    break;
+                default:
+                    setAuthError("An unknown error occurred during login.");
+                    break;
+            }
+        } else if (error instanceof Error) {
+          setAuthError(error.message)
+        } else {
+          setAuthError("An unknown error occurred.")
         }
       }
     })
   }
 
   async function handleGoogleSignIn() {
-    setLoginError(null);
+    setAuthError(null);
     startTransition(async () => {
         const provider = new GoogleAuthProvider();
         try {
           const result = await signInWithPopup(auth, provider);
           const googleUser = result.user;
 
-          await loginOrRegisterWithGoogle(
-            googleUser.email!,
-            googleUser.displayName!,
-            googleUser.photoURL!
-          );
+          if (googleUser && googleUser.email) {
+            await createSession(googleUser.email);
+            toast({ title: "Signed in with Google!" });
+          } else {
+            throw new Error("Could not retrieve user information from Google.");
+          }
         } catch (error: any) {
           if (error.code === 'auth/popup-closed-by-user') {
             return;
           }
           console.error("Google Sign-In Error:", error);
           if (error instanceof Error) {
-            setLoginError(error.message);
+            setAuthError(error.message);
           } else {
-            setLoginError("Failed to sign in with Google. Please try again.");
+            setAuthError("Failed to sign in with Google. Please try again.");
           }
         }
     });
@@ -96,9 +113,9 @@ export default function AuthenticationForm() {
             </div>
 
             <div className="rounded-2xl border border-border/20 bg-card/40 p-8 shadow-2xl backdrop-blur-lg">
-                {loginError && (
+                {authError && (
                     <Alert variant="destructive" className="mb-6 bg-red-900/40 border-red-500/30 text-red-200">
-                         <AlertDescription>{loginError}</AlertDescription>
+                         <AlertDescription>{authError}</AlertDescription>
                     </Alert>
                 )}
 

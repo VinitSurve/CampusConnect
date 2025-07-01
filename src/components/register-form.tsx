@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth"
+import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ import { Fingerprint, Lock, Mail, Eye, EyeOff, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { auth } from "@/lib/firebase"
-import { loginOrRegisterWithGoogle, registerWithCredentials } from "@/app/actions"
+import { createSession } from "@/app/actions"
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -50,13 +50,20 @@ export default function RegisterForm() {
     setAuthError(null);
     startTransition(async () => {
       try {
-        await registerWithCredentials(values);
-        toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
-      } catch (error) {
-        if (error instanceof Error) {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        if (userCredential.user && userCredential.user.email) {
+            await createSession(userCredential.user.email)
+            toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
+        } else {
+            throw new Error("Could not retrieve user information after registration.")
+        }
+      } catch (error: any) {
+        if (error.code === 'auth/email-already-in-use') {
+            setAuthError("An account with this email already exists. Please sign in.");
+        } else if (error instanceof Error) {
             setAuthError(error.message);
         } else {
-            setAuthError("An unknown error occurred.");
+            setAuthError("An unknown error occurred during registration.");
         }
       }
     });
@@ -70,11 +77,12 @@ export default function RegisterForm() {
           const result = await signInWithPopup(auth, provider);
           const googleUser = result.user;
 
-          await loginOrRegisterWithGoogle(
-            googleUser.email!,
-            googleUser.displayName!,
-            googleUser.photoURL!
-          );
+          if (googleUser && googleUser.email) {
+            await createSession(googleUser.email);
+            toast({ title: "Signed in with Google!" });
+          } else {
+            throw new Error("Could not retrieve user information from Google.");
+          }
         } catch (error: any) {
           if (error.code === 'auth/popup-closed-by-user') {
             return;
