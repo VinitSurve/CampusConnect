@@ -4,7 +4,7 @@ import { Calendar, MapPin, Users, Ticket, MenuSquare, Info } from "lucide-react"
 import { format } from "date-fns"
 
 import { summarizeEvent } from "@/ai/flows/summarize-event"
-import { mockEvents } from "@/lib/mock-data"
+import { getEventById } from "@/lib/data"
 import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const event = mockEvents.find((e) => e.id === params.id)
+  const event = await getEventById(params.id)
 
   if (!event) {
     notFound()

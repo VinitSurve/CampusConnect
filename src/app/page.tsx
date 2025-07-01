@@ -16,8 +16,8 @@ import { Icons } from "@/components/icons"
 import { Fingerprint, Lock, Mail, Eye, EyeOff } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { allUsers, mockStudent } from "@/lib/mock-data"
 import { auth } from "@/lib/firebase"
+import { loginWithCredentials, loginOrRegisterWithGoogle } from "@/app/actions"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -41,37 +41,19 @@ export default function AuthenticationPage() {
   })
 
   async function onSubmit(values: z.infer<typeof loginSchema>) {
-    setLoginError(null);
-    const user = allUsers.find(u => u.email === values.email);
+    setLoginError(null)
+    const result = await loginWithCredentials(values.email)
 
-    if (user) {
-        // In a real app, you'd also verify the password.
-        // For this demo, we're just matching the email.
-        try {
-            const formData = new FormData();
-            formData.append('userId', user.id);
-            
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                toast({ title: "Login Successful", description: `Welcome back, ${user.name}!` });
-                if (user.role === 'faculty') {
-                  router.push("/admin");
-                } else {
-                  router.push("/dashboard");
-                }
-                router.refresh(); // Ensure layout re-renders with new user state
-            } else {
-                setLoginError("Login failed. Please check your credentials.");
-            }
-        } catch (error) {
-            setLoginError("An unexpected error occurred.");
+    if (result.success && result.user) {
+        toast({ title: "Login Successful", description: `Welcome back, ${result.user.name}!` })
+        if (result.user.role === 'faculty') {
+          router.push("/admin")
+        } else {
+          router.push("/dashboard")
         }
+        router.refresh()
     } else {
-      setLoginError("No user found with that email.");
+      setLoginError(result.error || "Login failed. Please check your credentials.")
     }
   }
 
@@ -82,25 +64,18 @@ export default function AuthenticationPage() {
       const result = await signInWithPopup(auth, provider);
       const googleUser = result.user;
 
-      // Find user in our mock data by email
-      const existingUser = allUsers.find(u => u.email === googleUser.email);
-      const user = existingUser || mockStudent;
-      const isNewUser = !existingUser;
-      
-      const formData = new FormData();
-      formData.append('userId', user.id);
-      
-      const response = await fetch('/api/login', {
-          method: 'POST',
-          body: formData
-      });
+      const authResult = await loginOrRegisterWithGoogle(
+        googleUser.email!,
+        googleUser.displayName!,
+        googleUser.photoURL!
+      );
 
-      if (response.ok) {
-          const welcomeMessage = isNewUser
-            ? `Welcome, ${googleUser.displayName}!` 
-            : `Welcome back, ${user.name}!`;
+      if (authResult.success) {
+          const welcomeMessage = authResult.isNewUser
+            ? `Welcome, ${authResult.user.name}!` 
+            : `Welcome back, ${authResult.user.name}!`;
           toast({ title: "Login Successful", description: welcomeMessage });
-          if (user.role === 'faculty') {
+          if (authResult.user.role === 'faculty') {
             router.push("/admin");
           } else {
             router.push("/dashboard");

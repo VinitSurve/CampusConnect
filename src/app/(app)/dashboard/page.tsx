@@ -2,7 +2,7 @@ import { recommendEvents, type RecommendEventsInput, type RecommendEventsOutput 
 import { EventCard } from "@/components/event-card"
 import { Button } from "@/components/ui/button"
 import { getCurrentUser } from "@/lib/auth"
-import { mockEvents } from "@/lib/mock-data"
+import { getEvents } from "@/lib/data"
 import type { Event } from "@/types"
 import { Calendar } from "lucide-react"
 import { redirect } from "next/navigation"
@@ -14,7 +14,8 @@ export default async function DashboardPage() {
     redirect("/")
   }
 
-  const allEvents = mockEvents.filter((e) => e.status === "upcoming")
+  const allEventsData = await getEvents()
+  const allEvents = allEventsData.filter((e) => e.status === "upcoming")
 
   // Prepare input for AI recommendation
   const aiInput: RecommendEventsInput = {

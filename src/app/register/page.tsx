@@ -16,8 +16,8 @@ import { Icons } from "@/components/icons"
 import { Fingerprint, Lock, Mail, Eye, EyeOff, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { allUsers, mockStudent } from "@/lib/mock-data"
 import { auth } from "@/lib/firebase"
+import { loginOrRegisterWithGoogle, registerWithCredentials } from "@/app/actions"
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -49,16 +49,14 @@ export default function RegisterPage() {
 
   async function onSubmit(values: z.infer<typeof registerSchema>) {
     setAuthError(null);
-    const userExists = allUsers.some(u => u.email === values.email);
+    
+    const result = await registerWithCredentials(values);
 
-    if (userExists) {
-        setAuthError("An account with this email already exists. Please sign in.");
-    } else {
-        // In a real app, you would create the user here.
-        // For this demo, we'll just simulate a successful registration.
-        console.log("New user registered:", values);
+    if (result.success) {
         toast({ title: "Registration Successful!", description: "You can now sign in with your credentials." });
         router.push("/");
+    } else {
+        setAuthError(result.error || "An unknown error occurred.");
     }
   }
 
@@ -69,24 +67,18 @@ export default function RegisterPage() {
       const result = await signInWithPopup(auth, provider);
       const googleUser = result.user;
 
-      const existingUser = allUsers.find(u => u.email === googleUser.email);
-      const user = existingUser || mockStudent;
-      const isNewUser = !existingUser;
-      
-      const formData = new FormData();
-      formData.append('userId', user.id);
-      
-      const response = await fetch('/api/login', {
-          method: 'POST',
-          body: formData
-      });
+      const authResult = await loginOrRegisterWithGoogle(
+        googleUser.email!,
+        googleUser.displayName!,
+        googleUser.photoURL!
+      );
 
-      if (response.ok) {
-        const welcomeMessage = isNewUser
+      if (authResult.success) {
+        const welcomeMessage = authResult.isNewUser
           ? `Welcome, ${googleUser.displayName}!` 
-          : `Welcome back, ${user.name}!`;
+          : `Welcome back, ${authResult.user.name}!`;
         toast({ title: "Authentication Successful", description: welcomeMessage });
-        if (user.role === 'faculty') {
+        if (authResult.user.role === 'faculty') {
           router.push("/admin");
         } else {
           router.push("/dashboard");

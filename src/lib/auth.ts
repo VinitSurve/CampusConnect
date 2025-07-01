@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { usersById } from './mock-data'
+import { getUserById } from './data'
 import type { User } from '@/types'
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -7,5 +7,5 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!userId) {
     return null
   }
-  return usersById[userId] || null
+  return (await getUserById(userId)) || null
 }

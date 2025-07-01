@@ -1,9 +1,11 @@
 import { ClubCard } from "@/components/club-card"
 import { Input } from "@/components/ui/input"
-import { mockClubs } from "@/lib/mock-data"
+import { getClubs } from "@/lib/data"
 import { Search } from "lucide-react"
 
-export default function ClubsPage() {
+export default async function ClubsPage() {
+  const clubs = await getClubs()
+
   return (
     <div className="space-y-8">
       <div>
@@ -20,7 +22,7 @@ export default function ClubsPage() {
 
       <section>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {mockClubs.map((club) => (
+          {clubs.map((club) => (
             <ClubCard key={club.id} club={club} />
           ))}
         </div>

@@ -1,4 +1,4 @@
-import { mockClubs, mockEventProposals } from "@/lib/mock-data"
+import { getClubs, getEventProposals } from "@/lib/data"
 import { getCurrentUser } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import AdminClientPage from "./client-page"
@@ -9,5 +9,8 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  return <AdminClientPage initialProposals={mockEventProposals} initialClubs={mockClubs} />
+  const initialProposals = await getEventProposals()
+  const initialClubs = await getClubs()
+
+  return <AdminClientPage initialProposals={initialProposals} initialClubs={initialClubs} />
 }
