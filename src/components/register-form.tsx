@@ -57,11 +57,7 @@ export default function RegisterForm() {
             const session = await createSession(userCredential.user.email)
             if (session.success) {
               toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
-              if (session.role === 'faculty') {
-                router.push('/admin');
-              } else {
-                router.push('/dashboard');
-              }
+              router.refresh()
             } else {
               throw new Error("Session creation failed after registration.")
             }
@@ -92,11 +88,7 @@ export default function RegisterForm() {
             const session = await createSession(googleUser.email);
             if (session.success) {
               toast({ title: "Signed in with Google!" });
-              if (session.role === 'faculty') {
-                router.push('/admin')
-              } else {
-                router.push('/dashboard')
-              }
+              router.refresh()
             } else {
               throw new Error("Session creation failed after Google Sign-In.");
             }
