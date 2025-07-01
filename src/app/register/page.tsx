@@ -16,7 +16,7 @@ import { Icons } from "@/components/icons"
 import { Fingerprint, Lock, Mail, Eye, EyeOff, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { allUsers } from "@/lib/mock-data"
+import { allUsers, mockStudent } from "@/lib/mock-data"
 import { auth } from "@/lib/firebase"
 
 const registerSchema = z.object({
@@ -69,16 +69,30 @@ export default function RegisterPage() {
       const result = await signInWithPopup(auth, provider);
       const googleUser = result.user;
 
-      const user = allUsers.find(u => u.email === googleUser.email);
+      const existingUser = allUsers.find(u => u.email === googleUser.email);
 
-      if (user) {
+      if (existingUser) {
         setAuthError("This Google account is already registered. Please sign in.");
+        return;
+      }
+      
+      // Since it's a new registration, log them in as the default student.
+      const userToLogin = mockStudent;
+
+      const formData = new FormData();
+      formData.append('userId', userToLogin.id);
+      
+      const response = await fetch('/api/login', {
+          method: 'POST',
+          body: formData
+      });
+
+      if (response.ok) {
+          toast({ title: "Registration Successful!", description: `Welcome, ${googleUser.displayName}!` });
+          router.push("/dashboard");
+          router.refresh(); 
       } else {
-        // Simulate new user registration via Google
-        toast({ title: "Registration Successful!", description: `Welcome, ${googleUser.displayName}! You can now sign in.` });
-        // In a real app, you would create a new user record here
-        // and then log them in. For this demo, we redirect to login.
-        router.push("/");
+          setAuthError("Registration failed after sign-in. Please try again.");
       }
     } catch (error) {
       console.error("Google Sign-In Error:", error);
