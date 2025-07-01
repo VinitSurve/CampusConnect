@@ -6,7 +6,7 @@ import { getUserByEmail } from '@/lib/data'
 import { mockStudent } from '@/lib/mock-data'
 import type { User } from '@/types'
 
-export async function createSession(email: string): Promise<{ success: boolean; role?: User['role'] }> {
+export async function createSession(email: string): Promise<{ success: boolean; redirectTo?: string }> {
   try {
     let user: User | undefined = await getUserByEmail(email);
 
@@ -20,7 +20,8 @@ export async function createSession(email: string): Promise<{ success: boolean; 
     // Set the session cookie
     cookies().set('userId', user.id, { httpOnly: true, path: '/' })
 
-    return { success: true, role: user.role };
+    const redirectTo = user.role === 'faculty' ? '/admin' : '/dashboard';
+    return { success: true, redirectTo };
   } catch (error) {
     console.error("Session creation failed:", error);
     return { success: false };
