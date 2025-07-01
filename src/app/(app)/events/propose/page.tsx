@@ -48,6 +48,12 @@ export default function ProposeEventPage() {
   const { toast } = useToast()
   const form = useForm<z.infer<typeof proposalSchema>>({
     resolver: zodResolver(proposalSchema),
+    defaultValues: {
+      title: "",
+      time: "",
+      location: "",
+      description: "",
+    },
   })
 
   function onSubmit(values: z.infer<typeof proposalSchema>) {
@@ -56,7 +62,7 @@ export default function ProposeEventPage() {
       title: "Proposal Submitted!",
       description: "Your event proposal has been sent for review.",
     })
-    form.reset({ title: "", time: "", location: "", description: ""})
+    form.reset()
   }
 
   return (
