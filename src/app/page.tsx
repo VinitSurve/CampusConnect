@@ -1,41 +1,196 @@
-import { login } from "@/app/actions"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+"use client"
+
+import * as React from "react"
+import Link from "next/link"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
+
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { allUsers } from "@/lib/mock-data"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Icons } from "@/components/icons"
+import { Fingerprint, Lock, Mail, Eye, EyeOff } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useToast } from "@/hooks/use-toast"
+import { allUsers } from "@/lib/mock-data"
+
+const loginSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z.string().min(1, { message: "Password is required." }),
+  remember: z.boolean().optional(),
+})
 
 export default function AuthenticationPage() {
-  return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-br from-background via-secondary to-background p-4">
-      <div className="flex flex-col items-center text-center mb-12">
-        <Icons.logo className="h-16 w-16 text-primary" />
-        <h1 className="text-4xl font-bold mt-4 font-headline">Welcome to CampusConnect</h1>
-        <p className="text-xl text-muted-foreground mt-2">Choose your role to continue</p>
-      </div>
+  const [showPassword, setShowPassword] = React.useState(false)
+  const [loginError, setLoginError] = React.useState<string | null>(null)
+  const { toast } = useToast()
+  const router = useRouter()
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {allUsers.map((user) => (
-          <Card key={user.id} className="w-full max-w-sm text-center">
-            <CardHeader>
-              <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <CardTitle>{user.name}</CardTitle>
-              <CardDescription className="capitalize">{user.role}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={login}>
-                <input type="hidden" name="userId" value={user.id} />
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90">
-                  Login as {user.role}
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      remember: false,
+    },
+  })
+
+  async function onSubmit(values: z.infer<typeof loginSchema>) {
+    setLoginError(null);
+    const user = allUsers.find(u => u.email === values.email);
+
+    if (user) {
+        // In a real app, you'd also verify the password.
+        // For this demo, we're just matching the email.
+        try {
+            const formData = new FormData();
+            formData.append('userId', user.id);
+            
+            // This is a client component, so we can't directly call a server action
+            // that uses cookies(). We need to use a form or fetch.
+            // Let's use fetch to a new API route for login.
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                toast({ title: "Login Successful", description: `Welcome back, ${user.name}!` });
+                router.push("/dashboard");
+                router.refresh(); // Ensure layout re-renders with new user state
+            } else {
+                setLoginError("Login failed. Please check your credentials.");
+            }
+        } catch (error) {
+            setLoginError("An unexpected error occurred.");
+        }
+    } else {
+      setLoginError("No user found with that email.");
+    }
+  }
+
+  function handleGoogleSignIn() {
+    setLoginError("Failed to sign in with Google. Please try again.")
+    // Placeholder for Google Sign-In logic
+    console.log("Signing in with Google...")
+  }
+
+  return (
+    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-br from-[hsl(var(--secondary))] to-[hsl(var(--background))] p-4">
+        <div className="w-full max-w-md">
+            <div className="mb-8 text-center text-foreground">
+                <div className="inline-flex items-center justify-center gap-3 mb-4">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                        <Fingerprint className="h-8 w-8 text-primary"/>
+                    </div>
+                    <h1 className="text-3xl font-bold">CampusConnect</h1>
+                </div>
+                <h2 className="text-2xl font-semibold">Sign in to your account</h2>
+            </div>
+
+            <div className="rounded-2xl border border-border/20 bg-card/40 p-8 shadow-2xl backdrop-blur-lg">
+                {loginError && (
+                    <Alert variant="destructive" className="mb-6 bg-red-900/40 border-red-500/30 text-red-200">
+                         <AlertDescription>{loginError}</AlertDescription>
+                    </Alert>
+                )}
+
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-muted-foreground">Email</FormLabel>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                        <Input 
+                                            type="email" 
+                                            placeholder="Enter your email" 
+                                            className="bg-input border-border/50 pl-10 text-foreground placeholder:text-muted-foreground" 
+                                            {...field} 
+                                        />
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-muted-foreground">Password</FormLabel>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                        <Input
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="Enter your password"
+                                            className="bg-input border-border/50 pl-10 pr-10 text-foreground placeholder:text-muted-foreground"
+                                            {...field}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        >
+                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        </button>
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="flex items-center justify-between">
+                            <FormField
+                                control={form.control}
+                                name="remember"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl>
+                                            <Checkbox id="remember" checked={field.value} onCheckedChange={field.onChange} className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"/>
+                                        </FormControl>
+                                        <label htmlFor="remember" className="text-sm font-medium text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            Remember me
+                                        </label>
+                                    </FormItem>
+                                )}
+                            />
+                            <Link href="#" className="text-sm text-primary/80 hover:text-primary hover:underline">
+                                Forgot password?
+                            </Link>
+                        </div>
+
+                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
+                            Sign in
+                        </Button>
+                    </form>
+                </Form>
+                
+                <div className="my-6 flex items-center">
+                    <div className="flex-grow border-t border-border/30"></div>
+                    <span className="mx-4 flex-shrink text-sm text-muted-foreground">OR</span>
+                    <div className="flex-grow border-t border-border/30"></div>
+                </div>
+
+                <Button variant="outline" className="w-full bg-transparent border-border/40 hover:bg-input text-foreground" onClick={handleGoogleSignIn}>
+                    <Icons.google className="mr-2 h-5 w-5" />
+                    Continue with Google
                 </Button>
-              </form>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+
+                <p className="mt-8 text-center text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Link href="#" className="font-medium text-primary/80 hover:text-primary hover:underline">
+                        Register here
+                    </Link>
+                </p>
+            </div>
+            <p className="mt-8 text-center text-sm text-muted-foreground">CampusConnect © 2024</p>
+        </div>
     </main>
   )
 }
