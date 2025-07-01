@@ -31,12 +31,22 @@ export const mockFaculty: User = {
     department: 'Computer Science'
 };
 
-export const allUsers: User[] = [mockStudent, mockOrganiser, mockFaculty];
+export const mockUjwalaFaculty: User = {
+    id: 'user-faculty-ujwala',
+    name: 'Ujwala',
+    email: 'ujwala@gmail.com',
+    avatar: 'https://placehold.co/100x100.png',
+    role: 'faculty',
+    department: 'Engineering'
+};
+
+export const allUsers: User[] = [mockStudent, mockOrganiser, mockFaculty, mockUjwalaFaculty];
 
 export const usersById: Record<string, User> = {
   [mockStudent.id]: mockStudent,
   [mockOrganiser.id]: mockOrganiser,
   [mockFaculty.id]: mockFaculty,
+  [mockUjwalaFaculty.id]: mockUjwalaFaculty,
 };
 
 export const mockEvents: Event[] = [

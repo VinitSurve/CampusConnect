@@ -58,7 +58,11 @@ export default function AuthenticationPage() {
 
             if (response.ok) {
                 toast({ title: "Login Successful", description: `Welcome back, ${user.name}!` });
-                router.push("/dashboard");
+                if (user.role === 'faculty') {
+                  router.push("/admin");
+                } else {
+                  router.push("/dashboard");
+                }
                 router.refresh(); // Ensure layout re-renders with new user state
             } else {
                 setLoginError("Login failed. Please check your credentials.");
@@ -96,7 +100,11 @@ export default function AuthenticationPage() {
             ? `Welcome, ${googleUser.displayName}!` 
             : `Welcome back, ${user.name}!`;
           toast({ title: "Login Successful", description: welcomeMessage });
-          router.push("/dashboard");
+          if (user.role === 'faculty') {
+            router.push("/admin");
+          } else {
+            router.push("/dashboard");
+          }
           router.refresh(); 
       } else {
           setLoginError("Login failed. Please try again.");

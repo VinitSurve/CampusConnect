@@ -86,7 +86,11 @@ export default function RegisterPage() {
           ? `Welcome, ${googleUser.displayName}!` 
           : `Welcome back, ${user.name}!`;
         toast({ title: "Authentication Successful", description: welcomeMessage });
-        router.push("/dashboard");
+        if (user.role === 'faculty') {
+          router.push("/admin");
+        } else {
+          router.push("/dashboard");
+        }
         router.refresh(); 
       } else {
         setAuthError("Authentication failed. Please try again.");
