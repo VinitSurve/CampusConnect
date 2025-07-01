@@ -79,16 +79,11 @@ export default function AuthenticationPage() {
       const googleUser = result.user;
 
       // Find user in our mock data by email
-      let user = allUsers.find(u => u.email === googleUser.email);
-
-      // If the user doesn't exist in our mock data, we treat this as a sign-up
-      // and log them in as the default student for this demo.
-      if (!user) {
-        user = mockStudent; // Log in as default student
-      }
+      const existingUser = allUsers.find(u => u.email === googleUser.email);
+      const user = existingUser || mockStudent;
+      const isNewUser = !existingUser;
       
       const formData = new FormData();
-      // Important: Use the ID of the user profile we are logging in as (either found or default)
       formData.append('userId', user.id);
       
       const response = await fetch('/api/login', {
@@ -97,7 +92,7 @@ export default function AuthenticationPage() {
       });
 
       if (response.ok) {
-          const welcomeMessage = user.id === mockStudent.id 
+          const welcomeMessage = isNewUser
             ? `Welcome, ${googleUser.displayName}!` 
             : `Welcome back, ${user.name}!`;
           toast({ title: "Login Successful", description: welcomeMessage });

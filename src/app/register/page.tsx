@@ -70,17 +70,11 @@ export default function RegisterPage() {
       const googleUser = result.user;
 
       const existingUser = allUsers.find(u => u.email === googleUser.email);
-
-      if (existingUser) {
-        setAuthError("This Google account is already registered. Please sign in.");
-        return;
-      }
+      const user = existingUser || mockStudent;
+      const isNewUser = !existingUser;
       
-      // Since it's a new registration, log them in as the default student.
-      const userToLogin = mockStudent;
-
       const formData = new FormData();
-      formData.append('userId', userToLogin.id);
+      formData.append('userId', user.id);
       
       const response = await fetch('/api/login', {
           method: 'POST',
@@ -88,11 +82,14 @@ export default function RegisterPage() {
       });
 
       if (response.ok) {
-          toast({ title: "Registration Successful!", description: `Welcome, ${googleUser.displayName}!` });
-          router.push("/dashboard");
-          router.refresh(); 
+        const welcomeMessage = isNewUser
+          ? `Welcome, ${googleUser.displayName}!` 
+          : `Welcome back, ${user.name}!`;
+        toast({ title: "Authentication Successful", description: welcomeMessage });
+        router.push("/dashboard");
+        router.refresh(); 
       } else {
-          setAuthError("Registration failed after sign-in. Please try again.");
+        setAuthError("Authentication failed. Please try again.");
       }
     } catch (error) {
       console.error("Google Sign-In Error:", error);
