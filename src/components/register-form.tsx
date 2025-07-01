@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +36,7 @@ export default function RegisterForm() {
   const [authError, setAuthError] = React.useState<string | null>(null)
   const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast()
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -52,8 +54,17 @@ export default function RegisterForm() {
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         if (userCredential.user && userCredential.user.email) {
-            await createSession(userCredential.user.email)
-            toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
+            const session = await createSession(userCredential.user.email)
+            if (session.success) {
+              toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
+              if (session.role === 'faculty') {
+                router.push('/admin');
+              } else {
+                router.push('/dashboard');
+              }
+            } else {
+              throw new Error("Session creation failed after registration.")
+            }
         } else {
             throw new Error("Could not retrieve user information after registration.")
         }
@@ -78,8 +89,17 @@ export default function RegisterForm() {
           const googleUser = result.user;
 
           if (googleUser && googleUser.email) {
-            await createSession(googleUser.email);
-            toast({ title: "Signed in with Google!" });
+            const session = await createSession(googleUser.email);
+            if (session.success) {
+              toast({ title: "Signed in with Google!" });
+              if (session.role === 'faculty') {
+                router.push('/admin')
+              } else {
+                router.push('/dashboard')
+              }
+            } else {
+              throw new Error("Session creation failed after Google Sign-In.");
+            }
           } else {
             throw new Error("Could not retrieve user information from Google.");
           }

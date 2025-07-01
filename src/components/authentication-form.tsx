@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +30,7 @@ export default function AuthenticationForm() {
   const [authError, setAuthError] = React.useState<string | null>(null)
   const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast()
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -45,8 +47,17 @@ export default function AuthenticationForm() {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
         if (userCredential.user && userCredential.user.email) {
-          await createSession(userCredential.user.email)
-          toast({ title: "Login Successful!" })
+          const session = await createSession(userCredential.user.email)
+          if (session.success) {
+            toast({ title: "Login Successful!" })
+            if (session.role === 'faculty') {
+              router.push('/admin')
+            } else {
+              router.push('/dashboard')
+            }
+          } else {
+            throw new Error("Session creation failed.")
+          }
         } else {
             throw new Error("Could not retrieve user information after login.")
         }
@@ -80,8 +91,17 @@ export default function AuthenticationForm() {
           const googleUser = result.user;
 
           if (googleUser && googleUser.email) {
-            await createSession(googleUser.email);
-            toast({ title: "Signed in with Google!" });
+            const session = await createSession(googleUser.email);
+            if (session.success) {
+              toast({ title: "Signed in with Google!" });
+              if (session.role === 'faculty') {
+                router.push('/admin')
+              } else {
+                router.push('/dashboard')
+              }
+            } else {
+              throw new Error("Session creation failed after Google Sign-In.");
+            }
           } else {
             throw new Error("Could not retrieve user information from Google.");
           }
