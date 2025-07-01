@@ -16,7 +16,7 @@ import { Fingerprint, Lock, Mail, Eye, EyeOff } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { auth } from "@/lib/firebase"
-import { createSession } from "@/app/actions"
+import { login, loginOrRegisterWithGoogle } from "@/app/actions"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -43,17 +43,17 @@ export default function AuthenticationForm() {
     setAuthError(null)
     startTransition(async () => {
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-        if (userCredential.user && userCredential.user.email) {
-          const session = await createSession(userCredential.user.email)
-          if (session.success && session.redirectTo) {
-            toast({ title: "Login Successful!" })
-            window.location.href = session.redirectTo;
-          } else {
-            throw new Error("Session creation failed.")
-          }
+        // 1. Sign in with Firebase
+        await signInWithEmailAndPassword(auth, values.email, values.password);
+        
+        // 2. Create session in our system
+        const session = await login(values.email)
+        if (session.success && session.redirectTo) {
+          toast({ title: "Login Successful!" })
+          window.location.href = session.redirectTo;
         } else {
-            throw new Error("Could not retrieve user information after login.")
+          // Use the error from the server action if available
+          throw new Error(session.error || "Session creation failed.")
         }
       } catch (error: any) {
         if (error.code) {
@@ -81,16 +81,18 @@ export default function AuthenticationForm() {
     startTransition(async () => {
         const provider = new GoogleAuthProvider();
         try {
+          // 1. Sign in with Google via Firebase
           const result = await signInWithPopup(auth, provider);
           const googleUser = result.user;
 
-          if (googleUser && googleUser.email) {
-            const session = await createSession(googleUser.email);
-            if (session.success && session.redirectTo) {
+          if (googleUser && googleUser.email && googleUser.displayName) {
+            // 2. Login or Register user in our system and create session
+            const sessionResult = await loginOrRegisterWithGoogle(googleUser.displayName, googleUser.email);
+            if (sessionResult.success && sessionResult.redirectTo) {
               toast({ title: "Signed in with Google!" });
-              window.location.href = session.redirectTo;
+              window.location.href = sessionResult.redirectTo;
             } else {
-              throw new Error("Session creation failed after Google Sign-In.");
+              throw new Error(sessionResult.error || "Session creation failed after Google Sign-In.");
             }
           } else {
             throw new Error("Could not retrieve user information from Google.");

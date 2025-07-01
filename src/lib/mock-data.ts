@@ -40,9 +40,11 @@ export const mockUjwalaFaculty: User = {
     department: 'Engineering'
 };
 
-export const allUsers: User[] = [mockStudent, mockOrganiser, mockFaculty, mockUjwalaFaculty];
+// Changed to `let` to allow adding new users during registration
+export let allUsers: User[] = [mockStudent, mockOrganiser, mockFaculty, mockUjwalaFaculty];
 
-export const usersById: Record<string, User> = {
+// Changed to `let` to allow adding new users during registration
+export let usersById: Record<string, User> = {
   [mockStudent.id]: mockStudent,
   [mockOrganiser.id]: mockOrganiser,
   [mockFaculty.id]: mockFaculty,

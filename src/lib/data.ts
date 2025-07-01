@@ -21,6 +21,35 @@ export async function getUserById(userId: string): Promise<User | undefined> {
   return usersById[userId];
 }
 
+export async function createUser(userData: Omit<User, 'id' | 'avatar'>): Promise<User> {
+  await delay(100);
+  const existingUser = await getUserByEmail(userData.email);
+  if (existingUser) {
+    throw new Error('User with this email already exists.');
+  }
+
+  const newUser: User = {
+    id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    ...userData,
+    avatar: 'https://placehold.co/100x100.png',
+    // Assign default values for optional fields if not provided
+    ...(userData.role === 'student' && {
+        course: userData.course || 'Undeclared',
+        year: userData.year || 1,
+        interests: userData.interests || [],
+    }),
+    ...(userData.role === 'faculty' && {
+        department: userData.department || 'General Studies'
+    })
+  };
+
+  allUsers.push(newUser);
+  usersById[newUser.id] = newUser;
+
+  return newUser;
+}
+
+
 export async function getEvents(): Promise<Event[]> {
   await delay(200);
   return mockEvents;

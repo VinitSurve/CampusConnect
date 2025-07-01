@@ -16,7 +16,7 @@ import { Fingerprint, Lock, Mail, Eye, EyeOff, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { auth } from "@/lib/firebase"
-import { createSession } from "@/app/actions"
+import { register, loginOrRegisterWithGoogle } from "@/app/actions"
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -50,17 +50,17 @@ export default function RegisterForm() {
     setAuthError(null);
     startTransition(async () => {
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        if (userCredential.user && userCredential.user.email) {
-            const session = await createSession(userCredential.user.email)
-            if (session.success && session.redirectTo) {
-              toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
-              window.location.href = session.redirectTo;
-            } else {
-              throw new Error("Session creation failed after registration.")
-            }
+        // 1. Create user in Firebase Auth
+        await createUserWithEmailAndPassword(auth, values.email, values.password);
+        
+        // 2. Register user in our system and create session
+        const result = await register(values.name, values.email, values.role);
+
+        if (result.success && result.redirectTo) {
+          toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
+          window.location.href = result.redirectTo;
         } else {
-            throw new Error("Could not retrieve user information after registration.")
+          throw new Error(result.error || "Failed to register user.");
         }
       } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
@@ -79,16 +79,18 @@ export default function RegisterForm() {
     startTransition(async () => {
         const provider = new GoogleAuthProvider();
         try {
+          // 1. Sign in with Google via Firebase
           const result = await signInWithPopup(auth, provider);
           const googleUser = result.user;
 
-          if (googleUser && googleUser.email) {
-            const session = await createSession(googleUser.email);
-            if (session.success && session.redirectTo) {
+          if (googleUser && googleUser.email && googleUser.displayName) {
+            // 2. Login or Register user in our system and create session
+            const sessionResult = await loginOrRegisterWithGoogle(googleUser.displayName, googleUser.email);
+            if (sessionResult.success && sessionResult.redirectTo) {
               toast({ title: "Signed in with Google!" });
-              window.location.href = session.redirectTo;
+              window.location.href = sessionResult.redirectTo;
             } else {
-              throw new Error("Session creation failed after Google Sign-In.");
+              throw new Error(sessionResult.error || "Session creation failed after Google Sign-In.");
             }
           } else {
             throw new Error("Could not retrieve user information from Google.");

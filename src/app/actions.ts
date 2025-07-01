@@ -2,30 +2,64 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getUserByEmail } from '@/lib/data'
-import { mockStudent } from '@/lib/mock-data'
+import { getUserByEmail, createUser } from '@/lib/data'
 import type { User } from '@/types'
 
-export async function createSession(email: string): Promise<{ success: boolean; redirectTo?: string }> {
+export async function login(email: string) {
   try {
-    let user: User | undefined = await getUserByEmail(email);
+    const user = await getUserByEmail(email);
 
-    // If user does not exist in our mock data, it's a new registration.
-    // Log them in as the default student to demonstrate the flow.
     if (!user) {
-      console.log(`New user registered with email: ${email}. Logging in as mock student.`)
-      user = mockStudent;
+      return { success: false, error: "User not found. Please register." };
     }
     
-    // Set the session cookie
     cookies().set('userId', user.id, { httpOnly: true, path: '/' })
 
     const redirectTo = user.role === 'faculty' ? '/admin' : '/dashboard';
     return { success: true, redirectTo };
   } catch (error) {
-    console.error("Session creation failed:", error);
-    return { success: false };
+    console.error("Login failed:", error);
+    return { success: false, error: "An unexpected error occurred." };
   }
+}
+
+export async function register(name: string, email: string, role: 'student' | 'faculty') {
+    try {
+        const existingUser = await getUserByEmail(email);
+        if (existingUser) {
+            return { success: false, error: "An account with this email already exists." };
+        }
+
+        const newUser = await createUser({ name, email, role });
+        
+        cookies().set('userId', newUser.id, { httpOnly: true, path: '/' });
+
+        const redirectTo = newUser.role === 'faculty' ? '/admin' : '/dashboard';
+        return { success: true, redirectTo };
+    } catch (error) {
+        console.error("Registration failed:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred during registration.";
+        return { success: false, error: errorMessage };
+    }
+}
+
+export async function loginOrRegisterWithGoogle(name: string, email: string) {
+    try {
+        let user = await getUserByEmail(email);
+
+        if (!user) {
+            // New Google user, register them as a student by default
+            user = await createUser({ name, email, role: 'student' });
+        }
+
+        cookies().set('userId', user.id, { httpOnly: true, path: '/' });
+
+        const redirectTo = user.role === 'faculty' ? '/admin' : '/dashboard';
+        return { success: true, redirectTo };
+    } catch (error) {
+        console.error("Google auth action failed:", error);
+        return { success: false, error: "An unexpected error occurred." };
+    }
 }
 
 
