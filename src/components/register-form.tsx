@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter } from "next/navigation"
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
@@ -36,7 +35,6 @@ export default function RegisterForm() {
   const [authError, setAuthError] = React.useState<string | null>(null)
   const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast()
-  const router = useRouter()
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -51,14 +49,16 @@ export default function RegisterForm() {
   async function onSubmit(values: z.infer<typeof registerSchema>) {
     setAuthError(null);
     startTransition(async () => {
-        const result = await registerWithCredentials(values);
-
-        if (result.success) {
-            toast({ title: "Registration Successful!", description: "You can now sign in with your credentials." });
-            router.push("/");
+      try {
+        await registerWithCredentials(values);
+        toast({ title: "Registration Successful!", description: "Welcome to CampusConnect." });
+      } catch (error) {
+        if (error instanceof Error) {
+            setAuthError(error.message);
         } else {
-            setAuthError(result.error || "An unknown error occurred.");
+            setAuthError("An unknown error occurred.");
         }
+      }
     });
   }
 
