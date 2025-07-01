@@ -34,6 +34,7 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
   const [authError, setAuthError] = React.useState<string | null>(null)
+  const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast()
   const router = useRouter()
 
@@ -49,48 +50,43 @@ export default function RegisterForm() {
 
   async function onSubmit(values: z.infer<typeof registerSchema>) {
     setAuthError(null);
-    
-    const result = await registerWithCredentials(values);
+    startTransition(async () => {
+        const result = await registerWithCredentials(values);
 
-    if (result.success) {
-        toast({ title: "Registration Successful!", description: "You can now sign in with your credentials." });
-        router.push("/");
-    } else {
-        setAuthError(result.error || "An unknown error occurred.");
-    }
+        if (result.success) {
+            toast({ title: "Registration Successful!", description: "You can now sign in with your credentials." });
+            router.push("/");
+        } else {
+            setAuthError(result.error || "An unknown error occurred.");
+        }
+    });
   }
 
   async function handleGoogleSignIn() {
     setAuthError(null);
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const googleUser = result.user;
+    startTransition(async () => {
+        const provider = new GoogleAuthProvider();
+        try {
+          const result = await signInWithPopup(auth, provider);
+          const googleUser = result.user;
 
-      const authResult = await loginOrRegisterWithGoogle(
-        googleUser.email!,
-        googleUser.displayName!,
-        googleUser.photoURL!
-      );
-
-      if (authResult.success) {
-        const welcomeMessage = authResult.isNewUser
-          ? `Welcome, ${googleUser.displayName}!` 
-          : `Welcome back, ${authResult.user.name}!`;
-        toast({ title: "Authentication Successful", description: welcomeMessage });
-        if (authResult.user.role === 'faculty') {
-          router.push("/admin");
-        } else {
-          router.push("/dashboard");
+          await loginOrRegisterWithGoogle(
+            googleUser.email!,
+            googleUser.displayName!,
+            googleUser.photoURL!
+          );
+        } catch (error: any) {
+          if (error.code === 'auth/popup-closed-by-user') {
+            return;
+          }
+          console.error("Google Sign-In Error:", error);
+          if (error instanceof Error) {
+            setAuthError(error.message);
+          } else {
+            setAuthError("Failed to sign in with Google. Please try again.");
+          }
         }
-        router.refresh(); 
-      } else {
-        setAuthError("Authentication failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Google Sign-In Error:", error);
-      setAuthError("Failed to register with Google. Please try again.");
-    }
+    });
   }
 
   return (
@@ -127,6 +123,7 @@ export default function RegisterForm() {
                                             placeholder="Enter your full name" 
                                             className="bg-input border-border/50 pl-10 text-foreground placeholder:text-muted-foreground" 
                                             {...field} 
+                                            disabled={isPending}
                                         />
                                     </div>
                                     <FormMessage />
@@ -146,6 +143,7 @@ export default function RegisterForm() {
                                             placeholder="Enter your email" 
                                             className="bg-input border-border/50 pl-10 text-foreground placeholder:text-muted-foreground" 
                                             {...field} 
+                                            disabled={isPending}
                                         />
                                     </div>
                                     <FormMessage />
@@ -165,11 +163,13 @@ export default function RegisterForm() {
                                             placeholder="Enter your password"
                                             className="bg-input border-border/50 pl-10 pr-10 text-foreground placeholder:text-muted-foreground"
                                             {...field}
+                                            disabled={isPending}
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            disabled={isPending}
                                         >
                                             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                         </button>
@@ -191,11 +191,13 @@ export default function RegisterForm() {
                                             placeholder="Confirm your password"
                                             className="bg-input border-border/50 pl-10 pr-10 text-foreground placeholder:text-muted-foreground"
                                             {...field}
+                                            disabled={isPending}
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            disabled={isPending}
                                         >
                                             {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                         </button>
@@ -218,13 +220,13 @@ export default function RegisterForm() {
                                     >
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
-                                        <RadioGroupItem value="student" id="student" />
+                                        <RadioGroupItem value="student" id="student" disabled={isPending}/>
                                         </FormControl>
                                         <FormLabel htmlFor="student" className="font-normal text-muted-foreground">Student</FormLabel>
                                     </FormItem>
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
-                                        <RadioGroupItem value="faculty" id="faculty" />
+                                        <RadioGroupItem value="faculty" id="faculty" disabled={isPending}/>
                                         </FormControl>
                                         <FormLabel htmlFor="faculty" className="font-normal text-muted-foreground">Faculty</FormLabel>
                                     </FormItem>
@@ -235,7 +237,8 @@ export default function RegisterForm() {
                             )}
                             />
 
-                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
+                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base" disabled={isPending}>
+                             {isPending && <Icons.logo className="mr-2 h-4 w-4 animate-spin" />}
                             Create account
                         </Button>
                     </form>
@@ -247,8 +250,8 @@ export default function RegisterForm() {
                     <div className="flex-grow border-t border-border/30"></div>
                 </div>
 
-                <Button variant="outline" className="w-full bg-transparent border-border/40 hover:bg-input text-foreground" onClick={handleGoogleSignIn}>
-                    <Icons.google className="mr-2 h-5 w-5" />
+                <Button variant="outline" className="w-full bg-transparent border-border/40 hover:bg-input text-foreground" onClick={handleGoogleSignIn} disabled={isPending}>
+                     {isPending && <Icons.logo className="mr-2 h-4 w-4 animate-spin" />}
                     Continue with Google
                 </Button>
 

@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter } from "next/navigation"
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
@@ -28,8 +27,8 @@ const loginSchema = z.object({
 export default function AuthenticationForm() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [loginError, setLoginError] = React.useState<string | null>(null)
+  const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast()
-  const router = useRouter()
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -42,52 +41,45 @@ export default function AuthenticationForm() {
 
   async function onSubmit(values: z.infer<typeof loginSchema>) {
     setLoginError(null)
-    const result = await loginWithCredentials(values.email)
-
-    if (result.success && result.user) {
-        toast({ title: "Login Successful", description: `Welcome back, ${result.user.name}!` })
-        if (result.user.role === 'faculty') {
-          router.push("/admin")
+    startTransition(async () => {
+      try {
+        await loginWithCredentials(values.email)
+        toast({ title: "Login Successful!" })
+      } catch (error) {
+        if (error instanceof Error) {
+          setLoginError(error.message)
         } else {
-          router.push("/dashboard")
+          setLoginError("An unknown error occurred.")
         }
-        router.refresh()
-    } else {
-      setLoginError(result.error || "Login failed. Please check your credentials.")
-    }
+      }
+    })
   }
 
   async function handleGoogleSignIn() {
     setLoginError(null);
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const googleUser = result.user;
+    startTransition(async () => {
+        const provider = new GoogleAuthProvider();
+        try {
+          const result = await signInWithPopup(auth, provider);
+          const googleUser = result.user;
 
-      const authResult = await loginOrRegisterWithGoogle(
-        googleUser.email!,
-        googleUser.displayName!,
-        googleUser.photoURL!
-      );
-
-      if (authResult.success) {
-          const welcomeMessage = authResult.isNewUser
-            ? `Welcome, ${authResult.user.name}!` 
-            : `Welcome back, ${authResult.user.name}!`;
-          toast({ title: "Login Successful", description: welcomeMessage });
-          if (authResult.user.role === 'faculty') {
-            router.push("/admin");
-          } else {
-            router.push("/dashboard");
+          await loginOrRegisterWithGoogle(
+            googleUser.email!,
+            googleUser.displayName!,
+            googleUser.photoURL!
+          );
+        } catch (error: any) {
+          if (error.code === 'auth/popup-closed-by-user') {
+            return;
           }
-          router.refresh(); 
-      } else {
-          setLoginError("Login failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Google Sign-In Error:", error);
-      setLoginError("Failed to sign in with Google. Please try again.");
-    }
+          console.error("Google Sign-In Error:", error);
+          if (error instanceof Error) {
+            setLoginError(error.message);
+          } else {
+            setLoginError("Failed to sign in with Google. Please try again.");
+          }
+        }
+    });
   }
 
   return (
@@ -125,6 +117,7 @@ export default function AuthenticationForm() {
                                             placeholder="Enter your email" 
                                             className="bg-input border-border/50 pl-10 text-foreground placeholder:text-muted-foreground" 
                                             {...field} 
+                                            disabled={isPending}
                                         />
                                     </div>
                                     <FormMessage />
@@ -144,11 +137,13 @@ export default function AuthenticationForm() {
                                             placeholder="Enter your password"
                                             className="bg-input border-border/50 pl-10 pr-10 text-foreground placeholder:text-muted-foreground"
                                             {...field}
+                                            disabled={isPending}
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            disabled={isPending}
                                         >
                                             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                         </button>
@@ -164,7 +159,7 @@ export default function AuthenticationForm() {
                                 render={({ field }) => (
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
-                                            <Checkbox id="remember" checked={field.value} onCheckedChange={field.onChange} className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"/>
+                                            <Checkbox id="remember" checked={field.value} onCheckedChange={field.onChange} className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary" disabled={isPending}/>
                                         </FormControl>
                                         <label htmlFor="remember" className="text-sm font-medium text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                             Remember me
@@ -177,7 +172,8 @@ export default function AuthenticationForm() {
                             </Link>
                         </div>
 
-                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
+                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base" disabled={isPending}>
+                            {isPending && <Icons.logo className="mr-2 h-4 w-4 animate-spin" />}
                             Sign in
                         </Button>
                     </form>
@@ -189,8 +185,8 @@ export default function AuthenticationForm() {
                     <div className="flex-grow border-t border-border/30"></div>
                 </div>
 
-                <Button variant="outline" className="w-full bg-transparent border-border/40 hover:bg-input text-foreground" onClick={handleGoogleSignIn}>
-                    <Icons.google className="mr-2 h-5 w-5" />
+                <Button variant="outline" className="w-full bg-transparent border-border/40 hover:bg-input text-foreground" onClick={handleGoogleSignIn} disabled={isPending}>
+                     {isPending && <Icons.logo className="mr-2 h-4 w-4 animate-spin" />}
                     Continue with Google
                 </Button>
 

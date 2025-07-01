@@ -6,16 +6,21 @@ import { getUserByEmail } from '@/lib/data'
 import type { User } from '@/types'
 import { mockStudent } from '@/lib/mock-data'
 
-export async function loginWithCredentials(email: string): Promise<{ success: boolean; error?: string; user?: User }> {
+export async function loginWithCredentials(email: string) {
   const user = await getUserByEmail(email)
 
-  if (user) {
-    // In a real app, you'd also verify the password here.
-    cookies().set('userId', user.id, { httpOnly: true, path: '/' })
-    return { success: true, user }
+  if (!user) {
+    throw new Error('Login failed. Please check your credentials.')
   }
 
-  return { success: false, error: 'No user found with that email.' }
+  // In a real app, you'd also verify the password here.
+  cookies().set('userId', user.id, { httpOnly: true, path: '/' })
+  
+  if (user.role === 'faculty') {
+    redirect('/admin')
+  } else {
+    redirect('/dashboard')
+  }
 }
 
 export async function registerWithCredentials(values: any): Promise<{success: boolean, error?: string}> {
@@ -31,20 +36,24 @@ export async function registerWithCredentials(values: any): Promise<{success: bo
     return { success: true }
 }
 
-export async function loginOrRegisterWithGoogle(email: string, name: string, avatar: string): Promise<{ success: boolean; user: User; isNewUser: boolean }> {
-  let existingUser = await getUserByEmail(email);
-  const isNewUser = !existingUser;
-  
-  // If user doesn't exist, we use the mockStudent template.
-  // This is consistent with the previous logic for demo purposes.
-  // In a real app, this would be a "create user" operation.
-  const user = existingUser || mockStudent;
+export async function loginOrRegisterWithGoogle(email: string, name: string, avatar: string) {
+  const existingUser = await getUserByEmail(email);
 
-  // In a real app with user creation, we might update the user's name/avatar from Google.
-  // For this demo, we'll just use the data from our "database".
+  if (!existingUser) {
+    // With a real database, we would create a new user here.
+    // With static mock data, we can't create a new user that will be found on the next request.
+    // Throwing an error is clearer than the previous buggy behavior of mapping all new users to a single mock student.
+    throw new Error("This Google account is not in our system. Please register with email and password first.");
+  }
+
+  // If user exists, log them in.
+  cookies().set('userId', existingUser.id, { httpOnly: true, path: '/' });
   
-  cookies().set('userId', user.id, { httpOnly: true, path: '/' });
-  return { success: true, user, isNewUser };
+  if (existingUser.role === 'faculty') {
+    redirect('/admin');
+  } else {
+    redirect('/dashboard');
+  }
 }
 
 
