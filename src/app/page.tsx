@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,7 @@ import { Fingerprint, Lock, Mail, Eye, EyeOff } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { allUsers } from "@/lib/mock-data"
+import { auth } from "@/lib/firebase"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -72,10 +74,40 @@ export default function AuthenticationPage() {
     }
   }
 
-  function handleGoogleSignIn() {
-    setLoginError("Failed to sign in with Google. Please try again.")
-    // Placeholder for Google Sign-In logic
-    console.log("Signing in with Google...")
+  async function handleGoogleSignIn() {
+    setLoginError(null);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const googleUser = result.user;
+
+      // Find user in our mock data by email
+      const user = allUsers.find(u => u.email === googleUser.email);
+
+      if (user) {
+        const formData = new FormData();
+        formData.append('userId', user.id);
+        
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            toast({ title: "Login Successful", description: `Welcome back, ${user.name}!` });
+            router.push("/dashboard");
+            router.refresh(); 
+        } else {
+            setLoginError("Login failed. Please try again.");
+        }
+      } else {
+        // This handles the "sign up" case where the Google account is not yet in our system
+        setLoginError("This Google account is not registered. Please sign up first.");
+      }
+    } catch (error) {
+      console.error("Google Sign-In Error:", error);
+      setLoginError("Failed to sign in with Google. Please try again.");
+    }
   }
 
   return (
