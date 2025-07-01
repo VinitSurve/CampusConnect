@@ -51,9 +51,6 @@ export default function AuthenticationPage() {
             const formData = new FormData();
             formData.append('userId', user.id);
             
-            // This is a client component, so we can't directly call a server action
-            // that uses cookies(). We need to use a form or fetch.
-            // Let's use fetch to a new API route for login.
             const response = await fetch('/api/login', {
                 method: 'POST',
                 body: formData
@@ -216,7 +213,7 @@ export default function AuthenticationPage() {
 
                 <p className="mt-8 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <Link href="#" className="font-medium text-primary/80 hover:text-primary hover:underline">
+                    <Link href="/register" className="font-medium text-primary/80 hover:text-primary hover:underline">
                         Register here
                     </Link>
                 </p>
