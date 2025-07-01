@@ -3,7 +3,7 @@ export type User = {
   name: string;
   email: string;
   avatar: string;
-  role: 'student' | 'faculty';
+  role: 'student' | 'organiser' | 'faculty';
   // Student-specific
   course?: string;
   year?: number;
@@ -43,7 +43,7 @@ export type Club = {
 };
 
 export type EventProposal = {
-  id: string;
+  id:string;
   title: string;
   proposer: string;
   date: string;

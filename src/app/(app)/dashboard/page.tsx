@@ -1,19 +1,27 @@
 import { recommendEvents, type RecommendEventsInput, type RecommendEventsOutput } from "@/ai/flows/event-recommendation"
 import { EventCard } from "@/components/event-card"
 import { Button } from "@/components/ui/button"
-import { mockEvents, mockUser } from "@/lib/mock-data"
+import { getCurrentUser } from "@/lib/auth"
+import { mockEvents } from "@/lib/mock-data"
 import type { Event } from "@/types"
 import { Calendar } from "lucide-react"
+import { redirect } from "next/navigation"
 
 export default async function DashboardPage() {
-  const allEvents = mockEvents.filter(e => e.status === 'upcoming')
+  const user = await getCurrentUser()
+
+  if (!user) {
+    redirect("/")
+  }
+
+  const allEvents = mockEvents.filter((e) => e.status === "upcoming")
 
   // Prepare input for AI recommendation
   const aiInput: RecommendEventsInput = {
     studentProfile: {
-      interests: mockUser.interests || [],
+      interests: user.interests || [],
     },
-    availableEvents: allEvents.map(e => ({
+    availableEvents: allEvents.map((e) => ({
       title: e.title,
       description: e.description,
       date: e.date,
@@ -24,18 +32,20 @@ export default async function DashboardPage() {
   }
 
   let recommendedEvents: RecommendEventsOutput = []
-  try {
-    recommendedEvents = await recommendEvents(aiInput)
-  } catch (error) {
-    console.error("AI recommendation failed:", error)
-    // Fallback or error handling
+  if (user.interests && user.interests.length > 0) {
+    try {
+      recommendedEvents = await recommendEvents(aiInput)
+    } catch (error) {
+      console.error("AI recommendation failed:", error)
+      // Fallback or error handling
+    }
   }
 
   // Map AI output back to full Event objects
   const recommendedEventObjects: Event[] = recommendedEvents
-    .map(recEvent => allEvents.find(e => e.title === recEvent.title))
+    .map((recEvent) => allEvents.find((e) => e.title === recEvent.title))
     .filter((e): e is Event => e !== undefined)
-    .slice(0, 3); // Limit to 3 recommendations for the dashboard
+    .slice(0, 3) // Limit to 3 recommendations for the dashboard
 
   const otherUpcomingEvents = allEvents.filter(
     (event) => !recommendedEventObjects.some((rec) => rec.id === event.id)
@@ -54,7 +64,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <p className="text-muted-foreground">
-          Welcome back, {mockUser.name}! Here's what's happening on campus.
+          Welcome back, {user.name}! Here's what's happening on campus.
         </p>
       </div>
 

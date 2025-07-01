@@ -13,8 +13,15 @@ import { mockClubs, mockEventProposals } from "@/lib/mock-data"
 import { Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getCurrentUser } from "@/lib/auth"
+import { redirect } from "next/navigation"
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const user = await getCurrentUser()
+  if (user?.role !== 'faculty') {
+    redirect('/dashboard')
+  }
+
   return (
     <div className="space-y-8">
       <div>

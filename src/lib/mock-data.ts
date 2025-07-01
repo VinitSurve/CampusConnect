@@ -1,7 +1,7 @@
 import type { User, Event, Club, EventProposal } from '@/types';
 
-export const mockUser: User = {
-  id: 'user-1',
+export const mockStudent: User = {
+  id: 'user-student',
   name: 'Alex Johnson',
   email: 'alex.j@university.edu',
   avatar: 'https://placehold.co/100x100.png',
@@ -11,14 +11,33 @@ export const mockUser: User = {
   interests: ['technology', 'music', 'gaming', 'sustainability'],
 };
 
+export const mockOrganiser: User = {
+  id: 'user-organiser',
+  name: 'Ben Carter',
+  email: 'ben.c@university.edu',
+  avatar: 'https://placehold.co/100x100.png',
+  role: 'organiser',
+  course: 'Event Management',
+  year: 2,
+  interests: ['social', 'planning', 'music', 'community'],
+};
+
 export const mockFaculty: User = {
-    id: 'faculty-1',
+    id: 'user-faculty',
     name: 'Dr. Evelyn Reed',
     email: 'e.reed@university.edu',
     avatar: 'https://placehold.co/100x100.png',
     role: 'faculty',
     department: 'Computer Science'
-}
+};
+
+export const allUsers: User[] = [mockStudent, mockOrganiser, mockFaculty];
+
+export const usersById: Record<string, User> = {
+  [mockStudent.id]: mockStudent,
+  [mockOrganiser.id]: mockOrganiser,
+  [mockFaculty.id]: mockFaculty,
+};
 
 export const mockEvents: Event[] = [
   {

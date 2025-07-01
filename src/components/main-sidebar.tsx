@@ -3,9 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  Calendar,
   FilePlus2,
-  GraduationCap,
   LayoutDashboard,
   Shield,
   Users,
@@ -23,16 +21,19 @@ import {
 } from "@/components/ui/sidebar"
 import { Separator } from "./ui/separator"
 import { Icons } from "./icons"
+import type { User } from "@/types"
 
-const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/clubs", icon: Users, label: "Clubs & Groups" },
-  { href: "/events/propose", icon: FilePlus2, label: "Propose Event" },
-  { href: "/admin", icon: Shield, label: "Faculty Admin" },
+const allNavItems = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ['student', 'organiser', 'faculty'] },
+  { href: "/clubs", icon: Users, label: "Clubs & Groups", roles: ['student', 'organiser', 'faculty'] },
+  { href: "/events/propose", icon: FilePlus2, label: "Propose Event", roles: ['student', 'organiser'] },
+  { href: "/admin", icon: Shield, label: "Faculty Admin", roles: ['faculty'] },
 ]
 
-export function MainSidebar() {
+export function MainSidebar({ user }: { user: User }) {
   const pathname = usePathname()
+
+  const navItems = allNavItems.filter(item => item.roles.includes(user.role))
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return pathname === path;
