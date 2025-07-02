@@ -49,15 +49,17 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
   
   const navItems = [
     { path: '/dashboard/events', label: 'Events', icon: '🎫' },
-    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/dashboard/host-event', label: 'Host Event', icon: '🎭' },
     { path: '/dashboard/clubs', label: 'Clubs', icon: '👥' },
     { path: '/dashboard/calendar', label: 'Calendar', icon: '📅' }
   ];
 
   const getActiveItem = () => {
-    const item = navItems.find(item => pathname === item.path || (pathname.startsWith(item.path) && item.path !== '/dashboard'));
-    return item ? item.label.toLowerCase() : (pathname === '/dashboard' ? 'dashboard' : '');
+    // Treat the base dashboard as the "Events" page for active state
+    if (pathname === '/dashboard') return 'events';
+    
+    const item = navItems.find(item => pathname.startsWith(item.path));
+    return item ? item.label.toLowerCase() : '';
   };
   
   const activeItem = getActiveItem();
