@@ -15,6 +15,7 @@ import { Sparkles } from "lucide-react";
 import { generateEventDescription } from "@/ai/flows/generate-event-description";
 import { generateEventTakeaways } from "@/ai/flows/generate-event-takeaways";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "./ui/button";
 
 interface HostEventFormProps {
     user: User;
@@ -36,6 +37,15 @@ const categories = [
 ];
 
 const availableCourses = ["All Students", "BCA", "BBA", "BAF", "MBA"];
+
+const equipmentList = [
+  { id: 'wirelessMics', name: 'Wireless Mics', max: 2 },
+  { id: 'collarMics', name: 'Collar Mics', max: 2 },
+  { id: 'tables', name: 'Tables', max: 1 },
+  { id: 'chairs', name: 'Chairs', max: 5 },
+  { id: 'waterBottles', name: 'Water Bottles (packs)', max: 10, step: 1 }, // Simpler step
+];
+
 
 export default function HostEventForm({ user }: HostEventFormProps) {
   const [form, setForm] = useState({
@@ -62,8 +72,38 @@ export default function HostEventForm({ user }: HostEventFormProps) {
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isGeneratingTakeaways, setIsGeneratingTakeaways] = useState(false);
 
+  const [equipmentQuantities, setEquipmentQuantities] = useState<Record<string, number>>({
+    wirelessMics: 0,
+    collarMics: 0,
+    tables: 0,
+    chairs: 0,
+    waterBottles: 0,
+  });
+
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    const equipmentString = equipmentList
+      .map(item => {
+        const quantity = equipmentQuantities[item.id];
+        return quantity > 0 ? `${item.name}: ${quantity}` : null;
+      })
+      .filter(Boolean)
+      .join('\n');
+    setForm(prev => ({ ...prev, equipmentNeeds: equipmentString }));
+  }, [equipmentQuantities]);
+
+  const handleQuantityChange = (itemId: string, delta: number, max: number) => {
+    setEquipmentQuantities(prev => {
+        const currentQuantity = prev[itemId] || 0;
+        const newQuantity = currentQuantity + delta;
+        return {
+            ...prev,
+            [itemId]: Math.max(0, Math.min(newQuantity, max)),
+        }
+    });
+  };
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -325,10 +365,38 @@ export default function HostEventForm({ user }: HostEventFormProps) {
               <Textarea value={form.keySpeakers} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="List each speaker on a new line, e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
             </div>
 
-            <div className="space-y-2">
-                <label className="text-white text-sm">Equipment Needs (Optional)</label>
-                <Textarea value={form.equipmentNeeds} onChange={(e) => setForm({ ...form, equipmentNeeds: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Projector, 2 microphones, whiteboard" />
+             <div className="space-y-4">
+              <label className="text-white text-sm">Equipment Needs (Optional)</label>
+              {equipmentList.map((item) => (
+                <div key={item.id} className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+                  <span className="text-white/90">{item.name}</span>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 bg-white/10"
+                      onClick={() => handleQuantityChange(item.id, -(item.step || 1), item.max)}
+                      disabled={equipmentQuantities[item.id] <= 0}
+                    >
+                      -
+                    </Button>
+                    <span className="w-8 text-center font-medium">{equipmentQuantities[item.id]}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 bg-white/10"
+                      onClick={() => handleQuantityChange(item.id, item.step || 1, item.max)}
+                      disabled={equipmentQuantities[item.id] >= item.max}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
+
              <div className="space-y-2">
                 <label className="text-white text-sm">Budget & Funding (Optional)</label>
                 <Textarea value={form.budgetDetails} onChange={(e) => setForm({ ...form, budgetDetails: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
