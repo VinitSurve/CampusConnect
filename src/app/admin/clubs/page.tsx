@@ -243,12 +243,9 @@ export default function AdminClubsPage() {
                                                 {students.map(student => (
                                                     <CommandItem
                                                         key={student.id}
-                                                        // By stringifying the student object, the command's search can
-                                                        // match against any property (name, email, etc.)
-                                                        value={JSON.stringify(student)}
-                                                        onSelect={(value) => {
-                                                            const selectedStudent: User = JSON.parse(value);
-                                                            handleSelectChange('leadId', selectedStudent.id);
+                                                        value={`${student.name} ${student.email}`}
+                                                        onSelect={() => {
+                                                            handleSelectChange('leadId', student.id);
                                                             setComboboxOpen(false);
                                                         }}
                                                     >
