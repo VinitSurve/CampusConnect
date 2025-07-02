@@ -20,6 +20,7 @@ export async function generateEventDescription(input: GenerateEventDescriptionIn
 
 const prompt = ai.definePrompt({
   name: 'generateEventDescriptionPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: GenerateEventDescriptionInputSchema },
   // No output schema means the output is a string
   prompt: `You are an expert event planner for a college campus.
