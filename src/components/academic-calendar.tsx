@@ -37,7 +37,7 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
             start: startDateTime,
             allDay: !data.time,
             extendedProps: { ...data, eventType: 'event' },
-            className: 'bg-primary border-primary text-primary-foreground hover:bg-primary/90'
+            className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary h-full'
           };
         });
 
@@ -62,7 +62,7 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
                 allDay: false,
                 display: 'block',
                 extendedProps: { ...data, eventType: 'timetable' },
-                className: 'bg-secondary border-secondary text-secondary-foreground hover:bg-secondary/90'
+                className: 'bg-secondary/30 text-secondary-foreground border-l-4 border-secondary h-full'
             }
         });
 
@@ -132,7 +132,8 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
           eventDrop={handleEventDrop}
           height="auto"
           slotMinTime="08:00:00"
-          slotMaxTime="18:00:00"
+          slotMaxTime="17:00:00"
+          slotLabelInterval="01:00:00"
         />
       )}
     </div>

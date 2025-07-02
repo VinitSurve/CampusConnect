@@ -137,15 +137,24 @@ body {
 
 .fc .fc-timegrid-slot-label-cushion {
   @apply text-sm text-white/70;
+  line-height: 1.5; /* Adjust for better vertical alignment */
 }
 
 .fc .fc-event {
-  @apply rounded-lg p-1 text-xs font-medium border-none shadow-md;
-  background-color: hsl(var(--secondary)) !important;
-  border-color: hsl(var(--secondary)) !important;
-  color: hsl(var(--secondary-foreground)) !important;
+  /* Reset FC defaults to allow Tailwind control */
+  background-color: transparent !important;
+  border: none !important;
+  @apply rounded-lg text-xs font-medium shadow-lg overflow-hidden;
 }
 
 .fc-v-event .fc-event-main {
-    @apply p-2;
+    @apply p-2 h-full flex flex-col justify-center;
+}
+
+.fc .fc-timegrid-slot-lane {
+    @apply hover:bg-white/5 transition-colors duration-200;
+}
+
+.fc .fc-timegrid-event-harness {
+    @apply p-0.5; /* Add a little gap between events */
 }
