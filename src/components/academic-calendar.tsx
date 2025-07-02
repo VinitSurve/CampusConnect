@@ -72,8 +72,8 @@ export default function AcademicCalendar({
 
     const eventDisplay = (
         <div className='w-full h-full p-2 overflow-hidden text-left cursor-pointer'>
-            <p className="font-semibold truncate text-sm">{eventInfo.event.title}</p>
-            {!isTimetable && <p className="text-xs truncate opacity-80">{eventInfo.timeText}</p>}
+            <p className="font-semibold truncate text-base">{eventInfo.event.title}</p>
+            {!isTimetable && <p className="text-sm truncate opacity-80">{eventInfo.timeText}</p>}
         </div>
     );
 
@@ -122,7 +122,7 @@ export default function AcademicCalendar({
             start: startDateTime,
             allDay: !data.time,
             extendedProps: { ...data, eventType: 'event' },
-            className: 'bg-primary/60 text-primary-foreground border-l-4 border-primary h-full'
+            className: 'bg-primary text-primary-foreground border-2 border-primary-foreground/20 h-full'
           };
         });
 
@@ -147,7 +147,7 @@ export default function AcademicCalendar({
                 allDay: false,
                 display: 'block',
                 extendedProps: { ...data, eventType: 'timetable' },
-                className: 'bg-secondary/50 text-secondary-foreground border-l-4 border-secondary h-full'
+                className: 'bg-secondary text-secondary-foreground border-2 border-secondary-foreground/20 h-full'
             }
         });
 
@@ -164,7 +164,7 @@ export default function AcademicCalendar({
                 allDay: false,
                 display: 'block',
                 extendedProps: { ...data, eventType: 'seminar', location: 'seminar' },
-                className: 'bg-purple-500/50 text-purple-100 border-l-4 border-purple-500 h-full'
+                className: 'bg-purple-600 text-purple-100 border-2 border-purple-400/50 h-full'
             }
         });
 

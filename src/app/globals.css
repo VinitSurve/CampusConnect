@@ -141,9 +141,9 @@ body {
 }
 
 .fc .fc-event {
-  /* Reset FC defaults to allow Tailwind control */
-  background-color: transparent !important;
-  border: none !important;
+  /* Let utility classes control styling */
+  background-color: transparent;
+  border: none;
   @apply rounded-lg text-sm font-medium shadow-lg overflow-hidden;
 }
 
