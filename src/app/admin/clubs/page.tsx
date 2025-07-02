@@ -5,6 +5,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { getClubs, getStudents } from '@/lib/data';
 import { saveClub, deleteClub } from './actions';
 import type { Club, User } from '@/types';
+import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -12,9 +13,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Users, User as UserIcon, BookUser, Mail } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Users, User as UserIcon, BookUser, Mail, Check, ChevronsUpDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
@@ -37,6 +40,7 @@ export default function AdminClubsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [currentClub, setCurrentClub] = useState<Partial<Club>>(DEFAULT_CLUB);
+    const [comboboxOpen, setComboboxOpen] = useState(false);
     
     const { toast } = useToast();
     
@@ -208,16 +212,50 @@ export default function AdminClubsPage() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                            <Select value={currentClub.leadId} onValueChange={value => handleSelectChange('leadId', value)}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select a student lead..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {students.map(student => (
-                                        <SelectItem key={student.id} value={student.id}>{student.name} ({student.email})</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={comboboxOpen}
+                                        className="col-span-3 justify-between bg-transparent text-white hover:bg-white/10 hover:text-white"
+                                    >
+                                        {currentClub.leadId
+                                            ? students.find(student => student.id === currentClub.leadId)?.name
+                                            : "Select a student lead..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search student..." />
+                                        <CommandEmpty>No student found.</CommandEmpty>
+                                        <CommandGroup>
+                                            {students.map(student => (
+                                                <CommandItem
+                                                    key={student.id}
+                                                    value={student.email}
+                                                    onSelect={(currentEmail) => {
+                                                        const selectedStudent = students.find(s => s.email === currentEmail);
+                                                        if (selectedStudent) {
+                                                            handleSelectChange('leadId', selectedStudent.id);
+                                                        }
+                                                        setComboboxOpen(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            currentClub.leadId === student.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {student.name} ({student.email})
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     </div>
                     <DialogFooter>
