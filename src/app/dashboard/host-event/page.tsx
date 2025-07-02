@@ -1,11 +1,15 @@
 
-export default function HostEventPage() {
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-      <div className="bg-white/10 backdrop-blur-xl rounded-xl p-8 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-white">Host an Event</h1>
-        <p className="text-white/80 mt-2">This feature is coming soon.</p>
-      </div>
-    </div>
-  );
+import { getCurrentUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import HostEventForm from '@/components/host-event-form';
+import type { User } from '@/types';
+
+export default async function HostEventPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  return <HostEventForm user={user} />;
 }

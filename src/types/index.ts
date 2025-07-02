@@ -7,7 +7,7 @@ export type User = {
   email: string;
   mobile?: string;
   avatar: string;
-  role: 'student' | 'organiser' | 'faculty' | 'admin';
+  role: 'student' | 'faculty' | 'admin';
   // Student-specific
   course?: string;
   year?: string | number; // Can be string ('I', 'II') or number
@@ -44,12 +44,21 @@ export type Club = {
   members: number;
   contactEmail: string;
   facultyAdvisor: string;
+  leadId: string;
 };
 
 export type EventProposal = {
-  id:string;
+  id: string;
   title: string;
-  proposer: string;
+  location: string;
+  category: string;
+  registrationLink?: string;
+  clubId?: string;
+  clubName: string;
   date: string;
   status: 'pending' | 'approved' | 'rejected';
+  createdBy: string; // UID of user
+  creatorEmail: string;
+  createdAt: any; // Firebase ServerTimestamp
+  proposer?: string;
 };

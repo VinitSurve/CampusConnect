@@ -2,6 +2,7 @@ import type { User, Event, Club, EventProposal } from '@/types';
 
 export const mockStudent: User = {
   id: 'user-student',
+  uid: 'user-student',
   name: 'Alex Johnson',
   email: 'alex.j@university.edu',
   avatar: 'https://placehold.co/100x100.png',
@@ -13,10 +14,11 @@ export const mockStudent: User = {
 
 export const mockOrganiser: User = {
   id: 'user-organiser',
+  uid: 'user-organiser',
   name: 'Ben Carter',
   email: 'ben.c@university.edu',
   avatar: 'https://placehold.co/100x100.png',
-  role: 'organiser',
+  role: 'student', // Organiser is a student who is a club lead
   course: 'Event Management',
   year: 2,
   interests: ['social', 'planning', 'music', 'community'],
@@ -24,6 +26,7 @@ export const mockOrganiser: User = {
 
 export const mockFaculty: User = {
     id: 'user-faculty',
+    uid: 'user-faculty',
     name: 'Dr. Evelyn Reed',
     email: 'e.reed@university.edu',
     avatar: 'https://placehold.co/100x100.png',
@@ -33,6 +36,7 @@ export const mockFaculty: User = {
 
 export const mockUjwalaFaculty: User = {
     id: 'user-faculty-ujwala',
+    uid: 'user-faculty-ujwala',
     name: 'Ujwala',
     email: 'ujwala@gmail.com',
     avatar: 'https://placehold.co/100x100.png',
@@ -59,7 +63,7 @@ export const mockEvents: Event[] = [
     longDescription: 'The Annual Hackathon is back! This year, we challenge you to build projects that address sustainability goals. Mentors from top tech companies will be available. Food, drinks, and swag provided. All skill levels welcome.',
     date: '2024-10-26',
     time: '18:00',
-    location: 'Engineering Building, Rm 101',
+    location: 'lab401',
     organizer: 'CS Club',
     category: 'Technology',
     image: 'https://placehold.co/600x400.png',
@@ -77,7 +81,7 @@ export const mockEvents: Event[] = [
     longDescription: 'End the semester with a bang! Our annual Music Fest features talented local and student bands. Bring a blanket, relax on the green, and enjoy the music. Food trucks will offer a variety of delicious options.',
     date: '2024-09-15',
     time: '14:00',
-    location: 'Central Campus Green',
+    location: 'seminar',
     organizer: 'Student Life Office',
     category: 'Music',
     image: 'https://placehold.co/600x400.png',
@@ -113,7 +117,7 @@ export const mockEvents: Event[] = [
     longDescription: 'Join us for an insightful lecture by renowned AI researcher Dr. Anya Sharma. She will discuss the ethical implications of artificial intelligence and its growing impact on society. A Q&A session will follow the talk.',
     date: '2024-10-29',
     time: '16:00',
-    location: 'Physics Auditorium',
+    location: 'seminar',
     organizer: 'Philosophy Department',
     category: 'Academic',
     image: 'https://placehold.co/600x400.png',
@@ -137,6 +141,7 @@ export const mockClubs: Club[] = [
     members: 125,
     contactEmail: 'cs.club@university.edu',
     facultyAdvisor: 'Dr. Alan Grant',
+    leadId: 'user-organiser'
   },
   {
     id: 'club-2',
@@ -147,6 +152,7 @@ export const mockClubs: Club[] = [
     members: 68,
     contactEmail: 'photo.club@university.edu',
     facultyAdvisor: 'Prof. Sarah Harding',
+    leadId: 'user-student' // Example, Alex can lead this
   },
   {
     id: 'club-3',
@@ -157,6 +163,7 @@ export const mockClubs: Club[] = [
     members: 45,
     contactEmail: 'debate@university.edu',
     facultyAdvisor: 'Dr. Ian Malcolm',
+    leadId: ''
   },
   {
     id: 'club-4',
@@ -167,6 +174,7 @@ export const mockClubs: Club[] = [
     members: 92,
     contactEmail: 'green@university.edu',
     facultyAdvisor: 'Dr. Ellie Sattler',
+    leadId: ''
   },
 ];
 
@@ -176,28 +184,52 @@ export const mockEventProposals: EventProposal[] = [
         id: 'prop-1',
         title: 'Introduction to Quantum Computing Workshop',
         proposer: 'Physics Club',
+        clubName: 'Physics Club',
         date: '2024-11-15',
-        status: 'pending'
+        status: 'pending',
+        location: 'lab503',
+        category: 'academic',
+        createdBy: 'some-user-id',
+        creatorEmail: 'some-user@email.com',
+        createdAt: new Date(),
     },
     {
         id: 'prop-2',
         title: 'Annual Charity Bake Sale',
         proposer: 'Volunteer Action Group',
+        clubName: 'Volunteer Action Group',
         date: '2024-12-02',
-        status: 'pending'
+        status: 'pending',
+        location: 'seminar',
+        category: 'social',
+        createdBy: 'some-user-id',
+        creatorEmail: 'some-user@email.com',
+        createdAt: new Date(),
     },
     {
         id: 'prop-3',
         title: 'Outdoor Movie Night: Sci-Fi Classics',
         proposer: 'Film Society',
+        clubName: 'Film Society',
         date: '2024-10-20',
-        status: 'approved'
+        status: 'approved',
+        location: 'Central Campus Green',
+        category: 'social',
+        createdBy: 'some-user-id',
+        creatorEmail: 'some-user@email.com',
+        createdAt: new Date(),
     },
     {
         id: 'prop-4',
         title: 'Inter-departmental Paintball Tournament',
         proposer: 'Recreation Committee',
+        clubName: 'Recreation Committee',
         date: '2024-11-09',
-        status: 'rejected'
+        status: 'rejected',
+        location: 'Sports Complex',
+        category: 'sports',
+        createdBy: 'some-user-id',
+        creatorEmail: 'some-user@email.com',
+        createdAt: new Date(),
     }
 ]
