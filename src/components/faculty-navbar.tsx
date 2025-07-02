@@ -41,6 +41,7 @@ export default function FacultyNavbar({ user }: FacultyNavbarProps) {
   const navItems = [
     { path: '/admin', label: 'Dashboard' },
     { path: '/admin/calendar', label: 'Lab Timetable' },
+    { path: '/admin/seminar-hall', label: 'Seminar Hall' },
     { path: '/admin/clubs', label: 'Clubs' },
     { path: '/admin/faculties', label: 'Faculties' },
   ];

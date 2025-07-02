@@ -85,3 +85,14 @@ export type TimetableEntry = {
   createdAt?: any; // Firestore ServerTimestamp
   updatedAt?: any; // Firestore ServerTimestamp
 };
+
+export type SeminarBooking = {
+  id: string;
+  title: string;
+  organizer: string;
+  dayOfWeek: number; // 1=Mon, 2=Tues, etc.
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  createdAt?: any;
+  updatedAt?: any;
+};
