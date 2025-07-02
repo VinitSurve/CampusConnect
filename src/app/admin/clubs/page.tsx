@@ -44,39 +44,47 @@ export default function AdminClubsPage() {
     
     const { toast } = useToast();
     
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [clubsData, studentsData] = await Promise.all([getClubs(), getStudents()]);
-                setClubs(clubsData);
-                setStudents(studentsData);
-            } catch (error) {
-                toast({ title: "Error", description: "Failed to fetch data.", variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [toast]);
-
-    const handleAddNew = () => {
-        setCurrentClub(DEFAULT_CLUB);
-        setIsEditMode(false);
-        setIsDialogOpen(true);
+    const refreshData = async () => {
+        try {
+            const [clubsData, studentsData] = await Promise.all([getClubs(), getStudents()]);
+            setClubs(clubsData);
+            setStudents(studentsData);
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to fetch data.", variant: "destructive" });
+        }
     };
+    
+    useEffect(() => {
+        setLoading(true);
+        refreshData().finally(() => setLoading(false));
+    }, []);
 
-    const handleEdit = (club: Club) => {
-        setCurrentClub(club);
-        setIsEditMode(true);
-        setIsDialogOpen(true);
+    const handleOpenForm = async (club?: Club) => {
+        try {
+            // Always get the latest student list before opening the form
+            const studentsData = await getStudents();
+            setStudents(studentsData);
+
+            if (club) {
+                // Edit mode
+                setCurrentClub(club);
+                setIsEditMode(true);
+            } else {
+                // Add new mode
+                setCurrentClub(DEFAULT_CLUB);
+                setIsEditMode(false);
+            }
+            setIsDialogOpen(true);
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to load up-to-date student list.", variant: "destructive" });
+        }
     };
 
     const handleDelete = (clubId: string) => {
         startTransition(async () => {
             const result = await deleteClub(clubId);
             if (result.success) {
-                setClubs(prev => prev.filter(c => c.id !== clubId));
+                await refreshData();
                 toast({ title: "Success", description: "Club deleted successfully." });
             } else {
                 toast({ title: "Error", description: result.error, variant: "destructive" });
@@ -95,7 +103,7 @@ export default function AdminClubsPage() {
             if (result.success) {
                 setIsDialogOpen(false);
                 toast({ title: "Success", description: `Club ${isEditMode ? 'updated' : 'created'} successfully.` });
-                getClubs().then(setClubs);
+                await refreshData();
             } else {
                 toast({ title: "Error", description: result.error, variant: "destructive" });
             }
@@ -129,7 +137,7 @@ export default function AdminClubsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-white">Manage Clubs</h1>
-                <Button onClick={handleAddNew} className="gap-2"><PlusCircle /> Add New Club</Button>
+                <Button onClick={() => handleOpenForm()} className="gap-2"><PlusCircle /> Add New Club</Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -157,7 +165,7 @@ export default function AdminClubsPage() {
                         </div>
 
                         <div className="p-3 bg-black/20 border-t border-white/10 flex justify-end gap-2">
-                           <Button variant="ghost" size="icon" onClick={() => handleEdit(club)} className="text-white/70 hover:text-white hover:bg-white/20"><Edit /></Button>
+                           <Button variant="ghost" size="icon" onClick={() => handleOpenForm(club)} className="text-white/70 hover:text-white hover:bg-white/20"><Edit /></Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-400 hover:bg-red-900/50"><Trash2 /></Button>
