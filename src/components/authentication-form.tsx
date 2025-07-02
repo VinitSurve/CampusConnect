@@ -1,14 +1,15 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword, 
-  GoogleAuthProvider, 
-  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   type User as FirebaseUser
 } from "firebase/auth";
@@ -43,6 +44,33 @@ export default function AuthenticationForm() {
   const [registerErrors, setRegisterErrors] = useState<any>({});
   const [registerLoading, setRegisterLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+
+  // New state to handle redirect check
+  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
+
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // User has successfully signed in via redirect.
+          setGoogleLoading(true); // Use googleLoading state to show feedback
+          await handleSuccessfulLogin(result.user);
+        }
+      } catch (error: any) {
+        // Handle specific errors if necessary, e.g., auth/account-exists-with-different-credential
+        console.error("Google Sign-In redirect error:", error);
+        if (error.code !== 'auth/no-redirect-operation') {
+          setLoginError("Failed to sign in with Google. Please try again.");
+        }
+      } finally {
+        setIsCheckingRedirect(false); // Finished checking, show the form
+      }
+    };
+
+    checkRedirectResult();
+  }, []); // Run only once on component mount
+
 
   const handleSuccessfulLogin = async (user: FirebaseUser) => {
       const userDocRef = doc(db, "users", user.uid);
@@ -90,22 +118,18 @@ export default function AuthenticationForm() {
     ];
     return facultyEmails.includes(email);
   };
-
-  const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
-  };
-
+  
+  // Updated Google Login to use redirect
   const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
     try {
       setLoginError("");
       setGoogleLoading(true);
-      const userCredential = await loginWithGoogle();
-      await handleSuccessfulLogin(userCredential.user);
+      await signInWithRedirect(auth, provider);
+      // The page will now redirect to Google. The result is handled by the useEffect.
     } catch (err) {
       console.error("Google login failed:", err);
       setLoginError("Failed to sign in with Google. Please try again.");
-    } finally {
       setGoogleLoading(false);
     }
   };
@@ -206,6 +230,20 @@ export default function AuthenticationForm() {
       setRegisterLoading(false);
     }
   };
+  
+  if (isCheckingRedirect || googleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900">
+        <div className="text-white text-xl flex items-center">
+          <svg className="animate-spin -ml-1 mr-3 h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Signing in...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center overflow-hidden font-sans bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 p-4 [perspective:1000px]">
