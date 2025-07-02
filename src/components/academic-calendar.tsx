@@ -8,7 +8,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
 import { db } from '@/lib/firebase';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
-import type { Event } from '@/types';
+import type { Event, TimetableEntry } from '@/types';
 
 interface AcademicCalendarProps {
   onDateSelect?: (selectInfo: DateSelectArg) => void;
@@ -19,52 +19,83 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchCalendarData = async () => {
+      setLoading(true);
       try {
-        const q = query(
+        // Fetch regular events
+        const eventsQuery = query(
           collection(db, "events"),
           orderBy("date", "asc")
         );
-        const querySnapshot = await getDocs(q);
-        const eventData = querySnapshot.docs.map((doc) => {
+        const eventsSnapshot = await getDocs(eventsQuery);
+        const regularEvents = eventsSnapshot.docs.map((doc) => {
           const data = doc.data() as Event;
-          // Combine date and time string to create a valid Date object for 'start'
-          const startDateTime = new Date(`${data.date}T${data.time}:00`);
-          
+          const startDateTime = new Date(`${data.date}T${data.time || '00:00'}:00`);
           return {
             id: doc.id,
             title: data.title,
             start: startDateTime,
-            allDay: false, // Assuming events are not all-day
-            extendedProps: { ...data }
+            allDay: !data.time,
+            extendedProps: { ...data, eventType: 'event' },
+            className: 'bg-primary border-primary text-primary-foreground hover:bg-primary/90'
           };
         });
-        setEvents(eventData);
+
+        // Fetch timetable entries
+        const timetablesQuery = query(collection(db, "timetables"));
+        const timetablesSnapshot = await getDocs(timetablesQuery);
+        
+        const today = new Date();
+        const semesterStart = new Date(today.getFullYear(), 7, 1); // Assume semester starts August 1st
+        const semesterEnd = new Date(today.getFullYear(), 11, 31); // Assume semester ends December 31st
+
+        const timetableEvents = timetablesSnapshot.docs.map(doc => {
+            const data = doc.data() as TimetableEntry;
+            return {
+                id: `tt-${doc.id}`,
+                title: `${data.subject} (${data.facultyName})`,
+                daysOfWeek: [data.dayOfWeek],
+                startTime: data.startTime,
+                endTime: data.endTime,
+                startRecur: semesterStart.toISOString().split('T')[0],
+                endRecur: semesterEnd.toISOString().split('T')[0],
+                allDay: false,
+                display: 'block',
+                extendedProps: { ...data, eventType: 'timetable' },
+                className: 'bg-secondary border-secondary text-secondary-foreground hover:bg-secondary/90'
+            }
+        });
+
+        setEvents([...regularEvents, ...timetableEvents]);
       } catch (error) {
-        console.error("Error fetching events:", error);
+        console.error("Error fetching calendar data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvents();
+    fetchCalendarData();
   }, []);
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     if (onDateSelect) {
       onDateSelect(selectInfo);
-    } else {
-        // Default behavior if no handler is passed
-        alert(`You selected from ${selectInfo.startStr} to ${selectInfo.endStr}`);
     }
-    // Clear selection
     const calendarApi = selectInfo.view.calendar;
     calendarApi.unselect();
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
-    // In a real app, you'd open a modal with event details
-    alert(`Event: ${clickInfo.event.title}\nStatus: ${clickInfo.event.extendedProps.status}`);
+    const props = clickInfo.event.extendedProps;
+    if (props.eventType === 'timetable') {
+        alert(
+            `Class: ${clickInfo.event.title}\n` +
+            `Course: ${props.course} Year-${props.year} Div-${props.division}\n` +
+            `Location: ${props.location}`
+        );
+    } else {
+        alert(`Event: ${clickInfo.event.title}\nStatus: ${props.status}`);
+    }
   };
 
   const handleEventDrop = (dropInfo: EventDropArg) => {
@@ -89,17 +120,19 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
           }}
-          initialView="dayGridMonth"
+          initialView="timeGridWeek"
           weekends={true}
           events={events}
-          editable={true} // Allows dragging and resizing
-          selectable={true} // Allows date selection
+          editable={true}
+          selectable={true}
           selectMirror={true}
           dayMaxEvents={true}
           select={handleDateSelect}
           eventClick={handleEventClick}
-          eventDrop={handleEventDrop} // Handle event rescheduling
-          height="auto" // Adjusts height to content
+          eventDrop={handleEventDrop}
+          height="auto"
+          slotMinTime="08:00:00"
+          slotMaxTime="18:00:00"
         />
       )}
     </div>

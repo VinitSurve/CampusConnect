@@ -33,6 +33,7 @@ export type Event = {
   status: 'upcoming' | 'past' | 'cancelled';
   gallery: string[];
   interests: string[];
+  eventType: 'event' | 'timetable';
 };
 
 export type Club = {
@@ -68,4 +69,17 @@ export type EventProposal = {
   rejectedBy?: string;
   rejectedAt?: any;
   rejectionReason?: string;
+};
+
+export type TimetableEntry = {
+  id: string;
+  course: string;
+  year: string;
+  division: string;
+  subject: string;
+  dayOfWeek: number; // 0=Sun, 1=Mon, etc.
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  location: string;
+  facultyName: string;
 };
