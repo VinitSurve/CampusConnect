@@ -11,6 +11,8 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
+import { Sparkles } from "lucide-react";
+import { generateEventDescription } from "@/ai/flows/generate-event-description";
 
 interface HostEventFormProps {
     user: User;
@@ -52,6 +54,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [locationAvailability, setLocationAvailability] = useState<Record<string, boolean>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { toast } = useToast();
   const router = useRouter();
@@ -137,6 +140,31 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     toast({ title: "Date Selected", description: `You selected ${selectedDateTime.toLocaleString()}` });
   };
 
+  const handleGenerateDescription = async () => {
+    if (!form.title) {
+        toast({
+            title: "Title needed",
+            description: "Please enter an event title first to generate a description.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setIsGenerating(true);
+    try {
+        const description = await generateEventDescription({ title: form.title });
+        setForm(prev => ({ ...prev, description }));
+    } catch (error) {
+        console.error("Error generating description:", error);
+        toast({
+            title: "AI Error",
+            description: "Failed to generate description. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.date || !form.time) {
@@ -198,7 +226,18 @@ export default function HostEventForm({ user }: HostEventFormProps) {
             </div>
 
             <div className="space-y-2">
-                <label className="text-white text-sm">Event Description*</label>
+                <div className="flex justify-between items-center">
+                    <label className="text-white text-sm">Event Description*</label>
+                    <button
+                        type="button"
+                        onClick={handleGenerateDescription}
+                        disabled={isGenerating || !form.title}
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Sparkles className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                        {isGenerating ? 'Generating...' : 'Generate with AI'}
+                    </button>
+                </div>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
             </div>
 
@@ -236,7 +275,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
               <label className="text-white text-sm">Select Category*</label>
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                 <option value="" className="bg-gray-800">Select a category</option>
-                {categories.map(category => (<option key={category.id} value={category.id} className="bg-gray-800">{category.icon} {category.name}</option>))}
+                {categories.map(category => (<option key={category.id} value={category.name} className="bg-gray-800">{category.icon} {category.name}</option>))}
               </select>
             </div>
             <div className="space-y-2">
