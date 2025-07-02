@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -11,19 +12,31 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Building, Tag } from 'lucide-react';
+import { Calendar, Users, Building, Tag, Info } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
 interface FacultyDashboardClientProps {
   initialRequests: EventProposal[];
 }
 
+const DetailItem = ({ label, value }: { label: string; value?: string }) => {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="text-sm font-medium text-white/70">{label}</p>
+      <p className="text-base text-white whitespace-pre-wrap">{value}</p>
+    </div>
+  )
+}
+
 export default function FacultyDashboardClient({ initialRequests }: FacultyDashboardClientProps) {
   const [requests, setRequests] = useState(initialRequests);
   const [selectedRequest, setSelectedRequest] = useState<EventProposal | null>(null);
+  const [requestForDetails, setRequestForDetails] = useState<EventProposal | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isTransitioning, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
@@ -101,6 +114,9 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                       </div>
                     </div>
                     <div className="flex space-x-2 mt-4 sm:mt-0 flex-shrink-0">
+                      <Button onClick={() => setRequestForDetails(request)} disabled={isTransitioning} variant="outline" className="bg-white/10 hover:bg-white/20 text-white">
+                        <Info className="mr-2 h-4 w-4" />Details
+                      </Button>
                       <Button onClick={() => handleApprove(request)} disabled={isTransitioning} variant="secondary" className="bg-green-600/80 hover:bg-green-600 text-white">
                         Approve
                       </Button>
@@ -116,6 +132,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
         </div>
       </div>
 
+      {/* Rejection Dialog */}
       <Dialog open={!!selectedRequest} onOpenChange={(isOpen) => !isOpen && setSelectedRequest(null)}>
         <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
           <DialogHeader>
@@ -135,6 +152,41 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             <Button variant="destructive" onClick={handleRejectConfirm} disabled={isTransitioning || !rejectionReason.trim()}>
               {isTransitioning ? "Rejecting..." : "Confirm Rejection"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Details Dialog */}
+       <Dialog open={!!requestForDetails} onOpenChange={(isOpen) => !isOpen && setRequestForDetails(null)}>
+        <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{requestForDetails?.title}</DialogTitle>
+            <DialogDescription>
+              Proposed by {requestForDetails?.clubName} for {new Date(requestForDetails?.date || '').toLocaleDateString()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+             <DetailItem label="Description" value={requestForDetails?.description} />
+             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <DetailItem label="Target Audience" value={requestForDetails?.targetAudience} />
+                <DetailItem label="Key Speakers / Guests" value={requestForDetails?.keySpeakers} />
+             </div>
+             <DetailItem label="Equipment Needs" value={requestForDetails?.equipmentNeeds} />
+             <DetailItem label="Budget & Funding" value={requestForDetails?.budgetDetails} />
+             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <DetailItem label="Location" value={requestForDetails?.location} />
+                <DetailItem label="Time" value={requestForDetails?.time} />
+             </div>
+             <DetailItem label="Registration Link" value={requestForDetails?.registrationLink} />
+             <DetailItem label="Submitted By" value={requestForDetails?.creatorEmail} />
+          </div>
+           <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+              <Button onClick={() => { if(requestForDetails) handleApprove(requestForDetails); setRequestForDetails(null); }} disabled={isTransitioning} className="bg-green-600 hover:bg-green-700">
+                Approve
+              </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

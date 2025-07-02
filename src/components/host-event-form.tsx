@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -9,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import AcademicCalendar from '@/components/academic-calendar';
 import type { User } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
+import { Textarea } from "./ui/textarea";
 
 interface HostEventFormProps {
     user: User;
@@ -32,6 +34,11 @@ const categories = [
 export default function HostEventForm({ user }: HostEventFormProps) {
   const [form, setForm] = useState({
     title: "",
+    description: "",
+    targetAudience: "",
+    keySpeakers: "",
+    equipmentNeeds: "",
+    budgetDetails: "",
     location: "seminar",
     category: "",
     registrationLink: "",
@@ -56,6 +63,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
       try {
         if (user.role === 'faculty') {
           setIsAllowed(true);
+          setForm(prev => ({...prev, clubName: user.name || 'Faculty Event' }));
           return;
         }
 
@@ -135,7 +143,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
       toast({ title: "Validation Error", description: "Please select a date and time from the calendar.", variant: "destructive" });
       return;
     }
-    if (!form.title || !form.location || !form.category) {
+    if (!form.title || !form.location || !form.category || !form.description) {
       toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
@@ -185,11 +193,36 @@ export default function HostEventForm({ user }: HostEventFormProps) {
           <h2 className="text-2xl font-semibold text-white mb-6">Host New Event</h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-white text-sm">Event Title</label>
+              <label className="text-white text-sm">Event Title*</label>
               <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Enter event title" required />
             </div>
+
             <div className="space-y-2">
-              <label className="text-white text-sm">Select Location</label>
+                <label className="text-white text-sm">Event Description*</label>
+                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-white text-sm">Target Audience</label>
+              <input type="text" value={form.targetAudience} onChange={(e) => setForm({ ...form, targetAudience: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., All students, BCA students, Final Year students" />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>
+              <input type="text" value={form.keySpeakers} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Dr. Jane Doe (CEO of TechCorp)" />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-white text-sm">Equipment Needs (Optional)</label>
+                <Textarea value={form.equipmentNeeds} onChange={(e) => setForm({ ...form, equipmentNeeds: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Projector, 2 microphones, whiteboard" />
+            </div>
+             <div className="space-y-2">
+                <label className="text-white text-sm">Budget & Funding (Optional)</label>
+                <Textarea value={form.budgetDetails} onChange={(e) => setForm({ ...form, budgetDetails: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-white text-sm">Select Location*</label>
               <select value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                 <option value="" className="bg-gray-800">Select a location to filter calendar</option>
                 {locations.map(location => (
@@ -200,7 +233,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-white text-sm">Select Category</label>
+              <label className="text-white text-sm">Select Category*</label>
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                 <option value="" className="bg-gray-800">Select a category</option>
                 {categories.map(category => (<option key={category.id} value={category.id} className="bg-gray-800">{category.icon} {category.name}</option>))}

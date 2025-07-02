@@ -35,6 +35,11 @@ export type Event = {
   gallery: string[];
   interests: string[];
   eventType: 'event' | 'timetable';
+  // New fields
+  targetAudience?: string;
+  keySpeakers?: string;
+  equipmentNeeds?: string;
+  budgetDetails?: string;
 };
 
 export type Club = {
@@ -52,9 +57,9 @@ export type Club = {
 };
 
 export type EventProposal = {
-  id: string;
+  id:string;
   title: string;
-  description?: string;
+  description: string;
   location: string;
   category: string;
   registrationLink?: string;
@@ -73,6 +78,11 @@ export type EventProposal = {
   rejectedBy?: string;
   rejectedAt?: string | null;
   rejectionReason?: string;
+  // New fields from user request
+  targetAudience?: string;
+  keySpeakers?: string;
+  equipmentNeeds?: string;
+  budgetDetails?: string;
 };
 
 export type TimetableEntry = {

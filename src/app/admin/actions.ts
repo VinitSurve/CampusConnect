@@ -13,8 +13,8 @@ export async function approveRequest(proposal: EventProposal) {
         // Create a new event from the proposal data
         const newEvent: Omit<Event, 'id'> = {
             title: proposal.title,
-            description: proposal.description || "No description provided.",
-            longDescription: proposal.description || "No description provided.",
+            description: proposal.description.substring(0, 100) + (proposal.description.length > 100 ? '...' : ''),
+            longDescription: proposal.description,
             date: proposal.date,
             time: proposal.time || "12:00",
             location: proposal.location,
@@ -28,6 +28,11 @@ export async function approveRequest(proposal: EventProposal) {
             gallery: [],
             interests: [proposal.category],
             eventType: 'event',
+            // Pass new fields
+            targetAudience: proposal.targetAudience,
+            keySpeakers: proposal.keySpeakers,
+            equipmentNeeds: proposal.equipmentNeeds,
+            budgetDetails: proposal.budgetDetails,
         };
 
         await addDoc(collection(db, "events"), newEvent);
