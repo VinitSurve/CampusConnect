@@ -10,7 +10,7 @@ export type User = {
   role: 'student' | 'organiser' | 'faculty' | 'admin';
   // Student-specific
   course?: string;
-  year?: string; // 'I', 'II', 'III'
+  year?: string | number; // Can be string ('I', 'II') or number
   interests?: string[];
   // Faculty-specific
   department?: string;

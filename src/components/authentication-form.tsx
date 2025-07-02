@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/actions";
 import AnimatedParticles from "./animated-particles";
+import Link from "next/link";
 
 export default function AuthenticationForm() {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -112,9 +113,9 @@ export default function AuthenticationForm() {
     const newErrors: any = {};
     if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/\\S+@\\S+\\.\\S+/.test(formData.email)) newErrors.email = "Email is invalid";
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid";
     if (!formData.mobile.trim()) newErrors.mobile = "Mobile number is required";
-    else if (!/^\\d{10}$/.test(formData.mobile)) newErrors.mobile = "Mobile number must be 10 digits";
+    else if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = "Mobile number must be 10 digits";
     if (!formData.course) newErrors.course = "Please select a course";
     if (!formData.year) newErrors.year = "Please select a year";
     setRegisterErrors(newErrors);
@@ -137,7 +138,7 @@ export default function AuthenticationForm() {
   };
 
   const generateUsername = async (fullName: string) => {
-    let baseName = fullName.toLowerCase().replace(/\\s+/g, '');
+    let baseName = fullName.toLowerCase().replace(/\s+/g, '');
     const generateRandomSuffix = () => Math.floor(Math.random() * 900) + 100;
     let username = `${baseName}${generateRandomSuffix()}`;
     let isUnique = false;
@@ -292,19 +293,24 @@ export default function AuthenticationForm() {
                     </>
                   )}
                 </form>
+
+                {/* Sign in link */}
                 <div className="mt-8 pt-6 border-t border-white/20 text-center">
-                  <p className="text-white text-sm">Already have an account?{" "}<button onClick={(e) => { e.preventDefault(); setIsFlipped(false); }} className="text-white font-medium hover:text-blue-300 transition-colors bg-transparent border-none p-0">Sign in here</button></p>
+                  <p className="text-white text-sm">
+                    Already have an account?{" "}
+                    <button onClick={(e) => { e.preventDefault(); setIsFlipped(false); }} className="text-white font-medium hover:text-blue-300 transition-colors bg-transparent border-none p-0">
+                      Sign in here
+                    </button>
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className="absolute bottom-4 left-0 right-0 text-center text-white text-xs">
-        CampusConnect © {new Date().getFullYear()}
+        <div className="absolute bottom-4 left-0 right-0 text-center text-white text-xs">
+          CampusConnect © {new Date().getFullYear()}
+        </div>
       </div>
     </div>
   );
 }
-
-Now remove scrollbar from register page. And add flip animation when switching from login and register pages
