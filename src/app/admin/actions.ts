@@ -73,15 +73,27 @@ export async function rejectRequest(proposalId: string, reason: string) {
 
 export async function saveTimetableEntry(entryData: Omit<TimetableEntry, 'id'>, entryId?: string) {
     try {
+        // Explicitly map fields to prevent extra data from being sent to Firestore.
         const dataToSave = {
-            ...entryData,
+            subject: entryData.subject,
+            facultyName: entryData.facultyName,
+            course: entryData.course,
+            year: entryData.year,
+            division: entryData.division,
+            dayOfWeek: entryData.dayOfWeek,
+            startTime: entryData.startTime,
+            endTime: entryData.endTime,
             updatedAt: serverTimestamp(),
         };
 
         if (entryId) {
             // Update existing entry
             const entryRef = doc(db, "timetables", entryId);
-            await updateDoc(entryRef, dataToSave);
+            const { updatedAt, ...updateData } = dataToSave;
+            await updateDoc(entryRef, {
+                ...updateData,
+                updatedAt: serverTimestamp()
+            });
         } else {
             // Add new entry
             await addDoc(collection(db, "timetables"), {
@@ -112,5 +124,3 @@ export async function deleteTimetableEntry(entryId: string) {
         return { success: false, error: (error as Error).message };
     }
 }
-
-    
