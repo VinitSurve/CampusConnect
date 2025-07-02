@@ -20,7 +20,7 @@ export async function createSession(uid: string, isNewUser: boolean = false) {
   }
 
   const userDocRef = doc(db, 'users', uid)
-  const userDoc = await userDocRef.get()
+  const userDoc = await getDoc(userDocRef)
 
   if (userDoc.exists()) {
     const userData = userDoc.data()
