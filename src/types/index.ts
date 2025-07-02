@@ -50,6 +50,7 @@ export type Club = {
 export type EventProposal = {
   id: string;
   title: string;
+  description?: string;
   location: string;
   category: string;
   registrationLink?: string;
@@ -61,4 +62,10 @@ export type EventProposal = {
   creatorEmail: string;
   createdAt: any; // Firebase ServerTimestamp
   proposer?: string;
+  // New fields for approval/rejection cycle
+  approvedBy?: string;
+  approvedAt?: any;
+  rejectedBy?: string;
+  rejectedAt?: any;
+  rejectionReason?: string;
 };
