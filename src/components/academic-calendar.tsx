@@ -45,7 +45,7 @@ export default function AcademicCalendar({
     const isSeminar = props.eventType === 'seminar';
     
     const eventDetails = (
-        <>
+        <div className="p-2">
             <p className="font-bold text-base mb-2">{eventInfo.event.title}</p>
             {isTimetable ? (
                 <div className="space-y-1 text-sm">
@@ -67,12 +67,12 @@ export default function AcademicCalendar({
                     <p><strong>Location:</strong> {props.location}</p>
                 </div>
             )}
-        </>
+        </div>
     );
 
     const eventDisplay = (
         <div className='w-full h-full p-2 overflow-hidden text-left cursor-pointer'>
-            <p className="font-semibold truncate text-base">{eventInfo.event.title}</p>
+            <p className="font-semibold truncate text-lg">{eventInfo.event.title}</p>
             {!isTimetable && <p className="text-sm truncate opacity-80">{eventInfo.timeText}</p>}
         </div>
     );
@@ -140,13 +140,13 @@ export default function AcademicCalendar({
             let currentDay = new Date(yearStart);
 
             while (currentDay <= yearEnd) {
-                // The day of the week from Date object is 0 for Sunday, 1 for Monday, etc.
-                // Firestore dayOfWeek is 1 for Monday, ..., 7 for Sunday.
-                // We need to align them. JS getDay() 0 -> 7
+                // JS getDay() is 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
+                // Our Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday.
+                // This means the numbers align perfectly for the days we care about.
+                // We can just do a direct comparison and it will correctly skip Sundays (jsDay=0).
                 const jsDay = currentDay.getDay();
-                const comparableDay = jsDay === 0 ? 7 : jsDay;
                 
-                if (comparableDay === data.dayOfWeek) {
+                if (jsDay === data.dayOfWeek) {
                     daysInYear.push({
                         id: `tt-${doc.id}-${currentDay.toISOString().split('T')[0]}`,
                         title: `${data.subject}`,
