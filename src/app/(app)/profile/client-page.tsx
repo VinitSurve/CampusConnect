@@ -27,7 +27,7 @@ const profileSchema = z.object({
   }),
   email: z.string().email(),
   course: z.string().optional(),
-  year: z.coerce.number().optional(),
+  year: z.string().optional(),
 })
 
 const passwordSchema = z.object({
@@ -46,7 +46,7 @@ export default function ProfileClientPage({ user }: { user: User }) {
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: user.name,
+      username: user.username,
       email: user.email,
       course: user.course,
       year: user.year,
@@ -157,7 +157,7 @@ export default function ProfileClientPage({ user }: { user: User }) {
                                         <FormItem>
                                         <FormLabel>Year of Study</FormLabel>
                                         <FormControl>
-                                            <Input type="number" placeholder="Your current year" {...field} />
+                                            <Input placeholder="Your current year" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                         </FormItem>

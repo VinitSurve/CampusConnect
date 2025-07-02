@@ -1,12 +1,16 @@
 export type User = {
-  id: string;
-  name: string;
+  id: string; // Document ID from Firestore, same as uid
+  uid: string; // Firebase Auth User ID
+  name: string; // For component compatibility, maps to fullName
+  fullName?: string;
+  username?: string;
   email: string;
+  mobile?: string;
   avatar: string;
-  role: 'student' | 'organiser' | 'faculty';
+  role: 'student' | 'organiser' | 'faculty' | 'admin';
   // Student-specific
   course?: string;
-  year?: number;
+  year?: string; // 'I', 'II', 'III'
   interests?: string[];
   // Faculty-specific
   department?: string;

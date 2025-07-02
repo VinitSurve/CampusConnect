@@ -23,8 +23,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Icons } from "./icons"
+import { signOut } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 function UserNav({ user }: { user: User }) {
+  const handleLogout = async () => {
+    await signOut(auth)
+    await logout()
+  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -60,7 +66,7 @@ function UserNav({ user }: { user: User }) {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => logout()}>
+        <DropdownMenuItem onSelect={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
