@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -52,7 +51,7 @@ const courseYears: { [key: string]: string[] } = {
   MBA: ["1", "2"],
 };
 const divisions = ["A", "B", "C"];
-const locations = ["Lab 401", "Lab 404", "Lab 503"];
+const locations = ["Lab 401", "Lab 402", "Lab 503"];
 
 
 type TimetableGrid = {
@@ -158,10 +157,13 @@ export default function TimetableManagerPage() {
       setIsEditMode(true);
     } else {
       setIsEditMode(false);
+      const startTime = time;
+      const startTimeIndex = TIME_SLOTS.indexOf(startTime);
+      const endTime = TIME_SLOTS[startTimeIndex + 1] || startTime; // Default to 1 hour
       setCurrentEntry({
         dayOfWeek: DAYS_OF_WEEK.indexOf(day) + 1,
-        startTime: time,
-        endTime: TIME_SLOTS[TIME_SLOTS.indexOf(time) + 1] || time,
+        startTime: startTime,
+        endTime: endTime,
       });
     }
     setIsFormOpen(true);
