@@ -174,7 +174,6 @@ export default function TimetableManagerPage() {
     const dataToSave = {
         subject: currentEntry.subject || '',
         facultyName: currentEntry.facultyName || '',
-        location: currentEntry.location || '',
         course: selectedCourse,
         year: selectedYear,
         division: selectedDivision,
@@ -262,7 +261,6 @@ export default function TimetableManagerPage() {
                                 >
                                     <p className="font-bold text-sm">{entry.subject}</p>
                                     <p className="text-xs text-white/80">{entry.facultyName}</p>
-                                    <p className="text-xs text-white/60 italic">{entry.location}</p>
                                 </div>
                             );
                         }
@@ -295,10 +293,6 @@ export default function TimetableManagerPage() {
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="facultyName" className="text-right">Faculty</Label>
               <Input id="facultyName" value={currentEntry.facultyName || ''} onChange={e => setCurrentEntry({...currentEntry, facultyName: e.target.value})} className="col-span-3"/>
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">Location</Label>
-              <Input id="location" value={currentEntry.location || ''} onChange={e => setCurrentEntry({...currentEntry, location: e.target.value})} className="col-span-3" placeholder="e.g. Lab 404"/>
             </div>
           </div>
           <DialogFooter className="justify-between">

@@ -90,8 +90,7 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
     if (props.eventType === 'timetable') {
         alert(
             `Class: ${clickInfo.event.title}\n` +
-            `Course: ${props.course} Year-${props.year} Div-${props.division}\n` +
-            `Location: ${props.location}`
+            `Course: ${props.course} Year-${props.year} Div-${props.division}`
         );
     } else {
         alert(`Event: ${clickInfo.event.title}\nStatus: ${props.status}`);
