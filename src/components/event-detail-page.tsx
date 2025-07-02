@@ -94,7 +94,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                     </DetailSection>
                     
                     <DetailSection title="Who Should Attend" icon={<Users className="h-6 w-6 text-blue-400" />}>
-                        <p>{targetAudience}</p>
+                        <p>{Array.isArray(targetAudience) ? targetAudience.join(', ') : targetAudience}</p>
                     </DetailSection>
 
                     {speakersList.length > 0 && (

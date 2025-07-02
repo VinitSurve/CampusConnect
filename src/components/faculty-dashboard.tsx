@@ -23,12 +23,13 @@ interface FacultyDashboardClientProps {
   initialRequests: EventProposal[];
 }
 
-const DetailItem = ({ label, value }: { label: string; value?: string }) => {
+const DetailItem = ({ label, value }: { label: string; value?: string | string[] }) => {
   if (!value) return null;
+  const displayValue = Array.isArray(value) ? value.join(', ') : value;
   return (
     <div>
       <p className="text-sm font-medium text-white/70">{label}</p>
-      <p className="text-base text-white whitespace-pre-wrap">{value}</p>
+      <p className="text-base text-white whitespace-pre-wrap">{displayValue}</p>
     </div>
   )
 }

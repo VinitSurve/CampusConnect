@@ -36,7 +36,7 @@ export type Event = {
   interests: string[];
   eventType?: 'event' | 'timetable';
   // New fields
-  targetAudience?: string;
+  targetAudience?: string[];
   keySpeakers?: string;
   equipmentNeeds?: string;
   budgetDetails?: string;
@@ -80,7 +80,7 @@ export type EventProposal = {
   rejectedAt?: string | null;
   rejectionReason?: string;
   // New fields from user request
-  targetAudience?: string;
+  targetAudience?: string[];
   keySpeakers?: string;
   equipmentNeeds?: string;
   budgetDetails?: string;

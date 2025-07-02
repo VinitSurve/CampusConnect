@@ -13,6 +13,8 @@ import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
 import { Sparkles } from "lucide-react";
 import { generateEventDescription } from "@/ai/flows/generate-event-description";
+import { generateEventTakeaways } from "@/ai/flows/generate-event-takeaways";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface HostEventFormProps {
     user: User;
@@ -33,11 +35,13 @@ const categories = [
     { id: "workshop", name: "Workshop", icon: "🛠️" }
 ];
 
+const availableCourses = ["All Students", "BCA", "BBA", "BAF", "MBA"];
+
 export default function HostEventForm({ user }: HostEventFormProps) {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    targetAudience: "",
+    targetAudience: [] as string[],
     keySpeakers: "",
     equipmentNeeds: "",
     budgetDetails: "",
@@ -55,7 +59,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [locationAvailability, setLocationAvailability] = useState<Record<string, boolean>>({});
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [isGeneratingTakeaways, setIsGeneratingTakeaways] = useState(false);
 
   const { toast } = useToast();
   const router = useRouter();
@@ -150,7 +155,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
         });
         return;
     }
-    setIsGenerating(true);
+    setIsGeneratingDesc(true);
     try {
         const description = await generateEventDescription({ title: form.title });
         setForm(prev => ({ ...prev, description }));
@@ -162,8 +167,43 @@ export default function HostEventForm({ user }: HostEventFormProps) {
             variant: "destructive",
         });
     } finally {
-        setIsGenerating(false);
+        setIsGeneratingDesc(false);
     }
+  };
+
+  const handleGenerateTakeaways = async () => {
+    if (!form.title || !form.description) {
+        toast({
+            title: "Info needed",
+            description: "Please enter an event title and description first to generate takeaways.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setIsGeneratingTakeaways(true);
+    try {
+        const takeaways = await generateEventTakeaways({ title: form.title, description: form.description });
+        setForm(prev => ({ ...prev, whatYouWillLearn: takeaways }));
+    } catch (error) {
+        console.error("Error generating takeaways:", error);
+        toast({
+            title: "AI Error",
+            description: "Failed to generate takeaways. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsGeneratingTakeaways(false);
+    }
+  };
+
+  const handleAudienceChange = (course: string) => {
+    setForm(prev => {
+        const currentAudience = prev.targetAudience || [];
+        const newAudience = currentAudience.includes(course)
+            ? currentAudience.filter(c => c !== course)
+            : [...currentAudience, course];
+        return { ...prev, targetAudience: newAudience };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,24 +272,52 @@ export default function HostEventForm({ user }: HostEventFormProps) {
                     <button
                         type="button"
                         onClick={handleGenerateDescription}
-                        disabled={isGenerating || !form.title}
+                        disabled={isGeneratingDesc || !form.title}
                         className="flex items-center gap-1.5 px-2 py-1 text-xs rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Sparkles className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                        {isGenerating ? 'Generating...' : 'Generate with AI'}
+                        <Sparkles className={`h-4 w-4 ${isGeneratingDesc ? 'animate-spin' : ''}`} />
+                        {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
                     </button>
                 </div>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
             </div>
             
             <div className="space-y-2">
-              <label className="text-white text-sm">What You'll Learn</label>
+                <div className="flex justify-between items-center">
+                    <label className="text-white text-sm">What You'll Learn</label>
+                    <button
+                        type="button"
+                        onClick={handleGenerateTakeaways}
+                        disabled={isGeneratingTakeaways || !form.title || !form.description}
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Sparkles className={`h-4 w-4 ${isGeneratingTakeaways ? 'animate-spin' : ''}`} />
+                        {isGeneratingTakeaways ? 'Generating...' : 'Generate with AI'}
+                    </button>
+                </div>
               <Textarea value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" />
             </div>
 
             <div className="space-y-2">
-              <label className="text-white text-sm">Target Audience</label>
-              <input type="text" value={form.targetAudience} onChange={(e) => setForm({ ...form, targetAudience: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., All students, BCA students, Final Year students" />
+                <label className="text-white text-sm">Target Audience</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                    {availableCourses.map((course) => (
+                    <div key={course} className="flex items-center space-x-2 bg-white/5 p-3 rounded-lg border border-transparent has-[:checked]:border-blue-500/50 has-[:checked]:bg-blue-900/20 transition-all">
+                        <Checkbox
+                        id={`course-${course}`}
+                        checked={(form.targetAudience || []).includes(course)}
+                        onCheckedChange={() => handleAudienceChange(course)}
+                        className="h-5 w-5"
+                        />
+                        <label
+                        htmlFor={`course-${course}`}
+                        className="text-sm font-medium leading-none text-white peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-grow"
+                        >
+                        {course}
+                        </label>
+                    </div>
+                    ))}
+                </div>
             </div>
 
             <div className="space-y-2">
