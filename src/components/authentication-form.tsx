@@ -1,233 +1,348 @@
+
 "use client"
 
-import * as React from "react"
-import Link from "next/link"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
-
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Icons } from "@/components/icons"
-import { Fingerprint, Lock, Mail, Eye, EyeOff } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useToast } from "@/hooks/use-toast"
-import { auth } from "@/lib/firebase"
-import { login, loginOrRegisterWithGoogle } from "@/app/actions"
-
-const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
-  remember: z.boolean().optional(),
-})
+import { useState, useEffect } from "react";
+import { useRouter, redirect } from "next/navigation";
+import Link from "next/link";
+import { db, auth } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged, 
+  GoogleAuthProvider, 
+  signInWithPopup,
+  type User as FirebaseUser
+} from "firebase/auth";
 
 export default function AuthenticationForm() {
-  const [showPassword, setShowPassword] = React.useState(false)
-  const [authError, setAuthError] = React.useState<string | null>(null)
-  const [isPending, startTransition] = React.useTransition();
-  const { toast } = useToast()
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const router = useRouter();
 
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      remember: false,
-    },
-  })
-
-  async function onSubmit(values: z.infer<typeof loginSchema>) {
-    setAuthError(null)
-    startTransition(async () => {
-      try {
-        // 1. Sign in with Firebase
-        await signInWithEmailAndPassword(auth, values.email, values.password);
-        
-        // 2. Create session in our system
-        const session = await login(values.email)
-        if (session.success && session.redirectTo) {
-          toast({ title: "Login Successful!" })
-          window.location.href = session.redirectTo;
-        } else {
-          // Use the error from the server action if available
-          throw new Error(session.error || "Session creation failed.")
-        }
-      } catch (error: any) {
-        if (error.code) {
-            switch(error.code) {
-                case 'auth/user-not-found':
-                case 'auth/wrong-password':
-                case 'auth/invalid-credential':
-                    setAuthError("Invalid email or password. Please try again.");
-                    break;
-                default:
-                    setAuthError("An unknown error occurred during login.");
-                    break;
-            }
-        } else if (error instanceof Error) {
-          setAuthError(error.message)
-        } else {
-          setAuthError("An unknown error occurred.")
-        }
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setCurrentUser(user);
+      if (user) {
+        // Redirect logic is handled after login actions now
       }
-    })
-  }
-
-  async function handleGoogleSignIn() {
-    setAuthError(null);
-    startTransition(async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-          // 1. Sign in with Google via Firebase
-          const result = await signInWithPopup(auth, provider);
-          const googleUser = result.user;
-
-          if (googleUser && googleUser.email && googleUser.displayName) {
-            // 2. Login or Register user in our system and create session
-            const sessionResult = await loginOrRegisterWithGoogle(googleUser.displayName, googleUser.email);
-            if (sessionResult.success && sessionResult.redirectTo) {
-              toast({ title: "Signed in with Google!" });
-              window.location.href = sessionResult.redirectTo;
-            } else {
-              throw new Error(sessionResult.error || "Session creation failed after Google Sign-In.");
-            }
-          } else {
-            throw new Error("Could not retrieve user information from Google.");
-          }
-        } catch (error: any) {
-          if (error.code === 'auth/popup-closed-by-user') {
-            return;
-          }
-          console.error("Google Sign-In Error:", error);
-          if (error instanceof Error) {
-            setAuthError(error.message);
-          } else {
-            setAuthError("Failed to sign in with Google. Please try again.");
-          }
-        }
     });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSuccessfulLogin = async (user: FirebaseUser) => {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        switch(userData.role) {
+          case "faculty":
+            router.push("/admin");
+            break;
+          case "student":
+          case "organiser":
+            router.push("/dashboard");
+            break;
+          default:
+            router.push("/dashboard");
+        }
+      } else {
+         // If user signs in with Google for the first time
+         const isFaculty = isFacultyEmail(user.email || '');
+         await setDoc(doc(db, "users", user.uid), {
+            email: user.email,
+            name: user.displayName,
+            role: isFaculty ? "faculty" : "student",
+            createdAt: serverTimestamp()
+          });
+          router.push(isFaculty ? "/admin" : "/dashboard");
+      }
   }
+
+  const handleTraditionalLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    try {
+      setError("");
+      setLoading(true);
+
+      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
+      await handleSuccessfulLogin(userCredential.user);
+
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Failed to sign in. Please check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isFacultyEmail = (email: string) => {
+    const facultyEmails = [
+      "ujwala@gmail.com",
+      "e.reed@university.edu"
+    ];
+    return facultyEmails.includes(email);
+  };
+
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    return signInWithPopup(auth, provider);
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setError("");
+      setGoogleLoading(true);
+      const userCredential = await loginWithGoogle();
+      await handleSuccessfulLogin(userCredential.user);
+    } catch (err) {
+      console.error("Google login failed:", err);
+      setError("Failed to sign in with Google. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-br from-[hsl(var(--secondary))] to-[hsl(var(--background))] p-4">
-        <div className="w-full max-w-md">
-            <div className="mb-8 text-center text-foreground">
-                <div className="inline-flex items-center justify-center gap-3 mb-4">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                        <Fingerprint className="h-8 w-8 text-primary"/>
-                    </div>
-                    <h1 className="text-3xl font-bold">CampusConnect</h1>
-                </div>
-                <h2 className="text-2xl font-semibold">Sign in to your account</h2>
-            </div>
-
-            <div className="rounded-2xl border border-border/20 bg-card/40 p-8 shadow-2xl backdrop-blur-lg">
-                {authError && (
-                    <Alert variant="destructive" className="mb-6 bg-red-900/40 border-red-500/30 text-red-200">
-                         <AlertDescription>{authError}</AlertDescription>
-                    </Alert>
-                )}
-
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-muted-foreground">Email</FormLabel>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input 
-                                            type="email" 
-                                            placeholder="Enter your email" 
-                                            className="bg-input border-border/50 pl-10 text-foreground placeholder:text-muted-foreground" 
-                                            {...field} 
-                                            disabled={isPending}
-                                        />
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-muted-foreground">Password</FormLabel>
-                                    <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input
-                                            type={showPassword ? "text" : "password"}
-                                            placeholder="Enter your password"
-                                            className="bg-input border-border/50 pl-10 pr-10 text-foreground placeholder:text-muted-foreground"
-                                            {...field}
-                                            disabled={isPending}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                            disabled={isPending}
-                                        >
-                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                        </button>
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <div className="flex items-center justify-between">
-                            <FormField
-                                control={form.control}
-                                name="remember"
-                                render={({ field }) => (
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                        <FormControl>
-                                            <Checkbox id="remember" checked={field.value} onCheckedChange={field.onChange} className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary" disabled={isPending}/>
-                                        </FormControl>
-                                        <label htmlFor="remember" className="text-sm font-medium text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            Remember me
-                                        </label>
-                                    </FormItem>
-                                )}
-                            />
-                            <Link href="#" className="text-sm text-primary/80 hover:text-primary hover:underline">
-                                Forgot password?
-                            </Link>
-                        </div>
-
-                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base" disabled={isPending}>
-                            {isPending && <Icons.logo className="mr-2 h-4 w-4 animate-spin" />}
-                            Sign in
-                        </Button>
-                    </form>
-                </Form>
-                
-                <div className="my-6 flex items-center">
-                    <div className="flex-grow border-t border-border/30"></div>
-                    <span className="mx-4 flex-shrink text-sm text-muted-foreground">OR</span>
-                    <div className="flex-grow border-t border-border/30"></div>
-                </div>
-
-                <Button variant="outline" className="w-full bg-transparent border-border/40 hover:bg-input text-foreground" onClick={handleGoogleSignIn} disabled={isPending}>
-                     {isPending && <Icons.logo className="mr-2 h-4 w-4 animate-spin" />}
-                    Continue with Google
-                </Button>
-
-                <p className="mt-8 text-center text-sm text-muted-foreground">
-                    Don't have an account?{" "}
-                    <Link href="/register" className="font-medium text-primary/80 hover:text-primary hover:underline">
-                        Register here
-                    </Link>
-                </p>
-            </div>
-            <p className="mt-8 text-center text-sm text-muted-foreground">CampusConnect © 2024</p>
+    <div className="min-h-screen flex items-center justify-center overflow-hidden font-sans bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 p-4">
+      {/* Static background elements with animation */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Animated gradient orbs */}
+        <div className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-3xl animate-float"
+          style={{ 
+            top: '10%',
+            right: '15%'
+          }}
+        ></div>
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-blue-600/20 to-indigo-600/20 blur-3xl animate-float-delay"
+          style={{ 
+            bottom: '5%',
+            left: '10%'
+          }}
+        ></div>
+        
+        {/* Subtle animated grid */}
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10"></div>
+        
+        {/* Floating particles */}
+        <div className="particles absolute inset-0">
+          {Array(20).fill(0).map((_, i) => (
+            <div 
+              key={i}
+              className="absolute w-2 h-2 bg-white rounded-full opacity-30 animate-float"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${5 + Math.random() * 10}s`
+              }}
+            ></div>
+          ))}
         </div>
-    </main>
-  )
+      </div>
+      
+      {/* Login card with glassmorphism */}
+      <div className="relative z-10 max-w-md w-full mx-auto overflow-hidden">
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl shadow-[0_20px_80px_-15px_rgba(0,0,0,0.4)] border border-white/10 overflow-hidden transition-all duration-300">
+          {/* Animated card header */}
+          <div className="relative h-32 bg-gradient-to-r from-blue-700/80 to-indigo-800/80 p-8 overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full bg-[url('/noise.svg')] opacity-10"></div>
+            <div className="absolute -bottom-12 -right-12 w-40 h-40 bg-white/10 rounded-full"></div>
+            <div className="absolute -bottom-16 -left-16 w-60 h-60 bg-white/10 rounded-full"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                  </svg>
+                </div>
+                <h1 className="text-white text-2xl font-bold tracking-tight">CampusConnect</h1>
+              </div>
+            </div>
+          </div>
+          
+          {/* Card body with sign-in options */}
+          <div className="p-8">
+            <h2 className="text-white text-xl font-semibold mb-6">Sign in to your account</h2>
+            
+            {/* Error message display */}
+            {error && (
+              <div className="mb-6 px-4 py-3 bg-red-800/20 border border-red-500/30 rounded-lg backdrop-blur-sm">
+                <p className="text-white text-sm">{error}</p>
+              </div>
+            )}
+            
+            <form onSubmit={handleTraditionalLogin} className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="identifier" className="text-white text-sm block">
+                  Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                  </div>
+                  <input
+                    id="identifier"
+                    type="email"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="bg-white/5 border border-white/10 text-white rounded-xl block w-full pl-10 pr-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-white/50"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-white text-sm block">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-white/5 border border-white/10 text-white rounded-xl block w-full pl-10 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-white/50"
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-white/70 hover:text-white focus:outline-none"
+                    >
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="h-4 w-4 bg-blue-500 focus:ring-blue-400 border-gray-300 rounded"
+                  />
+                  <label htmlFor="remember-me" className="ml-2 block text-sm text-white">
+                    Remember me
+                  </label>
+                </div>
+                
+                <div className="text-sm">
+                  <a href="#" className="text-white hover:text-white/80">
+                    Forgot password?
+                  </a>
+                </div>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-lg transition-colors disabled:opacity-70"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </div>
+                ) : (
+                  "Sign in"
+                )}
+              </button>
+            </form>
+            
+            {/* Divider */}
+            <div className="relative flex items-center my-6">
+              <div className="flex-grow border-t border-white/20"></div>
+              <span className="flex-shrink mx-4 text-white text-xs uppercase tracking-wider">Or</span>
+              <div className="flex-grow border-t border-white/20"></div>
+            </div>
+            
+            {/* Google Sign In Button */}
+            <button
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3.5 rounded-xl shadow-lg transition-all duration-300 relative overflow-hidden"
+              aria-label="Sign in with Google"
+            >
+              {!googleLoading ? (
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  <span className="text-white">Continue with Google</span>
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <svg className="animate-spin h-5 w-5 text-white mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-white">Signing in...</span>
+                </div>
+              )}
+            </button>
+            
+            {/* CTA section */}
+            <div className="mt-8 pt-6 border-t border-white/20 text-center">
+              <p className="text-white text-sm">
+                Don't have an account?{" "}
+                <Link href="/register" className="text-white font-medium hover:text-blue-300 transition-colors">
+                  Register here
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Login card reflection effect */}
+        <div className="mt-1 w-full h-8 bg-gradient-to-b from-white/5 to-transparent rounded-full blur-sm"></div>
+      </div>
+      
+      {/* Footer/Branding */}
+      <div className="absolute bottom-4 left-0 right-0 text-center text-white text-xs">
+        CampusConnect © {new Date().getFullYear()}
+      </div>
+    </div>
+  );
 }
