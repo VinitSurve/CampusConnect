@@ -146,15 +146,15 @@ export default function TimetableManagerPage() {
     setTimetableGrid(newGrid);
   };
 
-  const handleCellClick = (day: string, time: string) => {
+  const handleCellClick = (day: string, time: string, entry?: TimetableEntry) => {
     if (!selectedCourse || !selectedYear || !selectedDivision) {
         toast({ title: "Select a class", description: "Please select a course, year, and division first.", variant: "destructive" });
         return;
     }
-    const entry = timetableGrid[day]?.[time];
+
     if (entry) {
-      setIsEditMode(true);
       setCurrentEntry(entry);
+      setIsEditMode(true);
     } else {
       setIsEditMode(false);
       setCurrentEntry({
@@ -256,7 +256,7 @@ export default function TimetableManagerPage() {
                         if (entry?.isFirstHour) {
                             return (
                                 <div key={`${day}-${time}`} 
-                                    onClick={() => handleCellClick(day, time)}
+                                    onClick={() => handleCellClick(day, time, entry)}
                                     className="p-2 rounded-lg bg-blue-500/20 text-white cursor-pointer hover:bg-blue-500/30 transition-colors text-center flex flex-col justify-center"
                                     style={{ gridRow: `span ${entry.totalHours || 1}`}}
                                 >
@@ -282,7 +282,7 @@ export default function TimetableManagerPage() {
         </div>
       </div>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsEditMode(false); }}>
         <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
           <DialogHeader>
             <DialogTitle>{isEditMode ? 'Edit Timetable Entry' : 'Add New Entry'}</DialogTitle>
@@ -299,27 +299,6 @@ export default function TimetableManagerPage() {
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="location" className="text-right">Location</Label>
               <Input id="location" value={currentEntry.location || ''} onChange={e => setCurrentEntry({...currentEntry, location: e.target.value})} className="col-span-3" placeholder="e.g. Lab 404"/>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="day" className="text-right">Day</Label>
-              <Select value={String(currentEntry.dayOfWeek || '')} onValueChange={val => setCurrentEntry({...currentEntry, dayOfWeek: Number(val)})}>
-                <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
-                <SelectContent>{DAYS_OF_WEEK.map((d, i) => <SelectItem key={d} value={String(i+1)}>{d}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startTime" className="text-right">Start Time</Label>
-               <Select value={currentEntry.startTime} onValueChange={val => setCurrentEntry({...currentEntry, startTime: val})}>
-                <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
-                <SelectContent>{TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="endTime" className="text-right">End Time</Label>
-              <Select value={currentEntry.endTime} onValueChange={val => setCurrentEntry({...currentEntry, endTime: val})}>
-                <SelectTrigger className="col-span-3"><SelectValue /></SelectValue>
-                <SelectContent>{TIME_SLOTS.slice(1).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter className="justify-between">
