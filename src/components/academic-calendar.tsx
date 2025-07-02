@@ -138,7 +138,7 @@ export default function AcademicCalendar({
         const timetableEvents = timetablesSnapshot.docs.flatMap(doc => {
             const data = doc.data() as TimetableEntry;
             
-            if (typeof data.dayOfWeek !== 'number' || data.dayOfWeek < 1 || data.dayOfWeek > 6) {
+            if (typeof data.dayOfWeek !== 'number' || data.dayOfWeek < 0 || data.dayOfWeek > 6) { // Sunday is 0
                 return []; 
             }
 
@@ -146,15 +146,18 @@ export default function AcademicCalendar({
             let currentDay = new Date(yearStart);
 
             while (currentDay <= yearEnd) {
-                const jsDay = currentDay.getDay(); // JS getDay() is 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
+                // JS getDay() is 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
+                const jsDay = currentDay.getDay(); 
                 
-                // Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday.
-                // A direct comparison is correct because jsDay is 1 for Monday, 2 for Tuesday, etc.
-                if (jsDay === data.dayOfWeek) {
+                // Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday. Let's assume this for now.
+                // To match, we need to compare `data.dayOfWeek` with `jsDay`.
+                if (data.dayOfWeek === jsDay) {
                     const year = currentDay.getFullYear();
-                    const month = String(currentDay.getMonth() + 1).padStart(2, '0');
-                    const date = String(currentDay.getDate()).padStart(2, '0');
-                    const dateString = `${year}-${month}-${date}`;
+                    const month = currentDay.getMonth() + 1;
+                    const date = currentDay.getDate();
+                    
+                    // IMPORTANT: Construct date string manually to avoid timezone shifts from toISOString()
+                    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
                     
                     daysInYear.push({
                         id: `tt-${doc.id}-${dateString}`,
