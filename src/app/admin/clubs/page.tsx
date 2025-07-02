@@ -243,9 +243,9 @@ export default function AdminClubsPage() {
                                                 {students.map(student => (
                                                     <CommandItem
                                                         key={student.id}
-                                                        value={student.id}
-                                                        onSelect={(studentId) => {
-                                                            handleSelectChange('leadId', studentId);
+                                                        value={`${student.name} ${student.email}`}
+                                                        onSelect={() => {
+                                                            handleSelectChange('leadId', student.id);
                                                             setComboboxOpen(false);
                                                         }}
                                                     >
