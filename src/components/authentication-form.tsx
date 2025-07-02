@@ -51,10 +51,10 @@ export default function AuthenticationForm() {
   useEffect(() => {
     const checkRedirectResult = async () => {
       try {
+        setGoogleLoading(true);
         const result = await getRedirectResult(auth);
         if (result) {
           // User has successfully signed in via redirect.
-          setGoogleLoading(true); // Use googleLoading state to show feedback
           await handleSuccessfulLogin(result.user);
         }
       } catch (error: any) {
@@ -65,11 +65,12 @@ export default function AuthenticationForm() {
         }
       } finally {
         setIsCheckingRedirect(false); // Finished checking, show the form
+        setGoogleLoading(false);
       }
     };
 
     checkRedirectResult();
-  }, []); // Run only once on component mount
+  }, []);
 
 
   const handleSuccessfulLogin = async (user: FirebaseUser) => {
@@ -89,8 +90,8 @@ export default function AuthenticationForm() {
           });
       }
       
-      const redirectUrl = await createSession(user.uid);
-      router.push(redirectUrl);
+      await createSession(user.uid);
+      router.refresh();
   }
 
   const handleTraditionalLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -101,7 +102,8 @@ export default function AuthenticationForm() {
       setLoginLoading(true);
 
       const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
-      await handleSuccessfulLogin(userCredential.user);
+      await createSession(userCredential.user.uid);
+      router.refresh();
 
     } catch (err) {
       console.error("Login error:", err);
@@ -214,9 +216,9 @@ export default function AuthenticationForm() {
         createdAt: serverTimestamp()
       });
       
-      const redirectUrl = await createSession(user.uid, true);
+      await createSession(user.uid, true);
       toast({ title: "Registration successful!" });
-      router.push(redirectUrl);
+      router.refresh();
       
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -247,7 +249,7 @@ export default function AuthenticationForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center overflow-hidden font-sans bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 p-4 [perspective:1000px]">
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden -z-10">
         <div className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-3xl animate-float" style={{ top: '10%', right: '15%' }}></div>
         <div className="absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-blue-600/20 to-indigo-600/20 blur-3xl animate-float-delay" style={{ bottom: '5%', left: '10%' }}></div>
         <AnimatedParticles />
@@ -306,7 +308,7 @@ export default function AuthenticationForm() {
                   </div>
                 </div>
               </div>
-              <div className="p-8 flex-grow overflow-y-auto">
+              <div className="p-8 flex-grow overflow-y-auto" style={{'scrollbarWidth': 'none', '-ms-overflow-style': 'none'}}>
                 <form onSubmit={handleRegisterSubmit} className="space-y-5">
                   {currentStep === 1 ? (
                     <>
@@ -352,3 +354,5 @@ export default function AuthenticationForm() {
     </div>
   );
 }
+
+    
