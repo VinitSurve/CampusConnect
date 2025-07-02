@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -23,7 +22,6 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -65,7 +63,6 @@ export default function TimetableManagerPage() {
   const [loading, setLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   
-  // Class selection state
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedDivision, setSelectedDivision] = useState<string>('');
@@ -73,7 +70,6 @@ export default function TimetableManagerPage() {
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([]);
   const [timetableGrid, setTimetableGrid] = useState<TimetableGrid>({});
   
-  // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<Partial<TimetableEntry>>({});
@@ -149,11 +145,9 @@ export default function TimetableManagerPage() {
   const handleCellClick = (day: string, time: string) => {
     const entry = timetableGrid[day]?.[time];
     if (entry) {
-      // Edit existing entry
       setIsEditMode(true);
       setCurrentEntry(entry);
     } else {
-      // Add new entry
       setIsEditMode(false);
       setCurrentEntry({
         dayOfWeek: DAYS_OF_WEEK.indexOf(day) + 1,
@@ -212,10 +206,9 @@ export default function TimetableManagerPage() {
       
       <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-          {/* Class Selectors */}
           <div className="flex flex-col sm:flex-row gap-4">
             <Select value={selectedCourse} onValueChange={val => { setSelectedCourse(val); setSelectedYear(''); }}>
-              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Course..." /></SelectValue>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Course..." /></SelectTrigger>
               <SelectContent>{courses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={selectedYear} onValueChange={setSelectedYear} disabled={!selectedCourse}>
@@ -228,7 +221,6 @@ export default function TimetableManagerPage() {
             </Select>
           </div>
           
-           {/* Action Buttons */}
           <div className="flex gap-2 justify-start md:justify-end flex-wrap">
             <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
             <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Download className="mr-2 h-4 w-4"/>Export</Button>
@@ -237,14 +229,11 @@ export default function TimetableManagerPage() {
           </div>
         </div>
 
-        {/* Timetable Grid */}
         <div className="overflow-x-auto">
           <div className="grid grid-cols-[auto_repeat(6,minmax(120px,1fr))] gap-1">
-             {/* Header Row */}
             <div className="p-2 text-sm font-semibold text-white/80 sticky left-0 z-10 bg-blue-900/50">Time</div>
             {DAYS_OF_WEEK.map(day => <div key={day} className="p-2 text-center text-sm font-semibold text-white/80">{day}</div>)}
             
-            {/* Time Slot Rows */}
             {TIME_SLOTS.map((time, index) => (
                 <div key={time} className="contents">
                     <div className="p-2 text-sm font-semibold text-white/70 sticky left-0 z-10 bg-blue-900/50">
@@ -269,7 +258,7 @@ export default function TimetableManagerPage() {
                             );
                         }
                         if (entry && !entry.isFirstHour) {
-                           return null; // This cell is covered by a multi-hour entry
+                           return null;
                         }
                         return (
                             <div key={`${day}-${time}`} 
@@ -284,7 +273,6 @@ export default function TimetableManagerPage() {
         </div>
       </div>
 
-       {/* Add/Edit Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
           <DialogHeader>
@@ -354,7 +342,6 @@ export default function TimetableManagerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
