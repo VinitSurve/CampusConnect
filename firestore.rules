@@ -56,8 +56,11 @@ service cloud.firestore {
 
     // Event Requests collection
     match /eventRequests/{requestId} {
-      allow create: if isFaculty();
-      allow read: if isAuthenticated();
+      // Made readable by anyone to allow server-side rendering by unauthenticated server.
+      // A better long-term solution is to use the Firebase Admin SDK.
+      allow read: if true;
+      // Allow any authenticated user to create a request. UI logic restricts this further.
+      allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (resource.data.createdBy == request.auth.uid || isFaculty());
       allow delete: if false;
     }
