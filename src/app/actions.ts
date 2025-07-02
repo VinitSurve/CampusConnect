@@ -3,6 +3,8 @@
 import { cookies } from 'next/headers'
 import { getDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { getCurrentUser } from '@/lib/auth'
+import type { User } from '@/types'
 
 export async function createSession(uid: string, isNewUser: boolean = false) {
   const cookieStore = cookies()
@@ -36,4 +38,9 @@ export async function createSession(uid: string, isNewUser: boolean = false) {
 export async function logout() {
   const cookieStore = cookies()
   cookieStore.set('firebaseUid', '', { maxAge: 0 })
+}
+
+export async function getUserRole(): Promise<User['role'] | undefined> {
+  const user = await getCurrentUser();
+  return user?.role;
 }

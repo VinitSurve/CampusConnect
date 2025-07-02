@@ -83,8 +83,8 @@ export type TimetableEntry = {
   endTime: string; // HH:mm
   facultyName: string;
   location: string;
-  createdAt?: any; // Firestore ServerTimestamp
-  updatedAt?: any; // Firestore ServerTimestamp
+  createdAt?: any;
+  updatedAt?: any;
 };
 
 export type SeminarBooking = {
