@@ -1,11 +1,9 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
 import { getClubs, getStudents } from '@/lib/data';
 import { saveClub, deleteClub } from './actions';
 import type { Club, User } from '@/types';
-import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -13,11 +11,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Users, User as UserIcon, BookUser, Mail, Check, ChevronsUpDown } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Users, User as UserIcon, BookUser, Mail } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
@@ -40,7 +36,6 @@ export default function AdminClubsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [currentClub, setCurrentClub] = useState<Partial<Club>>(DEFAULT_CLUB);
-    const [comboboxOpen, setComboboxOpen] = useState(false);
     
     const { toast } = useToast();
     
@@ -112,12 +107,8 @@ export default function AdminClubsPage() {
         });
     };
 
-    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setCurrentClub(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSelectChange = (name: string, value: string) => {
         setCurrentClub(prev => ({ ...prev, [name]: value }));
     };
 
@@ -198,15 +189,15 @@ export default function AdminClubsPage() {
                     <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">Name*</Label>
-                            <Input id="name" name="name" value={currentClub.name} onChange={handleFormChange} className="col-span-3"/>
+                            <Input id="name" name="name" value={currentClub.name || ''} onChange={handleFormChange} className="col-span-3"/>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="description" className="text-right">Description</Label>
-                            <Textarea id="description" name="description" value={currentClub.description} onChange={handleFormChange} className="col-span-3"/>
+                            <Textarea id="description" name="description" value={currentClub.description || ''} onChange={handleFormChange} className="col-span-3"/>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="image" className="text-right">Image URL</Label>
-                            <Input id="image" name="image" value={currentClub.image} onChange={handleFormChange} className="col-span-3"/>
+                            <Input id="image" name="image" value={currentClub.image || ''} onChange={handleFormChange} className="col-span-3"/>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="tags" className="text-right">Tags</Label>
@@ -214,60 +205,37 @@ export default function AdminClubsPage() {
                         </div>
                          <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="contactEmail" className="text-right">Contact Email</Label>
-                            <Input id="contactEmail" name="contactEmail" type="email" value={currentClub.contactEmail} onChange={handleFormChange} className="col-span-3"/>
+                            <Input id="contactEmail" name="contactEmail" type="email" value={currentClub.contactEmail || ''} onChange={handleFormChange} className="col-span-3"/>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="facultyAdvisor" className="text-right">Advisor*</Label>
-                            <Input id="facultyAdvisor" name="facultyAdvisor" value={currentClub.facultyAdvisor} onChange={handleFormChange} className="col-span-3"/>
+                            <Input id="facultyAdvisor" name="facultyAdvisor" value={currentClub.facultyAdvisor || ''} onChange={handleFormChange} className="col-span-3"/>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={comboboxOpen}
-                                        className="col-span-3 justify-between bg-transparent text-white hover:bg-white/10 hover:text-white"
-                                    >
-                                        {currentClub.leadId
-                                            ? students.find(student => student.id === currentClub.leadId)?.name
-                                            : "Select a student lead..."}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Search student by name or email..." />
-                                        <CommandList>
-                                            <CommandEmpty>No student found.</CommandEmpty>
-                                            <CommandGroup>
-                                                {students.map(student => (
-                                                    <CommandItem
-                                                        key={student.id}
-                                                        value={`${student.name} ${student.email}`}
-                                                        onSelect={() => {
-                                                            handleSelectChange('leadId', student.id);
-                                                            setComboboxOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                currentClub.leadId === student.id ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                        <div>
-                                                          <p>{student.name}</p>
-                                                          <p className="text-xs text-white/60">{student.email}</p>
-                                                        </div>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                            <select
+                                id="leadId"
+                                name="leadId"
+                                value={currentClub.leadId || ''}
+                                onChange={handleFormChange}
+                                className="col-span-3 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                                required
+                            >
+                                <option value="" disabled className="bg-gray-800">Select a student lead...</option>
+                                {students.length > 0 ? (
+                                    students.map(student => (
+                                        <option
+                                            key={student.id}
+                                            value={student.id}
+                                            className="bg-gray-800"
+                                        >
+                                            {student.name} ({student.course} - {student.year})
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option value="" disabled className="bg-gray-800">No students found</option>
+                                )}
+                            </select>
                         </div>
                     </div>
                     <DialogFooter>
