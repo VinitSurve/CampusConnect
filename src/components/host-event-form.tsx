@@ -11,7 +11,7 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, UploadCloud, X } from "lucide-react";
+import { Sparkles, UploadCloud, X, Check } from "lucide-react";
 import { generateEventDescription } from "@/ai/flows/generate-event-description";
 import { generateEventTakeaways } from "@/ai/flows/generate-event-takeaways";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,38 +51,34 @@ const equipmentList = [
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
-        <button type="submit" disabled={pending} className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-lg transition-colors disabled:opacity-50">
+        <Button type="submit" disabled={pending} className="w-full">
             {pending ? 'Submitting...' : 'Submit Event Request'}
-        </button>
+        </Button>
     );
 }
 
-const FileInput = ({ name, label, accepted, helpText, onFileChange }: { name: string, label: string, accepted: string, helpText: string, onFileChange: (file: File | null, preview: string | null) => void }) => {
-    const [preview, setPreview] = useState<string | null>(null);
-    const [fileName, setFileName] = useState<string | null>(null);
+const FileInput = ({ name, label, accepted, helpText, onFileChange, currentPreview }: { name: string, label: string, accepted: string, helpText: string, onFileChange: (name: string, file: File | null) => void, currentPreview: string | null }) => {
+    const [preview, setPreview] = useState<string | null>(currentPreview);
+
+    useEffect(() => {
+        setPreview(currentPreview);
+    }, [currentPreview]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                const result = reader.result as string;
-                setPreview(result);
-                onFileChange(file, result);
+                setPreview(reader.result as string);
             };
             reader.readAsDataURL(file);
-            setFileName(file.name);
-        } else {
-            setPreview(null);
-            setFileName(null);
-            onFileChange(null, null);
+            onFileChange(name, file);
         }
     };
 
     const handleClear = () => {
         setPreview(null);
-        setFileName(null);
-        onFileChange(null, null);
+        onFileChange(name, null);
         const input = document.getElementById(name) as HTMLInputElement;
         if(input) input.value = "";
     }
@@ -113,7 +109,14 @@ const FileInput = ({ name, label, accepted, helpText, onFileChange }: { name: st
     );
 }
 
+const formSteps = [
+    { id: 1, name: "Event Details" },
+    { id: 2, name: "Content & Audience" },
+    { id: 3, name: "Logistics & Media" }
+];
+
 export default function HostEventForm({ user }: HostEventFormProps) {
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -128,7 +131,14 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     clubId: "",
     clubName: "",
     date: "",
-    time: ""
+    time: "",
+    headerImage: null as File | null,
+    eventLogo: null as File | null,
+  });
+
+  const [previews, setPreviews] = useState({
+      headerImage: null as string | null,
+      eventLogo: null as string | null
   });
   
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -173,7 +183,6 @@ export default function HostEventForm({ user }: HostEventFormProps) {
   useEffect(() => {
     const checkPermissions = async () => {
       if (!user) return;
-
       try {
         if (user.role === 'faculty') {
           setIsAllowed(true);
@@ -181,22 +190,14 @@ export default function HostEventForm({ user }: HostEventFormProps) {
           return;
         }
 
-        const clubsQuery = query(
-          collection(db, "clubs"),
-          where("leadId", "==", user.uid)
-        );
-        
+        const clubsQuery = query(collection(db, "clubs"), where("leadId", "==", user.uid));
         const querySnapshot = await getDocs(clubsQuery);
         if (!querySnapshot.empty) {
             const clubs = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
             setUserClubs(clubs);
             setIsAllowed(true);
             if (clubs.length > 0) {
-              setForm(prev => ({
-                ...prev,
-                clubId: clubs[0].id,
-                clubName: clubs[0].name
-              }));
+              setForm(prev => ({ ...prev, clubId: clubs[0].id, clubName: clubs[0].name }));
             }
         } else {
             setIsAllowed(false);
@@ -212,17 +213,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
   const checkLocationAvailability = async (date: Date) => {
     try {
       setSelectedDate(date);
-      
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-      
-      const q = query(
-        collection(db, "events"),
-        where("date", ">=", startOfDay.toISOString().split('T')[0]),
-        where("date", "<=", endOfDay.toISOString().split('T')[0])
-      );
+      const dateStr = date.toISOString().split('T')[0];
+      const q = query(collection(db, "events"), where("date", "==", dateStr));
       
       const querySnapshot = await getDocs(q);
       const bookedLocations = new Set(querySnapshot.docs.map(d => d.data().location));
@@ -253,11 +245,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
 
   const handleGenerateDescription = async () => {
     if (!form.title) {
-        toast({
-            title: "Title needed",
-            description: "Please enter an event title first to generate a description.",
-            variant: "destructive",
-        });
+        toast({ title: "Title needed", description: "Please enter an event title first.", variant: "destructive" });
         return;
     }
     setIsGeneratingDesc(true);
@@ -266,11 +254,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
         setForm(prev => ({ ...prev, description }));
     } catch (error) {
         console.error("Error generating description:", error);
-        toast({
-            title: "AI Error",
-            description: "Failed to generate description. Please try again.",
-            variant: "destructive",
-        });
+        toast({ title: "AI Error", description: "Failed to generate description.", variant: "destructive" });
     } finally {
         setIsGeneratingDesc(false);
     }
@@ -278,11 +262,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
 
   const handleGenerateTakeaways = async () => {
     if (!form.title || !form.description) {
-        toast({
-            title: "Info needed",
-            description: "Please enter an event title and description first to generate takeaways.",
-            variant: "destructive",
-        });
+        toast({ title: "Info needed", description: "Please enter title and description first.", variant: "destructive" });
         return;
     }
     setIsGeneratingTakeaways(true);
@@ -291,11 +271,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
         setForm(prev => ({ ...prev, whatYouWillLearn: takeaways }));
     } catch (error) {
         console.error("Error generating takeaways:", error);
-        toast({
-            title: "AI Error",
-            description: "Failed to generate takeaways. Please try again.",
-            variant: "destructive",
-        });
+        toast({ title: "AI Error", description: "Failed to generate takeaways.", variant: "destructive" });
     } finally {
         setIsGeneratingTakeaways(false);
     }
@@ -311,18 +287,81 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     });
   };
 
+  const handleFileChange = (name: string, file: File | null) => {
+    setForm(prev => ({ ...prev, [name]: file }));
+    if(file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+             setPreviews(prev => ({ ...prev, [name]: reader.result as string }));
+        };
+        reader.readAsDataURL(file);
+    } else {
+        setPreviews(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validateStep = () => {
+      let isValid = true;
+      let message = "Please fill all required fields.";
+      if (step === 1) {
+          if (!form.title || !form.description || !form.category) isValid = false;
+      }
+      if (step === 2) {
+          if (form.targetAudience.length === 0) isValid = false;
+      }
+      if (step === 3) {
+          if (!form.date || !form.time) {
+              isValid = false;
+              message = "Please select a date and time from the calendar.";
+          }
+      }
+      if (!isValid) {
+          toast({ title: "Missing Information", description: message, variant: "destructive"});
+      }
+      return isValid;
+  };
+
+  const handleNext = () => {
+      if (validateStep()) {
+          setStep(s => s + 1);
+      }
+  };
+
+  const handleBack = () => setStep(s => s - 1);
+
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!validateStep()) return;
+
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) => {
+        if (value) {
+            if (key === 'targetAudience' && Array.isArray(value)) {
+                value.forEach(item => formData.append(key, item));
+            } else if (value instanceof File) {
+                formData.append(key, value);
+            } else {
+                formData.append(key, value as string);
+            }
+        }
+    });
+
+    try {
+        await createEventProposalAction(formData);
+        toast({title: "Success!", description: "Your event proposal has been submitted for review."});
+    } catch (error) {
+        toast({title: "Submission Error", description: (error as Error).message, variant: "destructive"});
+    }
+  };
+
+
   if (!isAllowed) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 p-8 max-w-md w-full text-center">
           <h2 className="text-2xl font-bold text-white mb-4">Access Denied</h2>
-          <p className="text-white/70 mb-6">
-            Only faculty members and designated club leads can host events.
-          </p>
-          <Link
-            href="/dashboard/events"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
+          <p className="text-white/70 mb-6">Only faculty members and designated club leads can host events.</p>
+          <Link href="/dashboard/events" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             Back to Events
           </Link>
         </div>
@@ -334,155 +373,141 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
-          <h2 className="text-2xl font-semibold text-white mb-6">Host New Event</h2>
-          <form action={createEventProposalAction} className="space-y-6">
-             {/* Hidden inputs to pass state to server action */}
+            {/* Steps Indicator */}
+            <div className="flex items-center space-x-2 sm:space-x-4 mb-8">
+                {formSteps.map((s, index) => (
+                    <React.Fragment key={s.id}>
+                        <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all ${step >= s.id ? 'bg-blue-600' : 'bg-white/10 border-2 border-white/20'}`}>
+                                {step > s.id ? <Check className="w-5 h-5" /> : s.id}
+                            </div>
+                            <span className={`text-sm sm:text-base font-medium transition-all hidden sm:block ${step >= s.id ? 'text-white' : 'text-white/50'}`}>{s.name}</span>
+                        </div>
+                        {index < formSteps.length - 1 && <div className="flex-grow h-0.5 bg-white/20"></div>}
+                    </React.Fragment>
+                ))}
+            </div>
+
+          <form onSubmit={handleFormSubmit} className="space-y-6">
             <input type="hidden" name="clubId" value={form.clubId} />
             <input type="hidden" name="clubName" value={form.clubName} />
             <input type="hidden" name="date" value={form.date} />
             <input type="hidden" name="time" value={form.time} />
             <input type="hidden" name="equipmentNeeds" value={form.equipmentNeeds} />
             
-            <div className="space-y-2">
-              <label className="text-white text-sm">Event Title*</label>
-              <input type="text" name="title" defaultValue={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Enter event title" required />
-            </div>
-
-            <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                    <label className="text-white text-sm">Event Description*</label>
-                    <button
-                        type="button"
-                        onClick={handleGenerateDescription}
-                        disabled={isGeneratingDesc || !form.title}
-                        className="flex items-center gap-1.5 px-2 py-1 text-xs rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Sparkles className={`h-4 w-4 ${isGeneratingDesc ? 'animate-spin' : ''}`} />
-                        {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
-                    </button>
-                </div>
-                <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
-            </div>
-            
-            <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={() => {}} />
-            <FileInput name="eventLogo" label="Event Logo" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={() => {}} />
-
-            <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                    <label className="text-white text-sm">What You'll Learn</label>
-                    <button
-                        type="button"
-                        onClick={handleGenerateTakeaways}
-                        disabled={isGeneratingTakeaways || !form.title || !form.description}
-                        className="flex items-center gap-1.5 px-2 py-1 text-xs rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Sparkles className={`h-4 w-4 ${isGeneratingTakeaways ? 'animate-spin' : ''}`} />
-                        {isGeneratingTakeaways ? 'Generating...' : 'Generate with AI'}
-                    </button>
-                </div>
-              <Textarea name="whatYouWillLearn" value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" />
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-white text-sm">Target Audience</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                    {availableCourses.map((course) => (
-                    <div key={course} className="flex items-center space-x-2 bg-white/5 p-3 rounded-lg border border-transparent has-[:checked]:border-blue-500/50 has-[:checked]:bg-blue-900/20 transition-all">
-                        <Checkbox
-                            id={`course-${course}`}
-                            name="targetAudience"
-                            value={course}
-                            checked={(form.targetAudience || []).includes(course)}
-                            onCheckedChange={() => handleAudienceChange(course)}
-                            className="h-5 w-5"
-                        />
-                        <label
-                            htmlFor={`course-${course}`}
-                            className="text-sm font-medium leading-none text-white peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-grow"
-                        >
-                        {course}
-                        </label>
+            {step === 1 && (
+                <div className="space-y-6 animate-in fade-in-0 duration-300">
+                    <div className="space-y-2">
+                        <label className="text-white text-sm">Event Title*</label>
+                        <input type="text" name="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Enter event title" required />
                     </div>
-                    ))}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <label className="text-white text-sm">Event Description*</label>
+                            <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc || !form.title} size="sm" variant="outline" className="bg-white/10 text-xs">
+                                <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingDesc ? 'animate-spin' : ''}`} />
+                                {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
+                            </Button>
+                        </div>
+                        <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-white text-sm">Select Category*</label>
+                        <select name="category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
+                            <option value="" className="bg-gray-800">Select a category</option>
+                            {categories.map(category => (<option key={category.id} value={category.name} className="bg-gray-800">{category.icon} {category.name}</option>))}
+                        </select>
+                    </div>
                 </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>
-              <Textarea name="keySpeakers" defaultValue={form.keySpeakers} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="List each speaker on a new line, e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
-            </div>
-
-             <div className="space-y-4">
-              <label className="text-white text-sm">Equipment Needs (Optional)</label>
-              {equipmentList.map((item) => (
-                <div key={item.id} className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
-                  <span className="text-white/90">{item.name}</span>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 bg-white/10"
-                      onClick={() => handleQuantityChange(item.id, -(item.step || 1), item.max)}
-                      disabled={equipmentQuantities[item.id] <= 0}
-                    >
-                      -
-                    </Button>
-                    <span className="w-8 text-center font-medium">{equipmentQuantities[item.id]}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 bg-white/10"
-                      onClick={() => handleQuantityChange(item.id, item.step || 1, item.max)}
-                      disabled={equipmentQuantities[item.id] >= item.max}
-                    >
-                      +
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-             <div className="space-y-2">
-                <label className="text-white text-sm">Budget & Funding (Optional)</label>
-                <Textarea name="budgetDetails" defaultValue={form.budgetDetails} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-white text-sm">Select Location*</label>
-              <select name="location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
-                <option value="" className="bg-gray-800">Select a location to filter calendar</option>
-                {locations.map(location => (
-                  <option key={location.id} value={location.id} className="bg-gray-800" disabled={!!selectedDate && !locationAvailability[location.id]}>
-                    {location.icon} {location.name} {!!selectedDate && !locationAvailability[location.id] ? '(Booked)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-white text-sm">Select Category*</label>
-              <select name="category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
-                <option value="" className="bg-gray-800">Select a category</option>
-                {categories.map(category => (<option key={category.id} value={category.name} className="bg-gray-800">{category.icon} {category.name}</option>))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-white text-sm">Registration Link (Optional)</label>
-              <input name="registrationLink" type="url" defaultValue={form.registrationLink} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." />
-            </div>
-            {user.role !== 'faculty' && userClubs.length > 0 && (
-              <div className="mb-4">
-                <label className="block text-white text-sm font-medium mb-2">Hosting as Club</label>
-                <select name="clubId" value={form.clubId} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm(prev => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
-                  {userClubs.map(club => (<option key={club.id} value={club.id} className="bg-gray-800">{club.name}</option>))}
-                </select>
-              </div>
             )}
-            <SubmitButton />
+
+            {step === 2 && (
+                <div className="space-y-6 animate-in fade-in-0 duration-300">
+                    <div className="space-y-2">
+                        <label className="text-white text-sm">Target Audience*</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                            {availableCourses.map((course) => (
+                                <div key={course} className="flex items-center space-x-2 bg-white/5 p-3 rounded-lg border border-transparent has-[:checked]:border-blue-500/50 has-[:checked]:bg-blue-900/20 transition-all">
+                                    <Checkbox id={`course-${course}`} name="targetAudience" value={course} checked={form.targetAudience.includes(course)} onCheckedChange={() => handleAudienceChange(course)} className="h-5 w-5" />
+                                    <label htmlFor={`course-${course}`} className="text-sm font-medium leading-none text-white peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-grow">{course}</label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <label className="text-white text-sm">What You'll Learn</label>
+                             <Button type="button" onClick={handleGenerateTakeaways} disabled={isGeneratingTakeaways || !form.title || !form.description} size="sm" variant="outline" className="bg-white/10 text-xs">
+                                <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingTakeaways ? 'animate-spin' : ''}`} />
+                                {isGeneratingTakeaways ? 'Generating...' : 'Generate with AI'}
+                            </Button>
+                        </div>
+                        <Textarea name="whatYouWillLearn" value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>
+                        <Textarea name="keySpeakers" value={form.keySpeakers} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="List each speaker on a new line, e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
+                    </div>
+                </div>
+            )}
+            
+            {step === 3 && (
+                <div className="space-y-6 animate-in fade-in-0 duration-300">
+                    <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.headerImage} />
+                    <FileInput name="eventLogo" label="Event Logo" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
+
+                     <div className="space-y-4">
+                        <label className="text-white text-sm">Equipment Needs (Optional)</label>
+                        {equipmentList.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+                            <span className="text-white/90">{item.name}</span>
+                            <div className="flex items-center gap-3">
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8 bg-white/10" onClick={() => handleQuantityChange(item.id, -(item.step || 1), item.max)} disabled={(equipmentQuantities[item.id] || 0) <= 0}>-</Button>
+                                <span className="w-8 text-center font-medium">{equipmentQuantities[item.id]}</span>
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8 bg-white/10" onClick={() => handleQuantityChange(item.id, item.step || 1, item.max)} disabled={(equipmentQuantities[item.id] || 0) >= item.max}>+</Button>
+                            </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-white text-sm">Budget & Funding (Optional)</label>
+                        <Textarea name="budgetDetails" value={form.budgetDetails} onChange={(e) => setForm({ ...form, budgetDetails: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-white text-sm">Registration Link (Optional)</label>
+                        <input name="registrationLink" type="url" value={form.registrationLink} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." />
+                    </div>
+
+                    {user.role !== 'faculty' && userClubs.length > 0 && (
+                        <div className="mb-4">
+                            <label className="block text-white text-sm font-medium mb-2">Hosting as Club</label>
+                            <select name="clubId" value={form.clubId} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm(prev => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
+                            {userClubs.map(club => (<option key={club.id} value={club.id} className="bg-gray-800">{club.name}</option>))}
+                            </select>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center">
+                <div>
+                    {step > 1 && <Button type="button" variant="outline" onClick={handleBack} className="bg-white/10">Back</Button>}
+                </div>
+                <div>
+                    {step < 3 && <Button type="button" onClick={handleNext}>Next</Button>}
+                    {step === 3 && <SubmitButton />}
+                </div>
+            </div>
+
           </form>
         </div>
         <div className="sticky top-24">
+          <div className="space-y-2 mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
+              <h3 className="font-semibold text-white">Select Date & Time*</h3>
+              <p className="text-sm text-white/70">Click a date on the calendar below to select it. This will also show you which locations are already booked on that day.</p>
+          </div>
           <AcademicCalendar
             onDateSelect={handleDateSelect}
             initialView="dayGridMonth"
@@ -509,3 +534,5 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     </div>
   );
 }
+
+    
