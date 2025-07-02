@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2, Users, User as UserIcon, BookUser, Mail, Check, ChevronsUpDown } from 'lucide-react';
@@ -237,30 +237,29 @@ export default function AdminClubsPage() {
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                     <Command>
                                         <CommandInput placeholder="Search student..." />
-                                        <CommandEmpty>No student found.</CommandEmpty>
-                                        <CommandGroup>
-                                            {students.map(student => (
-                                                <CommandItem
-                                                    key={student.id}
-                                                    value={student.email}
-                                                    onSelect={(currentEmail) => {
-                                                        const selectedStudent = students.find(s => s.email === currentEmail);
-                                                        if (selectedStudent) {
-                                                            handleSelectChange('leadId', selectedStudent.id);
-                                                        }
-                                                        setComboboxOpen(false);
-                                                    }}
-                                                >
-                                                    <Check
-                                                        className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            currentClub.leadId === student.id ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {student.name} ({student.email})
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
+                                        <CommandList>
+                                            <CommandEmpty>No student found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {students.map(student => (
+                                                    <CommandItem
+                                                        key={student.id}
+                                                        value={student.id}
+                                                        onSelect={(studentId) => {
+                                                            handleSelectChange('leadId', studentId);
+                                                            setComboboxOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                currentClub.leadId === student.id ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {student.name} ({student.email})
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
                                     </Command>
                                 </PopoverContent>
                             </Popover>
