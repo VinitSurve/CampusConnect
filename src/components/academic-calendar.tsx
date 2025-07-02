@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -241,8 +242,7 @@ export default function AcademicCalendar({
             initialView={initialView}
             weekends={true}
             events={events}
-                displayEventEnd={false}
-                displayEventTime={false}
+            displayEventTime={false}
             editable={false}
             selectable={true}
             selectMirror={true}
