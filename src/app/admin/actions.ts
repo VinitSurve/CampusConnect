@@ -1,8 +1,9 @@
+
 'use server'
 
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import type { EventProposal, Event, TimetableEntry } from '@/types';
 
 export async function approveRequest(proposal: EventProposal) {
@@ -70,22 +71,46 @@ export async function rejectRequest(proposalId: string, reason: string) {
     }
 }
 
-export async function addTimetableEntry(data: Omit<TimetableEntry, 'id'>) {
+export async function saveTimetableEntry(entryData: Omit<TimetableEntry, 'id'>, entryId?: string) {
     try {
-        if (!data.subject || !data.course || !data.year || !data.division || data.dayOfWeek === undefined || !data.startTime || !data.endTime || !data.location || !data.facultyName) {
-            throw new Error("All fields are required.");
-        }
+        const dataToSave = {
+            ...entryData,
+            updatedAt: serverTimestamp(),
+        };
 
-        await addDoc(collection(db, "timetables"), {
-            ...data,
-            createdAt: serverTimestamp(),
-        });
+        if (entryId) {
+            // Update existing entry
+            const entryRef = doc(db, "timetables", entryId);
+            await updateDoc(entryRef, dataToSave);
+        } else {
+            // Add new entry
+            await addDoc(collection(db, "timetables"), {
+                ...dataToSave,
+                createdAt: serverTimestamp(),
+            });
+        }
         
         revalidatePath("/admin/calendar");
         return { success: true };
 
     } catch (error) {
-        console.error("Error adding timetable entry:", error);
+        console.error("Error saving timetable entry:", error);
         return { success: false, error: (error as Error).message };
     }
 }
+
+export async function deleteTimetableEntry(entryId: string) {
+    try {
+        const entryRef = doc(db, "timetables", entryId);
+        await deleteDoc(entryRef);
+        
+        revalidatePath("/admin/calendar");
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error deleting timetable entry:", error);
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+    

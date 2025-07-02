@@ -1,19 +1,12 @@
+
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
-import AcademicCalendar from "@/components/academic-calendar";
+import { useState, useEffect, useTransition } from 'react';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { TimetableEntry } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-  DialogClose
-} from "@/components/ui/dialog";
-import { Input } from '@/components/ui/input';
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,10 +14,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { addTimetableEntry } from '@/app/admin/actions';
-import type { TimetableEntry } from '@/types';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { saveTimetableEntry, deleteTimetableEntry } from '@/app/admin/actions';
+import { Printer, Upload, Download, Share2, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const TIME_SLOTS = [
+  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', 
+  '14:00', '15:00', '16:00', '17:00'
+];
 
 const courses = ["BCA", "BBA", "BAF", "MBA"];
 const courseYears: { [key: string]: string[] } = {
@@ -34,164 +54,306 @@ const courseYears: { [key: string]: string[] } = {
   MBA: ["1", "2"],
 };
 const divisions = ["A", "B", "C"];
-const daysOfWeek = [
-  { label: "Monday", value: "1" },
-  { label: "Tuesday", value: "2" },
-  { label: "Wednesday", value: "3" },
-  { label: "Thursday", value: "4" },
-  { label: "Friday", value: "5" },
-  { label: "Saturday", value: "6" },
-];
 
-const initialFormState: Omit<TimetableEntry, 'id'> = {
-    course: '',
-    year: '',
-    division: '',
-    subject: '',
-    dayOfWeek: 1,
-    startTime: '',
-    endTime: '',
-    location: '',
-    facultyName: ''
-};
+type TimetableGrid = {
+  [day: string]: {
+    [time: string]: (TimetableEntry & { isFirstHour: boolean; totalHours: number }) | null
+  }
+}
 
-export default function AdminCalendarPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+export default function TimetableManagerPage() {
+  const [loading, setLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  
+  // Class selection state
+  const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedDivision, setSelectedDivision] = useState<string>('');
+
+  const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([]);
+  const [timetableGrid, setTimetableGrid] = useState<TimetableGrid>({});
+  
+  // Dialog states
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [currentEntry, setCurrentEntry] = useState<Partial<TimetableEntry>>({});
+
   const { toast } = useToast();
-  const [formData, setFormData] = useState(initialFormState);
 
-  const handleCourseChange = (course: string) => {
-    setFormData(prev => ({ ...prev, course, year: '' }));
+  const availableYears = selectedCourse ? courseYears[selectedCourse] || [] : [];
+
+  useEffect(() => {
+    if (selectedCourse && selectedYear && selectedDivision) {
+      fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
+    } else {
+      setTimetableEntries([]);
+      setTimetableGrid({});
+    }
+  }, [selectedCourse, selectedYear, selectedDivision]);
+
+  const fetchTimetableData = async (course: string, year: string, division: string) => {
+    setLoading(true);
+    try {
+      const q = query(
+        collection(db, 'timetables'),
+        where('course', '==', course),
+        where('year', '==', year),
+        where('division', '==', division)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const entries: TimetableEntry[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TimetableEntry));
+      
+      setTimetableEntries(entries);
+      organizeEntriesIntoGrid(entries);
+
+    } catch (error) {
+      console.error("Error fetching timetable:", error);
+      toast({ title: "Error", description: "Failed to load timetable data.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFormChange = (field: keyof typeof formData, value: string | number) => {
-      setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    startTransition(async () => {
-      const result = await addTimetableEntry({
-          ...formData,
-          dayOfWeek: Number(formData.dayOfWeek)
+  const organizeEntriesIntoGrid = (entries: TimetableEntry[]) => {
+    const newGrid: TimetableGrid = {};
+    DAYS_OF_WEEK.forEach(day => {
+      newGrid[day] = {};
+      TIME_SLOTS.forEach(time => {
+        newGrid[day][time] = null;
       });
-      if (result.success) {
-        toast({ title: "Success", description: "Timetable entry added successfully!" });
-        setIsDialogOpen(false);
-        setFormData(initialFormState);
-      } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
+    });
+
+    entries.forEach(entry => {
+      const dayOfWeekStr = DAYS_OF_WEEK[entry.dayOfWeek - 1];
+      if (dayOfWeekStr && entry.startTime) {
+        const startIndex = TIME_SLOTS.indexOf(entry.startTime);
+        const endIndex = entry.endTime ? TIME_SLOTS.indexOf(entry.endTime) : startIndex + 1;
+        
+        if (startIndex !== -1) {
+          for (let i = startIndex; i < endIndex && i < TIME_SLOTS.length; i++) {
+            const timeSlot = TIME_SLOTS[i];
+            const isFirstHour = i === startIndex;
+            if (isFirstHour) {
+               newGrid[dayOfWeekStr][timeSlot] = { ...entry, isFirstHour: true, totalHours: endIndex - startIndex };
+            } else {
+               newGrid[dayOfWeekStr][timeSlot] = { ...entry, isFirstHour: false, totalHours: 0 };
+            }
+          }
+        }
       }
+    });
+    setTimetableGrid(newGrid);
+  };
+
+  const handleCellClick = (day: string, time: string) => {
+    const entry = timetableGrid[day]?.[time];
+    if (entry) {
+      // Edit existing entry
+      setIsEditMode(true);
+      setCurrentEntry(entry);
+    } else {
+      // Add new entry
+      setIsEditMode(false);
+      setCurrentEntry({
+        dayOfWeek: DAYS_OF_WEEK.indexOf(day) + 1,
+        startTime: time,
+        endTime: TIME_SLOTS[TIME_SLOTS.indexOf(time) + 1] || time,
+      });
+    }
+    setIsFormOpen(true);
+  };
+  
+  const handleSave = () => {
+    if (!selectedCourse || !selectedYear || !selectedDivision) {
+        toast({ title: "Error", description: "Please select a class first.", variant: "destructive" });
+        return;
+    }
+    const dataToSave = {
+        subject: currentEntry.subject || '',
+        facultyName: currentEntry.facultyName || '',
+        location: currentEntry.location || '',
+        course: selectedCourse,
+        year: selectedYear,
+        division: selectedDivision,
+        dayOfWeek: Number(currentEntry.dayOfWeek),
+        startTime: currentEntry.startTime || '',
+        endTime: currentEntry.endTime || '',
+    };
+    
+    startTransition(async () => {
+        const result = await saveTimetableEntry(dataToSave, currentEntry.id);
+        if (result.success) {
+            toast({ title: "Success", description: "Timetable updated!" });
+            setIsFormOpen(false);
+            fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
+        } else {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        }
     });
   };
 
-  const availableYears = useMemo(() => {
-      if (!formData.course) return [];
-      return courseYears[formData.course] || [];
-  }, [formData.course]);
-
+  const handleDelete = () => {
+    if (!currentEntry.id) return;
+    startTransition(async () => {
+        const result = await deleteTimetableEntry(currentEntry.id!);
+        if (result.success) {
+            toast({ title: "Success", description: "Timetable entry deleted." });
+            fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
+        } else {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        }
+    });
+  };
+  
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Campus Timetable</h1>
-        <Button onClick={() => setIsDialogOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Timetable Entry
-        </Button>
-      </div>
-      <AcademicCalendar />
+      <h1 className="text-2xl font-bold text-white mb-4">Timetable Manager</h1>
+      
+      <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Class Selectors */}
+          <Select value={selectedCourse} onValueChange={val => { setSelectedCourse(val); setSelectedYear(''); }}>
+            <SelectTrigger><SelectValue placeholder="Select Course..." /></SelectTrigger>
+            <SelectContent>{courses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={selectedYear} onValueChange={setSelectedYear} disabled={!selectedCourse}>
+            <SelectTrigger><SelectValue placeholder="Select Year..." /></SelectTrigger>
+            <SelectContent>{availableYears.map(y => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={selectedDivision} onValueChange={setSelectedDivision} disabled={!selectedYear}>
+            <SelectTrigger><SelectValue placeholder="Select Division..." /></SelectTrigger>
+            <SelectContent>{divisions.map(d => <SelectItem key={d} value={d}>Division {d}</SelectItem>)}</SelectContent>
+          </Select>
+           {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
+            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Download className="mr-2 h-4 w-4"/>Export</Button>
+            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Upload className="mr-2 h-4 w-4"/>Import</Button>
+            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Share2 className="mr-2 h-4 w-4"/>Share</Button>
+          </div>
+        </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white sm:max-w-[425px]">
-              <DialogHeader>
-                  <DialogTitle>Add New Timetable Entry</DialogTitle>
-                  <DialogDescription>
-                      Fill in the details for the recurring class schedule.
-                  </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="course" className="text-right">Course</Label>
-                        <Select value={formData.course} onValueChange={handleCourseChange}>
-                            <SelectTrigger id="course" className="col-span-3">
-                                <SelectValue placeholder="Select Course" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {courses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+        {/* Timetable Grid */}
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-[auto_repeat(6,minmax(120px,1fr))] gap-1">
+             {/* Header Row */}
+            <div className="p-2 text-sm font-semibold text-white/80 sticky left-0 z-10 bg-blue-900/50">Time</div>
+            {DAYS_OF_WEEK.map(day => <div key={day} className="p-2 text-center text-sm font-semibold text-white/80">{day}</div>)}
+            
+            {/* Time Slot Rows */}
+            {TIME_SLOTS.map((time, index) => (
+                <div key={time} className="contents">
+                    <div className="p-2 text-sm font-semibold text-white/70 sticky left-0 z-10 bg-blue-900/50">
+                        {`${time} - ${TIME_SLOTS[index+1] || '17:00'}`}
                     </div>
-                    <div className="grid grid-cols-2 items-center gap-4">
-                         <div className="grid grid-cols-2 items-center gap-4 col-start-3">
-                            <Label htmlFor="year" className="text-right">Year</Label>
-                            <Select value={formData.year} onValueChange={(val) => handleFormChange('year', val)} disabled={!formData.course}>
-                                <SelectTrigger id="year">
-                                    <SelectValue placeholder="Year" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid grid-cols-2 items-center gap-4">
-                            <Label htmlFor="division" className="text-right">Division</Label>
-                            <Select value={formData.division} onValueChange={(val) => handleFormChange('division', val)}>
-                                <SelectTrigger id="division">
-                                    <SelectValue placeholder="Div" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {divisions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="subject" className="text-right">Subject</Label>
-                        <Input id="subject" value={formData.subject} onChange={e => handleFormChange('subject', e.target.value)} className="col-span-3" />
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="facultyName" className="text-right">Faculty</Label>
-                        <Input id="facultyName" value={formData.facultyName} onChange={e => handleFormChange('facultyName', e.target.value)} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="dayOfWeek" className="text-right">Day</Label>
-                        <Select value={String(formData.dayOfWeek)} onValueChange={(val) => handleFormChange('dayOfWeek', val)}>
-                            <SelectTrigger id="dayOfWeek" className="col-span-3">
-                                <SelectValue placeholder="Select Day" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {daysOfWeek.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="grid grid-cols-2 items-center gap-4 col-start-3">
-                            <Label htmlFor="startTime" className="text-right">Start Time</Label>
-                            <Input id="startTime" type="time" value={formData.startTime} onChange={e => handleFormChange('startTime', e.target.value)} />
-                        </div>
-                        <div className="grid grid-cols-2 items-center gap-4">
-                            <Label htmlFor="endTime" className="text-right">End Time</Label>
-                            <Input id="endTime" type="time" value={formData.endTime} onChange={e => handleFormChange('endTime', e.target.value)} />
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="location" className="text-right">Location</Label>
-                        <Input id="location" value={formData.location} onChange={e => handleFormChange('location', e.target.value)} className="col-span-3" placeholder="e.g., Lab 401"/>
-                    </div>
+                    {DAYS_OF_WEEK.map(day => {
+                        const entry = timetableGrid[day]?.[time];
+                        if (loading) {
+                            return <div key={`${day}-${time}`} className="h-20"><Skeleton className="w-full h-full bg-white/5" /></div>
+                        }
+                        if (entry?.isFirstHour) {
+                            return (
+                                <div key={`${day}-${time}`} 
+                                    onClick={() => handleCellClick(day, time)}
+                                    className="p-2 rounded-lg bg-blue-500/20 text-white cursor-pointer hover:bg-blue-500/30 transition-colors text-center flex flex-col justify-center"
+                                    style={{ gridRow: `span ${entry.totalHours || 1}`}}
+                                >
+                                    <p className="font-bold text-sm">{entry.subject}</p>
+                                    <p className="text-xs text-white/80">{entry.facultyName}</p>
+                                    <p className="text-xs text-white/60 italic">{entry.location}</p>
+                                </div>
+                            );
+                        }
+                        if (entry && !entry.isFirstHour) {
+                           return null; // This cell is covered by a multi-hour entry
+                        }
+                        return (
+                            <div key={`${day}-${time}`} 
+                                onClick={() => handleCellClick(day, time)}
+                                className="h-20 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center text-white/30"
+                            >+</div>
+                        );
+                    })}
                 </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="button" variant="ghost">Cancel</Button>
-                    </DialogClose>
-                    <Button type="submit" disabled={isPending}>
-                        {isPending ? 'Saving...' : 'Save Entry'}
-                    </Button>
-                </DialogFooter>
-              </form>
-          </DialogContent>
+            ))}
+          </div>
+        </div>
+      </div>
+
+       {/* Add/Edit Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? 'Edit Timetable Entry' : 'Add New Entry'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="subject" className="text-right">Subject</Label>
+              <Input id="subject" value={currentEntry.subject || ''} onChange={e => setCurrentEntry({...currentEntry, subject: e.target.value})} className="col-span-3"/>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="facultyName" className="text-right">Faculty</Label>
+              <Input id="facultyName" value={currentEntry.facultyName || ''} onChange={e => setCurrentEntry({...currentEntry, facultyName: e.target.value})} className="col-span-3"/>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="location" className="text-right">Location</Label>
+              <Input id="location" value={currentEntry.location || ''} onChange={e => setCurrentEntry({...currentEntry, location: e.target.value})} className="col-span-3" placeholder="e.g. Lab 404"/>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="day" className="text-right">Day</Label>
+              <Select value={String(currentEntry.dayOfWeek || '')} onValueChange={val => setCurrentEntry({...currentEntry, dayOfWeek: Number(val)})}>
+                <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                <SelectContent>{DAYS_OF_WEEK.map((d, i) => <SelectItem key={d} value={String(i+1)}>{d}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startTime" className="text-right">Start Time</Label>
+               <Select value={currentEntry.startTime} onValueChange={val => setCurrentEntry({...currentEntry, startTime: val})}>
+                <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                <SelectContent>{TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="endTime" className="text-right">End Time</Label>
+              <Select value={currentEntry.endTime} onValueChange={val => setCurrentEntry({...currentEntry, endTime: val})}>
+                <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                <SelectContent>{TIME_SLOTS.map((t, i) => TIME_SLOTS[i+1] ? <SelectItem key={t} value={TIME_SLOTS[i+1]}>{TIME_SLOTS[i+1]}</SelectItem> : null)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="justify-between">
+            {isEditMode ? (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="mr-auto"><Trash2 className="mr-2 h-4 w-4"/>Delete</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>This action cannot be undone. This will permanently delete the entry.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+                                {isPending ? 'Deleting...' : 'Continue'}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            ) : <div></div>}
+            <div className="flex gap-2">
+                <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                <Button onClick={handleSave} disabled={isPending}>
+                    {isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
+
     </div>
   );
 }
+
+    
