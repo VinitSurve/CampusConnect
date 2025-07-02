@@ -1,3 +1,4 @@
+
 export type User = {
   id: string; // Document ID from Firestore, same as uid
   uid: string; // Firebase Auth User ID
@@ -46,6 +47,8 @@ export type Club = {
   contactEmail: string;
   facultyAdvisor: string;
   leadId: string;
+  createdAt?: any;
+  updatedAt?: any;
 };
 
 export type EventProposal = {

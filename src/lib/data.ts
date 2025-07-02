@@ -1,8 +1,9 @@
+
 'use server'
 
-import { mockClubs, mockEvents } from './mock-data';
-import type { Club, Event, EventProposal } from '@/types';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { mockEvents } from './mock-data';
+import type { Club, Event, EventProposal, User } from '@/types';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
 // Simulate a database delay
@@ -19,8 +20,33 @@ export async function getEventById(id: string): Promise<Event | undefined> {
 }
 
 export async function getClubs(): Promise<Club[]> {
-  await delay(200);
-  return mockClubs;
+  try {
+    const q = query(collection(db, "clubs"), orderBy("name"));
+    const querySnapshot = await getDocs(q);
+    const clubs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Club));
+    return clubs;
+  } catch (error) {
+    console.error("Error fetching clubs:", error);
+    return [];
+  }
+}
+
+export async function getStudents(): Promise<User[]> {
+    try {
+        const q = query(collection(db, "users"), where("role", "==", "student"), orderBy("fullName", "asc"));
+        const querySnapshot = await getDocs(q);
+        const students = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        } as User));
+        return students;
+    } catch (error) {
+        console.error("Error fetching students:", error);
+        return [];
+    }
 }
 
 export async function getEventProposals(): Promise<EventProposal[]> {
