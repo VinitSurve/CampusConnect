@@ -74,25 +74,41 @@ export default function AuthenticationForm() {
 
 
   const handleSuccessfulLogin = async (user: FirebaseUser) => {
-      const userDocRef = doc(db, "users", user.uid);
-      let userDoc = await getDoc(userDocRef);
+    const { uid, email, displayName } = user;
 
-      if (!userDoc.exists() && user.email) {
-         // If user signs in with Google for the first time
-         const isFaculty = isFacultyEmail(user.email);
-         await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
-            email: user.email,
-            name: user.displayName,
-            fullName: user.displayName,
-            role: isFaculty ? "faculty" : "student",
-            createdAt: serverTimestamp()
-          });
-      }
-      
-      await createSession(user.uid);
-      router.refresh();
-  }
+    if (!email) {
+      toast({ title: "Login Error", description: "Email not available from your Google account.", variant: "destructive" });
+      return;
+    }
+
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+
+    let sessionUid: string;
+
+    if (querySnapshot.empty) {
+      // New user. Create doc with Google UID.
+      sessionUid = uid;
+      const isFaculty = isFacultyEmail(email);
+      await setDoc(doc(db, "users", sessionUid), {
+        uid: sessionUid,
+        email,
+        name: displayName,
+        fullName: displayName,
+        role: isFaculty ? "faculty" : "student",
+        createdAt: serverTimestamp(),
+      });
+    } else {
+      // Existing user. Use their original UID.
+      const existingUserDoc = querySnapshot.docs[0];
+      sessionUid = existingUserDoc.id;
+    }
+
+    // Now that we have the correct UID, create the session.
+    await createSession(sessionUid);
+    router.refresh();
+  };
 
   const handleTraditionalLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -354,3 +370,5 @@ export default function AuthenticationForm() {
     </div>
   );
 }
+
+    
