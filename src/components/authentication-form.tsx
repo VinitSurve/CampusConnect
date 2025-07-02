@@ -2,6 +2,7 @@
 "use client"
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
@@ -19,6 +20,7 @@ import Link from "next/link";
 export default function AuthenticationForm() {
   const [isFlipped, setIsFlipped] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   // --- Login State & Handlers ---
   const [identifier, setIdentifier] = useState("");
@@ -60,7 +62,7 @@ export default function AuthenticationForm() {
       }
       
       const redirectUrl = await createSession(user.uid);
-      window.location.href = redirectUrl;
+      router.push(redirectUrl);
   }
 
   const handleTraditionalLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -190,7 +192,7 @@ export default function AuthenticationForm() {
       
       const redirectUrl = await createSession(user.uid, true);
       toast({ title: "Registration successful!" });
-      window.location.href = redirectUrl;
+      router.push(redirectUrl);
       
     } catch (error: any) {
       console.error("Registration error:", error);
