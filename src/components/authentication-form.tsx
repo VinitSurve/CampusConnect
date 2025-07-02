@@ -1,13 +1,11 @@
 
 "use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword, 
-  onAuthStateChanged, 
   GoogleAuthProvider, 
   signInWithPopup,
   createUserWithEmailAndPassword,
@@ -15,10 +13,10 @@ import {
 } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/actions";
+import AnimatedParticles from "./animated-particles";
 
 export default function AuthenticationForm() {
   const [isFlipped, setIsFlipped] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
 
   // --- Login State & Handlers ---
@@ -58,7 +56,6 @@ export default function AuthenticationForm() {
             role: isFaculty ? "faculty" : "student",
             createdAt: serverTimestamp()
           });
-          userDoc = await getDoc(userDocRef);
       }
       
       const redirectUrl = await createSession(user.uid);
@@ -115,9 +112,9 @@ export default function AuthenticationForm() {
     const newErrors: any = {};
     if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid";
+    else if (!/\\S+@\\S+\\.\\S+/.test(formData.email)) newErrors.email = "Email is invalid";
     if (!formData.mobile.trim()) newErrors.mobile = "Mobile number is required";
-    else if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = "Mobile number must be 10 digits";
+    else if (!/^\\d{10}$/.test(formData.mobile)) newErrors.mobile = "Mobile number must be 10 digits";
     if (!formData.course) newErrors.course = "Please select a course";
     if (!formData.year) newErrors.year = "Please select a year";
     setRegisterErrors(newErrors);
@@ -140,7 +137,7 @@ export default function AuthenticationForm() {
   };
 
   const generateUsername = async (fullName: string) => {
-    let baseName = fullName.toLowerCase().replace(/\s+/g, '');
+    let baseName = fullName.toLowerCase().replace(/\\s+/g, '');
     const generateRandomSuffix = () => Math.floor(Math.random() * 900) + 100;
     let username = `${baseName}${generateRandomSuffix()}`;
     let isUnique = false;
@@ -213,11 +210,7 @@ export default function AuthenticationForm() {
         <div className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-3xl animate-float" style={{ top: '10%', right: '15%' }}></div>
         <div className="absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-blue-600/20 to-indigo-600/20 blur-3xl animate-float-delay" style={{ bottom: '5%', left: '10%' }}></div>
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10"></div>
-        <div className="particles absolute inset-0">
-          {Array(20).fill(0).map((_, i) => (
-            <div key={i} className="absolute w-2 h-2 bg-white rounded-full opacity-30 animate-float" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 5}s`, animationDuration: `${5 + Math.random() * 10}s` }}></div>
-          ))}
-        </div>
+        <AnimatedParticles />
       </div>
       
       <div className="relative z-10 max-w-md w-full mx-auto h-[740px]">
@@ -274,7 +267,7 @@ export default function AuthenticationForm() {
                   </div>
                 </div>
               </div>
-              <div className="p-8 flex-grow">
+              <div className="p-8 flex-grow overflow-y-auto">
                 <form onSubmit={handleRegisterSubmit} className="space-y-5">
                   {currentStep === 1 ? (
                     <>
@@ -313,3 +306,5 @@ export default function AuthenticationForm() {
     </div>
   );
 }
+
+Now remove scrollbar from register page. And add flip animation when switching from login and register pages
