@@ -27,7 +27,9 @@ export type Event = {
   location: string;
   organizer: string;
   category: string;
-  image: string;
+  image: string; // Kept for legacy, headerImage is primary now
+  headerImage?: string;
+  eventLogo?: string;
   attendees: number;
   capacity: number;
   registrationLink: string;
@@ -85,6 +87,8 @@ export type EventProposal = {
   equipmentNeeds?: string;
   budgetDetails?: string;
   whatYouWillLearn?: string;
+  headerImage?: string;
+  eventLogo?: string;
 };
 
 export type TimetableEntry = {

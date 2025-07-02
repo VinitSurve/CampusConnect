@@ -1,21 +1,23 @@
 
 'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { useFormStatus } from "react-dom";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, getDoc, query, where, getDocs, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import AcademicCalendar from '@/components/academic-calendar';
 import type { User } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles } from "lucide-react";
+import { Sparkles, UploadCloud, X } from "lucide-react";
 import { generateEventDescription } from "@/ai/flows/generate-event-description";
 import { generateEventTakeaways } from "@/ai/flows/generate-event-takeaways";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
+import Image from "next/image";
+import { createEventProposalAction } from "../app/dashboard/host-event/actions";
 
 interface HostEventFormProps {
     user: User;
@@ -43,9 +45,73 @@ const equipmentList = [
   { id: 'collarMics', name: 'Collar Mics', max: 2 },
   { id: 'tables', name: 'Tables', max: 1 },
   { id: 'chairs', name: 'Chairs', max: 5 },
-  { id: 'waterBottles', name: 'Water Bottles (packs)', max: 10, step: 1 }, // Simpler step
+  { id: 'waterBottles', name: 'Water Bottles (packs)', max: 10, step: 1 },
 ];
 
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <button type="submit" disabled={pending} className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-lg transition-colors disabled:opacity-50">
+            {pending ? 'Submitting...' : 'Submit Event Request'}
+        </button>
+    );
+}
+
+const FileInput = ({ name, label, accepted, helpText, onFileChange }: { name: string, label: string, accepted: string, helpText: string, onFileChange: (file: File | null, preview: string | null) => void }) => {
+    const [preview, setPreview] = useState<string | null>(null);
+    const [fileName, setFileName] = useState<string | null>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                setPreview(result);
+                onFileChange(file, result);
+            };
+            reader.readAsDataURL(file);
+            setFileName(file.name);
+        } else {
+            setPreview(null);
+            setFileName(null);
+            onFileChange(null, null);
+        }
+    };
+
+    const handleClear = () => {
+        setPreview(null);
+        setFileName(null);
+        onFileChange(null, null);
+        const input = document.getElementById(name) as HTMLInputElement;
+        if(input) input.value = "";
+    }
+
+    return (
+        <div className="space-y-2">
+            <label className="text-white text-sm">{label}</label>
+            <div className="w-full bg-white/5 border-2 border-dashed border-white/20 rounded-xl p-4 text-center">
+                {preview ? (
+                    <div className="relative group">
+                        <Image src={preview} alt="Preview" width={2560} height={650} className="w-full h-auto max-h-48 object-contain rounded-lg" />
+                        <button type="button" onClick={handleClear} className="absolute top-2 right-2 bg-black/50 p-1.5 rounded-full text-white hover:bg-black/80 transition-opacity opacity-50 group-hover:opacity-100">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                        <UploadCloud className="w-10 h-10 text-white/50" />
+                        <label htmlFor={name} className="relative cursor-pointer">
+                            <span className="text-blue-400 font-semibold">Click to upload</span>
+                            <input id={name} name={name} type="file" className="sr-only" accept={accepted} onChange={handleFileChange} />
+                        </label>
+                        <p className="text-xs text-white/50">{helpText}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 export default function HostEventForm({ user }: HostEventFormProps) {
   const [form, setForm] = useState({
@@ -64,8 +130,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     date: "",
     time: ""
   });
+  
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [loading, setLoading] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [locationAvailability, setLocationAvailability] = useState<Record<string, boolean>>({});
@@ -81,7 +147,6 @@ export default function HostEventForm({ user }: HostEventFormProps) {
   });
 
   const { toast } = useToast();
-  const router = useRouter();
 
   useEffect(() => {
     const equipmentString = equipmentList
@@ -246,36 +311,6 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.date || !form.time) {
-      toast({ title: "Validation Error", description: "Please select a date and time from the calendar.", variant: "destructive" });
-      return;
-    }
-    if (!form.title || !form.location || !form.category || !form.description) {
-      toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "eventRequests"), {
-        ...form,
-        createdBy: user.uid,
-        creatorEmail: user.email,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-      toast({ title: "Success!", description: "Event request submitted successfully!" });
-      router.push("/dashboard/events");
-    } catch (error) {
-      console.error("Error submitting event:", error);
-      toast({ title: "Submission Error", description: "Failed to submit event request.", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!isAllowed) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -300,10 +335,17 @@ export default function HostEventForm({ user }: HostEventFormProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
           <h2 className="text-2xl font-semibold text-white mb-6">Host New Event</h2>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form action={createEventProposalAction} className="space-y-6">
+             {/* Hidden inputs to pass state to server action */}
+            <input type="hidden" name="clubId" value={form.clubId} />
+            <input type="hidden" name="clubName" value={form.clubName} />
+            <input type="hidden" name="date" value={form.date} />
+            <input type="hidden" name="time" value={form.time} />
+            <input type="hidden" name="equipmentNeeds" value={form.equipmentNeeds} />
+            
             <div className="space-y-2">
               <label className="text-white text-sm">Event Title*</label>
-              <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Enter event title" required />
+              <input type="text" name="title" defaultValue={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Enter event title" required />
             </div>
 
             <div className="space-y-2">
@@ -319,9 +361,12 @@ export default function HostEventForm({ user }: HostEventFormProps) {
                         {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
                     </button>
                 </div>
-                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
+                <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
             </div>
             
+            <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={() => {}} />
+            <FileInput name="eventLogo" label="Event Logo" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={() => {}} />
+
             <div className="space-y-2">
                 <div className="flex justify-between items-center">
                     <label className="text-white text-sm">What You'll Learn</label>
@@ -335,7 +380,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
                         {isGeneratingTakeaways ? 'Generating...' : 'Generate with AI'}
                     </button>
                 </div>
-              <Textarea value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" />
+              <Textarea name="whatYouWillLearn" value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" />
             </div>
 
             <div className="space-y-2">
@@ -344,14 +389,16 @@ export default function HostEventForm({ user }: HostEventFormProps) {
                     {availableCourses.map((course) => (
                     <div key={course} className="flex items-center space-x-2 bg-white/5 p-3 rounded-lg border border-transparent has-[:checked]:border-blue-500/50 has-[:checked]:bg-blue-900/20 transition-all">
                         <Checkbox
-                        id={`course-${course}`}
-                        checked={(form.targetAudience || []).includes(course)}
-                        onCheckedChange={() => handleAudienceChange(course)}
-                        className="h-5 w-5"
+                            id={`course-${course}`}
+                            name="targetAudience"
+                            value={course}
+                            checked={(form.targetAudience || []).includes(course)}
+                            onCheckedChange={() => handleAudienceChange(course)}
+                            className="h-5 w-5"
                         />
                         <label
-                        htmlFor={`course-${course}`}
-                        className="text-sm font-medium leading-none text-white peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-grow"
+                            htmlFor={`course-${course}`}
+                            className="text-sm font-medium leading-none text-white peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-grow"
                         >
                         {course}
                         </label>
@@ -362,7 +409,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
 
             <div className="space-y-2">
               <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>
-              <Textarea value={form.keySpeakers} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="List each speaker on a new line, e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
+              <Textarea name="keySpeakers" defaultValue={form.keySpeakers} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="List each speaker on a new line, e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
             </div>
 
              <div className="space-y-4">
@@ -399,12 +446,12 @@ export default function HostEventForm({ user }: HostEventFormProps) {
 
              <div className="space-y-2">
                 <label className="text-white text-sm">Budget & Funding (Optional)</label>
-                <Textarea value={form.budgetDetails} onChange={(e) => setForm({ ...form, budgetDetails: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
+                <Textarea name="budgetDetails" defaultValue={form.budgetDetails} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
             </div>
 
             <div className="space-y-2">
               <label className="text-white text-sm">Select Location*</label>
-              <select value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
+              <select name="location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                 <option value="" className="bg-gray-800">Select a location to filter calendar</option>
                 {locations.map(location => (
                   <option key={location.id} value={location.id} className="bg-gray-800" disabled={!!selectedDate && !locationAvailability[location.id]}>
@@ -415,26 +462,24 @@ export default function HostEventForm({ user }: HostEventFormProps) {
             </div>
             <div className="space-y-2">
               <label className="text-white text-sm">Select Category*</label>
-              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
+              <select name="category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                 <option value="" className="bg-gray-800">Select a category</option>
                 {categories.map(category => (<option key={category.id} value={category.name} className="bg-gray-800">{category.icon} {category.name}</option>))}
               </select>
             </div>
             <div className="space-y-2">
               <label className="text-white text-sm">Registration Link (Optional)</label>
-              <input type="url" value={form.registrationLink} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." />
+              <input name="registrationLink" type="url" defaultValue={form.registrationLink} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." />
             </div>
             {user.role !== 'faculty' && userClubs.length > 0 && (
               <div className="mb-4">
                 <label className="block text-white text-sm font-medium mb-2">Hosting as Club</label>
-                <select value={form.clubId} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm(prev => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
+                <select name="clubId" value={form.clubId} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm(prev => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
                   {userClubs.map(club => (<option key={club.id} value={club.id} className="bg-gray-800">{club.name}</option>))}
                 </select>
               </div>
             )}
-            <button type="submit" disabled={loading} className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-lg transition-colors disabled:opacity-50">
-              {loading ? 'Submitting...' : 'Submit Event Request'}
-            </button>
+            <SubmitButton />
           </form>
         </div>
         <div className="sticky top-24">

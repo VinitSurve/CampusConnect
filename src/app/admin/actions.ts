@@ -20,7 +20,9 @@ export async function approveRequest(proposal: EventProposal) {
             location: proposal.location,
             organizer: proposal.clubName,
             category: proposal.category,
-            image: 'https://placehold.co/600x400.png',
+            image: proposal.headerImage || 'https://placehold.co/600x400.png',
+            headerImage: proposal.headerImage,
+            eventLogo: proposal.eventLogo,
             attendees: 0,
             capacity: 100, // Default capacity
             registrationLink: proposal.registrationLink || '#',

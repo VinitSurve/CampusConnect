@@ -12,7 +12,7 @@ interface EventDetailPageProps {
 }
 
 const DetailSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => {
-    if (!children) return null;
+    if (!children || (typeof children === 'string' && !children.trim()) || (Array.isArray(children) && children.length === 0)) return null;
     return (
         <div className="bg-white/5 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -28,7 +28,7 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
 
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
-      title, longDescription, date, time, location, organizer, category, image, 
+      title, longDescription, date, time, location, organizer, category, image, headerImage, eventLogo,
       registrationLink, whatYouWillLearn, targetAudience, keySpeakers 
   } = event;
 
@@ -45,12 +45,21 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   return (
     <div className="max-w-4xl mx-auto">
         <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
-            <div className="relative h-64 w-full">
-                <Image src={image} alt={title} layout="fill" objectFit="cover" data-ai-hint="event photo" />
+             <div className="relative h-64 md:h-80 w-full">
+                <Image src={headerImage || image || 'https://placehold.co/2560x650.png'} alt={title} layout="fill" objectFit="cover" data-ai-hint="event photo" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-6">
-                    <Badge variant="secondary" className="mb-2 bg-white/20 text-white">{category}</Badge>
-                    <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg">{title}</h1>
+                <div className="absolute bottom-0 left-0 p-6 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4">
+                        {eventLogo && (
+                            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-2 border-white/20 bg-black/50 overflow-hidden flex-shrink-0 mb-4 sm:mb-0">
+                                <Image src={eventLogo} alt={`${title} logo`} layout="fill" objectFit="cover" />
+                            </div>
+                        )}
+                        <div className="flex flex-col items-start">
+                             <Badge variant="secondary" className="mb-2 bg-white/20 text-white">{category}</Badge>
+                             <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg">{title}</h1>
+                        </div>
+                    </div>
                 </div>
             </div>
 
