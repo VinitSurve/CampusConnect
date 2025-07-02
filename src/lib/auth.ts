@@ -15,7 +15,8 @@ export async function getCurrentUser(): Promise<User | null> {
   const userDoc = await getDoc(userDocRef);
 
   if (!userDoc.exists()) {
-    cookieStore.set('firebaseUid', '', { maxAge: 0 })
+    // Cannot set cookie here in a read-only context.
+    // Invalid cookies will be overwritten on next successful login.
     return null;
   }
   

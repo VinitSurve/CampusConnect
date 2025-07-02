@@ -27,7 +27,6 @@ export default async function DashboardLayout({
           style={{ top: '10%', right: '15%' }}></div>
           <div className="absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-blue-600/20 to-indigo-600/20 blur-3xl animate-float-delay"
           style={{ bottom: '5%', left: '10%' }}></div>
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10"></div>
           <AnimatedParticles />
       </div>
       <StudentNavbar user={user} />
