@@ -10,6 +10,9 @@ import { db } from '@/lib/firebase';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import type { Event, TimetableEntry, SeminarBooking } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 interface AcademicCalendarProps {
   onDateSelect?: (selectInfo: DateSelectArg) => void;
@@ -25,20 +28,24 @@ const locationIdToNameMap: { [key: string]: string } = {
   'seminar': 'Seminar Hall'
 };
 
-const renderEventContent = (eventInfo: EventContentArg) => {
+
+export default function AcademicCalendar({ 
+  onDateSelect,
+  headerToolbarRight = 'dayGridMonth,timeGridWeek,timeGridDay',
+  initialView = 'timeGridWeek',
+  locationFilter
+}: AcademicCalendarProps) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
+
+  const renderEventContent = (eventInfo: EventContentArg) => {
     const props = eventInfo.event.extendedProps;
     const isTimetable = props.eventType === 'timetable';
     const isSeminar = props.eventType === 'seminar';
     
-    return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className='w-full h-full p-1 overflow-hidden text-left'>
-                <p className="font-bold truncate">{eventInfo.event.title}</p>
-                {!isTimetable && <p className="text-xs truncate">{eventInfo.timeText}</p>}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="bg-background/90 backdrop-blur-lg border-border text-foreground">
+    const eventDetails = (
+        <>
             <p className="font-bold text-base mb-2">{eventInfo.event.title}</p>
             {isTimetable ? (
                 <div className="space-y-1 text-sm">
@@ -60,20 +67,41 @@ const renderEventContent = (eventInfo: EventContentArg) => {
                     <p><strong>Location:</strong> {props.location}</p>
                 </div>
             )}
-          </TooltipContent>
+        </>
+    );
+
+    const eventDisplay = (
+        <div className='w-full h-full p-2 overflow-hidden text-left cursor-pointer'>
+            <p className="font-semibold truncate text-sm">{eventInfo.event.title}</p>
+            {!isTimetable && <p className="text-xs truncate opacity-80">{eventInfo.timeText}</p>}
+        </div>
+    );
+
+    if (isMobile) {
+        return (
+            <Popover>
+                <PopoverTrigger asChild>
+                    {eventDisplay}
+                </PopoverTrigger>
+                <PopoverContent className="bg-background/90 backdrop-blur-lg border-border text-foreground w-64">
+                    {eventDetails}
+                </PopoverContent>
+            </Popover>
+        )
+    }
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                {eventDisplay}
+            </TooltipTrigger>
+            <TooltipContent className="bg-background/90 backdrop-blur-lg border-border text-foreground w-64">
+                {eventDetails}
+            </TooltipContent>
         </Tooltip>
     );
-};
+  };
 
-
-export default function AcademicCalendar({ 
-  onDateSelect,
-  headerToolbarRight = 'dayGridMonth,timeGridWeek,timeGridDay',
-  initialView = 'timeGridWeek',
-  locationFilter
-}: AcademicCalendarProps) {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCalendarData = async () => {
@@ -94,7 +122,7 @@ export default function AcademicCalendar({
             start: startDateTime,
             allDay: !data.time,
             extendedProps: { ...data, eventType: 'event' },
-            className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary h-full cursor-pointer'
+            className: 'bg-primary/60 text-primary-foreground border-l-4 border-primary h-full'
           };
         });
 
@@ -119,7 +147,7 @@ export default function AcademicCalendar({
                 allDay: false,
                 display: 'block',
                 extendedProps: { ...data, eventType: 'timetable' },
-                className: 'bg-secondary/30 text-secondary-foreground border-l-4 border-secondary h-full cursor-pointer'
+                className: 'bg-secondary/50 text-secondary-foreground border-l-4 border-secondary h-full'
             }
         });
 
@@ -136,7 +164,7 @@ export default function AcademicCalendar({
                 allDay: false,
                 display: 'block',
                 extendedProps: { ...data, eventType: 'seminar', location: 'seminar' },
-                className: 'bg-purple-500/30 text-purple-100 border-l-4 border-purple-500 h-full cursor-pointer'
+                className: 'bg-purple-500/50 text-purple-100 border-l-4 border-purple-500 h-full'
             }
         });
 
@@ -144,7 +172,7 @@ export default function AcademicCalendar({
         const filteredEvents = locationFilter
           ? allCalEvents.filter(e => {
               const eventLocation = e.extendedProps.location;
-              const locationName = locationIdToNameMap[locationFilter];
+              const locationName = locationIdToNameMap[locationFilter] || locationFilter;
               // Match by ID (for events and seminar bookings) OR by Name (for timetable entries)
               return eventLocation === locationFilter || eventLocation === locationName;
             })
