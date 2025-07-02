@@ -84,7 +84,7 @@ export default function AcademicCalendar({
                 <PopoverTrigger asChild>
                     {eventDisplay}
                 </PopoverTrigger>
-                <PopoverContent className="w-64 bg-slate-950 text-popover-foreground border-border shadow-lg backdrop-blur-none">
+                <PopoverContent className="w-64 bg-slate-950/100 text-white border-border shadow-lg backdrop-blur-none">
                     {eventDetails}
                 </PopoverContent>
             </Popover>
@@ -96,7 +96,7 @@ export default function AcademicCalendar({
             <TooltipTrigger asChild>
                 {eventDisplay}
             </TooltipTrigger>
-            <TooltipContent className="w-64 bg-slate-950 text-popover-foreground border-border shadow-lg backdrop-blur-none">
+            <TooltipContent className="w-64 bg-slate-950/100 text-white border-border shadow-lg backdrop-blur-none">
                 {eventDetails}
             </TooltipContent>
         </Tooltip>
@@ -153,7 +153,7 @@ export default function AcademicCalendar({
                 // We skip Sunday (jsDay === 0).
                 if (data.dayOfWeek === jsDay) {
                     const year = currentDay.getFullYear();
-                    const month = currentDay.getMonth() + 1;
+                    const month = currentDay.getMonth() + 1; // getMonth() is 0-indexed
                     const date = currentDay.getDate();
                     
                     const dateString = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
@@ -225,7 +225,7 @@ export default function AcademicCalendar({
 
   return (
     <TooltipProvider>
-        <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-4 md:p-6">
+        <div className="backdrop-blur-none bg-white/10 rounded-xl border border-white/10 p-4 md:p-6">
         {loading ? (
             <div className="animate-pulse">
                 <div className="h-12 bg-white/5 rounded-lg mb-4"></div>
