@@ -84,7 +84,7 @@ export default function AcademicCalendar({
                 <PopoverTrigger asChild>
                     {eventDisplay}
                 </PopoverTrigger>
-                <PopoverContent className="w-64 bg-slate-950/100 text-white border-border shadow-lg backdrop-blur-none">
+                <PopoverContent className="w-64 bg-slate-900/90 text-white border border-white/10 shadow-xl backdrop-blur-md">
                     {eventDetails}
                 </PopoverContent>
             </Popover>
@@ -96,7 +96,7 @@ export default function AcademicCalendar({
             <TooltipTrigger asChild>
                 {eventDisplay}
             </TooltipTrigger>
-            <TooltipContent className="w-64 bg-slate-950/100 text-white border-border shadow-lg backdrop-blur-none">
+            <TooltipContent className="w-64 bg-slate-900/90 text-white border border-white/10 shadow-xl backdrop-blur-md">
                 {eventDetails}
             </TooltipContent>
         </Tooltip>
@@ -123,7 +123,7 @@ export default function AcademicCalendar({
             start: startDateTime,
             allDay: !data.time,
             extendedProps: { ...data, eventType: 'event' },
-            className: 'bg-primary text-primary-foreground border-2 border-primary-foreground/20 h-full'
+            className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary cursor-pointer'
           };
         });
 
@@ -146,17 +146,16 @@ export default function AcademicCalendar({
             let currentDay = new Date(yearStart);
 
             while (currentDay <= yearEnd) {
-                // JS getDay() is 0 for Sunday, ..., 6 for Saturday.
+                // JS getDay() is 0 for Sunday, ..., 6 for Saturday. We map our 1-6 to this.
                 const jsDay = currentDay.getDay(); 
                 
-                // Firestore data for dayOfWeek is 1 for Monday... We want to match our data (1-6) with JS's day (1-6).
-                // We skip Sunday (jsDay === 0).
                 if (data.dayOfWeek === jsDay) {
                     const year = currentDay.getFullYear();
-                    const month = currentDay.getMonth() + 1; // getMonth() is 0-indexed
+                    const month = currentDay.getMonth(); // 0-indexed
                     const date = currentDay.getDate();
                     
-                    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                    // Construct date string manually to avoid timezone issues with toISOString()
+                    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
                     
                     daysInYear.push({
                         id: `tt-${doc.id}-${dateString}`,
@@ -166,7 +165,7 @@ export default function AcademicCalendar({
                         allDay: false,
                         display: 'block',
                         extendedProps: { ...data, eventType: 'timetable' },
-                        className: 'bg-secondary text-secondary-foreground border-2 border-secondary-foreground/20 h-full'
+                        className: 'bg-secondary/30 text-secondary-foreground border-l-4 border-secondary cursor-pointer'
                     });
                 }
                 
@@ -189,7 +188,7 @@ export default function AcademicCalendar({
                 allDay: false,
                 display: 'block',
                 extendedProps: { ...data, eventType: 'seminar', location: 'seminar' },
-                className: 'bg-purple-600 text-purple-100 border-2 border-purple-400/50 h-full'
+                className: 'bg-purple-600/30 text-purple-100 border-l-4 border-purple-400 cursor-pointer'
             }
         });
 
