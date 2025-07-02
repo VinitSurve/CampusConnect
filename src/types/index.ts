@@ -43,6 +43,7 @@ export type Event = {
   equipmentNeeds?: string;
   budgetDetails?: string;
   whatYouWillLearn?: string;
+  googleDriveFolderId?: string;
 };
 
 export type Club = {
@@ -73,7 +74,7 @@ export type EventProposal = {
   status: 'pending' | 'approved' | 'rejected';
   createdBy: string; // UID of user
   creatorEmail: string;
-  createdAt: string | null;
+  createdAt: any;
   proposer?: string;
   // New fields for approval/rejection cycle
   approvedBy?: string;
@@ -89,6 +90,7 @@ export type EventProposal = {
   whatYouWillLearn?: string;
   headerImage?: string;
   eventLogo?: string;
+  googleDriveFolderId?: string;
 };
 
 export type TimetableEntry = {

@@ -105,7 +105,8 @@ export async function getEventProposals(): Promise<EventProposal[]> {
   try {
     const q = query(
       collection(db, "eventRequests"),
-      where("status", "==", "pending")
+      where("status", "==", "pending"),
+      orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
@@ -114,6 +115,11 @@ export async function getEventProposals(): Promise<EventProposal[]> {
         id: doc.id,
         title: data.title,
         description: data.description,
+        whatYouWillLearn: data.whatYouWillLearn,
+        targetAudience: data.targetAudience,
+        keySpeakers: data.keySpeakers,
+        equipmentNeeds: data.equipmentNeeds,
+        budgetDetails: data.budgetDetails,
         location: data.location,
         category: data.category,
         registrationLink: data.registrationLink,
@@ -131,6 +137,9 @@ export async function getEventProposals(): Promise<EventProposal[]> {
         rejectedBy: data.rejectedBy,
         rejectedAt: data.rejectedAt?.toDate ? data.rejectedAt.toDate().toISOString() : null,
         rejectionReason: data.rejectionReason,
+        headerImage: data.headerImage,
+        eventLogo: data.eventLogo,
+        googleDriveFolderId: data.googleDriveFolderId,
       };
       return proposal;
     });

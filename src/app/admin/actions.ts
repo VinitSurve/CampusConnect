@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
 import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import type { EventProposal, Event, SeminarBooking } from '@/types';
+import { deleteFolder } from '@/lib/drive';
 
 export async function approveRequest(proposal: EventProposal) {
     try {
@@ -35,6 +36,7 @@ export async function approveRequest(proposal: EventProposal) {
             equipmentNeeds: proposal.equipmentNeeds,
             budgetDetails: proposal.budgetDetails,
             whatYouWillLearn: proposal.whatYouWillLearn,
+            googleDriveFolderId: proposal.googleDriveFolderId,
         };
 
         await addDoc(collection(db, "events"), newEvent);
@@ -86,6 +88,19 @@ export async function rejectRequest(proposalId: string, reason: string) {
         }
 
         const requestRef = doc(db, "eventRequests", proposalId);
+        const requestSnap = await getDoc(requestRef);
+
+        if (!requestSnap.exists()) {
+            throw new Error("Proposal not found.");
+        }
+
+        const requestData = requestSnap.data() as EventProposal;
+
+        // If there's a drive folder, delete it.
+        if (requestData.googleDriveFolderId) {
+            await deleteFolder(requestData.googleDriveFolderId);
+        }
+
         await updateDoc(requestRef, {
             status: "rejected",
             rejectionReason: reason,
