@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
-import { createUserWithEmailAndPassword, onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/actions";
 
@@ -24,15 +24,6 @@ export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const router = useRouter();
   const { toast } = useToast();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-            router.push("/dashboard");
-        }
-    });
-    return () => unsubscribe();
-  }, [router]);
 
   const validateStep1 = () => {
     const newErrors: any = {};
@@ -164,15 +155,19 @@ export default function RegisterForm() {
         createdAt: serverTimestamp()
       });
       
-      await createSession(user.uid);
+      const redirectUrl = await createSession(user.uid, true);
+
+      toast({
+        title: "Registration successful!",
+      });
+
+      window.location.href = redirectUrl;
       
-      toast({ title: "Registration successful!" });
-      router.push("/dashboard");
     } catch (error: any) {
       console.error("Registration error:", error);
       if (error.code === 'auth/email-already-in-use') {
         setErrors({ ...errors, email: "Email already in use" });
-        setCurrentStep(1);
+        setCurrentStep(1); // Go back to email step
       } else {
         toast({
             title: "Registration Failed",
@@ -250,6 +245,7 @@ export default function RegisterForm() {
           <div className="p-8 max-h-[65vh] overflow-y-auto">
             <form onSubmit={handleSubmit} className="space-y-5">
               {currentStep === 1 ? (
+                // Step 1: Personal Information
                 <>
                   <div className="space-y-2">
                     <label htmlFor="fullName" className="text-white text-sm block">
@@ -370,6 +366,7 @@ export default function RegisterForm() {
                   </button>
                 </>
               ) : (
+                // Step 2: Password
                 <>
                   <div className="space-y-2">
                     <label htmlFor="password" className="text-white text-sm block">
@@ -456,6 +453,7 @@ export default function RegisterForm() {
               )}
             </form>
 
+            {/* Sign in link */}
             <div className="mt-8 pt-6 border-t border-white/20 text-center">
               <p className="text-white text-sm">
                 Already have an account?{" "}
@@ -467,12 +465,16 @@ export default function RegisterForm() {
           </div>
         </div>
         
+        {/* Card reflection effect */}
         <div className="mt-1 w-full h-8 bg-gradient-to-b from-white/5 to-transparent rounded-full blur-sm"></div>
       </div>
       
+      {/* Footer/Branding */}
       <div className="absolute bottom-4 left-0 right-0 text-center text-white text-xs">
-        CampusConnect © {new Date().getFullYear()}
+        CampusMeet © {new Date().getFullYear()}
       </div>
     </div>
   );
 }
+
+    
