@@ -86,3 +86,66 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom FullCalendar Theming */
+.fc {
+  --fc-border-color: hsl(var(--border) / 0.5);
+  --fc-daygrid-event-dot-width: 8px;
+  --fc-list-event-dot-width: 10px;
+  --fc-event-border-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--primary-foreground));
+  --fc-event-bg-color: hsl(var(--primary));
+  --fc-today-bg-color: hsl(var(--muted) / 0.5);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: hsl(var(--muted));
+  --fc-list-event-hover-bg-color: hsl(var(--muted));
+  --fc-highlight-color: hsl(var(--accent) / 0.3);
+}
+
+.fc .fc-toolbar.fc-header-toolbar {
+  @apply mb-4;
+}
+
+.fc .fc-toolbar-title {
+  @apply text-xl font-bold text-white;
+}
+
+.fc .fc-button {
+  @apply bg-white/10 text-white border-white/20 hover:bg-white/20;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  @apply bg-blue-600 text-white border-blue-600;
+}
+
+.fc .fc-daygrid-day-frame {
+  @apply rounded-lg;
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-frame {
+    @apply bg-white/5;
+}
+
+.fc .fc-daygrid-day-number {
+  @apply p-2 text-sm text-white/70;
+}
+
+.fc .fc-col-header-cell-cushion {
+  @apply p-2 text-sm text-white/80;
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+  @apply text-sm text-white/70;
+}
+
+.fc .fc-event {
+  @apply rounded-lg p-1 text-xs font-medium border-none shadow-md;
+  background-color: hsl(var(--secondary)) !important;
+  border-color: hsl(var(--secondary)) !important;
+  color: hsl(var(--secondary-foreground)) !important;
+}
+
+.fc-v-event .fc-event-main {
+    @apply p-2;
+}

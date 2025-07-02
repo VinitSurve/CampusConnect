@@ -8,6 +8,7 @@ import { collection, addDoc, doc, getDoc, query, where, getDocs, serverTimestamp
 import { useToast } from "@/hooks/use-toast";
 import AcademicCalendar from '@/components/academic-calendar';
 import type { User } from "@/types";
+import type { DateSelectArg } from "@fullcalendar/core";
 
 interface HostEventFormProps {
     user: User;
@@ -36,7 +37,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     registrationLink: "",
     clubId: "",
     clubName: "",
-    date: ""
+    date: "",
+    time: ""
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
@@ -96,8 +98,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
       
       const q = query(
         collection(db, "events"),
-        where("date", ">=", startOfDay.toISOString()),
-        where("date", "<=", endOfDay.toISOString())
+        where("date", ">=", startOfDay.toISOString().split('T')[0]),
+        where("date", "<=", endOfDay.toISOString().split('T')[0])
       );
       
       const querySnapshot = await getDocs(q);
@@ -116,16 +118,21 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     }
   };
 
-  const handleDateSelect = (date: Date) => {
-    setForm(prev => ({ ...prev, date: date.toISOString().split('T')[0] }));
-    checkLocationAvailability(date);
-    setSelectedDate(date);
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    const selectedDateTime = selectInfo.start;
+    const dateStr = selectedDateTime.toISOString().split('T')[0];
+    const timeStr = selectedDateTime.toTimeString().split(' ')[0].substring(0, 5);
+    
+    setForm(prev => ({ ...prev, date: dateStr, time: timeStr }));
+    checkLocationAvailability(selectedDateTime);
+    setSelectedDate(selectedDateTime);
+    toast({ title: "Date Selected", description: `You selected ${selectedDateTime.toLocaleString()}` });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.date) {
-      toast({ title: "Validation Error", description: "Please select a date from the calendar.", variant: "destructive" });
+    if (!form.date || !form.time) {
+      toast({ title: "Validation Error", description: "Please select a date and time from the calendar.", variant: "destructive" });
       return;
     }
     if (!form.title || !form.location || !form.category) {
