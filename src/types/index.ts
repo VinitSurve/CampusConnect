@@ -47,8 +47,8 @@ export type Club = {
   contactEmail: string;
   facultyAdvisor: string;
   leadId: string;
-  createdAt?: any;
-  updatedAt?: any;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 export type EventProposal = {
@@ -65,13 +65,13 @@ export type EventProposal = {
   status: 'pending' | 'approved' | 'rejected';
   createdBy: string; // UID of user
   creatorEmail: string;
-  createdAt: any; // Firebase ServerTimestamp
+  createdAt: string;
   proposer?: string;
   // New fields for approval/rejection cycle
   approvedBy?: string;
-  approvedAt?: any;
+  approvedAt?: string | null;
   rejectedBy?: string;
-  rejectedAt?: any;
+  rejectedAt?: string | null;
   rejectionReason?: string;
 };
 
@@ -81,11 +81,11 @@ export type TimetableEntry = {
   year: string;
   division: string;
   subject: string;
+  facultyName: string;
+  location: string;
   dayOfWeek: number; // 1=Mon, 2=Tues, etc.
   startTime: string; // HH:mm
   endTime: string; // HH:mm
-  facultyName: string;
-  location: string;
   createdAt?: any;
   updatedAt?: any;
 };
