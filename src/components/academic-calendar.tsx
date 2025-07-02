@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -83,7 +84,7 @@ export default function AcademicCalendar({
                 <PopoverTrigger asChild>
                     {eventDisplay}
                 </PopoverTrigger>
-                <PopoverContent className="w-64 bg-popover text-popover-foreground border-border">
+                <PopoverContent className="w-64 bg-background text-popover-foreground border-border">
                     {eventDetails}
                 </PopoverContent>
             </Popover>
@@ -95,7 +96,7 @@ export default function AcademicCalendar({
             <TooltipTrigger asChild>
                 {eventDisplay}
             </TooltipTrigger>
-            <TooltipContent className="w-64 bg-popover text-popover-foreground border-border">
+            <TooltipContent className="w-64 bg-background text-popover-foreground border-border">
                 {eventDetails}
             </TooltipContent>
         </Tooltip>
@@ -136,16 +137,22 @@ export default function AcademicCalendar({
 
         const timetableEvents = timetablesSnapshot.docs.flatMap(doc => {
             const data = doc.data() as TimetableEntry;
+            
+            // Defensively check the data from Firestore.
+            if (typeof data.dayOfWeek !== 'number' || data.dayOfWeek < 1 || data.dayOfWeek > 6) {
+                // If dayOfWeek is not a number from 1 to 6, skip this entry.
+                return []; 
+            }
+
             const daysInYear = [];
             let currentDay = new Date(yearStart);
 
             while (currentDay <= yearEnd) {
-                // JS getDay() is 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
-                // Our Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday.
-                // This means the numbers align perfectly for the days we care about.
-                // We can just do a direct comparison and it will correctly skip Sundays (jsDay=0).
-                const jsDay = currentDay.getDay();
+                const jsDay = currentDay.getDay(); // JS getDay() is 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
                 
+                // Our Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday.
+                // A direct comparison is correct. A lab on Monday (1) should appear when jsDay is 1.
+                // A Sunday (jsDay=0) will never match a valid dayOfWeek from Firestore (1-6).
                 if (jsDay === data.dayOfWeek) {
                     daysInYear.push({
                         id: `tt-${doc.id}-${currentDay.toISOString().split('T')[0]}`,
@@ -158,6 +165,8 @@ export default function AcademicCalendar({
                         className: 'bg-secondary text-secondary-foreground border-2 border-secondary-foreground/20 h-full'
                     });
                 }
+                
+                // Move to the next day
                 currentDay.setDate(currentDay.getDate() + 1);
             }
             return daysInYear;
