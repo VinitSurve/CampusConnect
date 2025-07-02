@@ -3,8 +3,9 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { getClubs, getStudents } from '@/lib/data';
-import { saveClub, deleteClub } from './actions';
 import type { Club, User } from '@/types';
+import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -54,18 +55,15 @@ export default function AdminClubsPage() {
 
     const handleOpenForm = async (club?: Club) => {
         try {
-            // Always get the latest student list before opening the form
             setLoading(true);
             const studentsData = await getStudents();
             setStudents(studentsData);
             setLoading(false);
 
             if (club) {
-                // Edit mode
                 setCurrentClub(club);
                 setIsEditMode(true);
             } else {
-                // Add new mode
                 setCurrentClub(DEFAULT_CLUB);
                 setIsEditMode(false);
             }
@@ -77,12 +75,17 @@ export default function AdminClubsPage() {
 
     const handleDelete = (clubId: string) => {
         startTransition(async () => {
-            const result = await deleteClub(clubId);
-            if (result.success) {
-                await refreshData();
+            try {
+                await deleteDoc(doc(db, "clubs", clubId));
                 toast({ title: "Success", description: "Club deleted successfully." });
-            } else {
-                toast({ title: "Error", description: result.error, variant: "destructive" });
+                await refreshData();
+            } catch (error: any) {
+                console.error("Error deleting club:", error);
+                if (error.code === 'permission-denied') {
+                    toast({ title: "Permission Denied", description: "You do not have permission to delete clubs.", variant: "destructive" });
+                } else {
+                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                }
             }
         });
     };
@@ -94,13 +97,71 @@ export default function AdminClubsPage() {
         }
 
         startTransition(async () => {
-            const result = await saveClub(currentClub);
-            if (result.success) {
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    toast({ title: "Authentication Error", description: "You must be logged in to save a club.", variant: "destructive" });
+                    return;
+                }
+
+                const { id, ...clubData } = currentClub;
+                
+                if (!clubData.leadId) {
+                    toast({ title: "Error", description: "A club lead must be selected.", variant: "destructive" });
+                    return;
+                }
+
+                const studentDocRef = doc(db, "users", clubData.leadId);
+                const studentDoc = await getDoc(studentDocRef);
+
+                if (!studentDoc.exists()) {
+                    toast({ title: "Error", description: "Selected club lead could not be found.", variant: "destructive" });
+                    return;
+                }
+                const leadContactEmail = studentDoc.data().email;
+                if (!leadContactEmail) {
+                    toast({ title: "Error", description: "The selected club lead does not have an email address.", variant: "destructive" });
+                    return;
+                }
+
+                const dataToSave = {
+                    name: clubData.name || '',
+                    description: clubData.description || '',
+                    image: 'https://placehold.co/600x400.png',
+                    tags: [],
+                    contactEmail: leadContactEmail,
+                    facultyAdvisor: clubData.facultyAdvisor || '',
+                    leadId: clubData.leadId,
+                };
+
+                if (id) {
+                    const clubRef = doc(db, "clubs", id);
+                    await updateDoc(clubRef, {
+                        ...dataToSave,
+                        updatedAt: serverTimestamp(),
+                    });
+                    toast({ title: "Success", description: "Club updated successfully." });
+                } else {
+                    await addDoc(collection(db, "clubs"), {
+                        ...dataToSave,
+                        members: 0,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        createdBy: user.uid,
+                    });
+                    toast({ title: "Success", description: "Club created successfully." });
+                }
+
                 setIsDialogOpen(false);
-                toast({ title: "Success", description: `Club ${isEditMode ? 'updated' : 'created'} successfully.` });
                 await refreshData();
-            } else {
-                toast({ title: "Error", description: result.error, variant: "destructive" });
+
+            } catch (error: any) {
+                console.error("Error saving club:", error);
+                if (error.code === 'permission-denied' || (error.message && error.message.toLowerCase().includes('permission'))) {
+                    toast({ title: "Permission Denied", description: "You do not have permission to perform this action. Please ensure you are logged in as faculty.", variant: "destructive" });
+                } else {
+                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                }
             }
         });
     };
@@ -199,7 +260,7 @@ export default function AdminClubsPage() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                            <select
+                             <select
                                 id="leadId"
                                 name="leadId"
                                 value={currentClub.leadId || ''}
