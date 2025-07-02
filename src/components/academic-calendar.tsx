@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface AcademicCalendarProps {
-  onDateSelect: (date: Date) => void;
+  onDateSelect?: (date: Date) => void;
 }
 
 interface CalendarDay {
@@ -121,14 +121,14 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
         {days.map((dayObj, index) => (
           <button
             key={index}
-            onClick={() => dayObj.isAvailable && onDateSelect(dayObj.date)}
-            disabled={!dayObj.isAvailable}
+            onClick={() => onDateSelect && dayObj.isAvailable && onDateSelect(dayObj.date)}
+            disabled={!onDateSelect || !dayObj.isAvailable}
             className={`
               p-2 text-sm rounded-lg text-center h-10 w-10 flex items-center justify-center transition-colors
               ${!dayObj.isCurrentMonth ? 'text-white/30' : ''}
               ${dayObj.isToday ? 'border-2 border-blue-400' : ''}
               ${dayObj.isAvailable 
-                ? 'bg-blue-600/20 hover:bg-blue-500/40 text-white cursor-pointer' 
+                ? (onDateSelect ? 'bg-blue-600/20 hover:bg-blue-500/40 text-white cursor-pointer' : 'bg-blue-600/10 text-white/80 cursor-default')
                 : 'bg-red-600/10 text-white/50 cursor-not-allowed'}
             `}
           >

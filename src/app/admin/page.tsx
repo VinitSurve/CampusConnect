@@ -15,7 +15,7 @@ export default async function FacultyDashboardPage() {
 
                 {/* Right Column: Calendar */}
                 <div className="sticky top-24 hidden lg:block">
-                    <AcademicCalendar onDateSelect={() => {}} />
+                    <AcademicCalendar />
                 </div>
             </div>
         </div>
