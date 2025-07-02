@@ -211,22 +211,25 @@ export default function TimetableManagerPage() {
       <h1 className="text-2xl font-bold text-white mb-4">Timetable Manager</h1>
       
       <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
           {/* Class Selectors */}
-          <Select value={selectedCourse} onValueChange={val => { setSelectedCourse(val); setSelectedYear(''); }}>
-            <SelectTrigger><SelectValue placeholder="Select Course..." /></SelectTrigger>
-            <SelectContent>{courses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={selectedYear} onValueChange={setSelectedYear} disabled={!selectedCourse}>
-            <SelectTrigger><SelectValue placeholder="Select Year..." /></SelectTrigger>
-            <SelectContent>{availableYears.map(y => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={selectedDivision} onValueChange={setSelectedDivision} disabled={!selectedYear}>
-            <SelectTrigger><SelectValue placeholder="Select Division..." /></SelectTrigger>
-            <SelectContent>{divisions.map(d => <SelectItem key={d} value={d}>Division {d}</SelectItem>)}</SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Select value={selectedCourse} onValueChange={val => { setSelectedCourse(val); setSelectedYear(''); }}>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Course..." /></SelectValue>
+              <SelectContent>{courses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={selectedYear} onValueChange={setSelectedYear} disabled={!selectedCourse}>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Year..." /></SelectValue>
+              <SelectContent>{availableYears.map(y => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={selectedDivision} onValueChange={setSelectedDivision} disabled={!selectedYear}>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Division..." /></SelectValue>
+              <SelectContent>{divisions.map(d => <SelectItem key={d} value={d}>Division {d}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          
            {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-start md:justify-end flex-wrap">
             <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
             <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Download className="mr-2 h-4 w-4"/>Export</Button>
             <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Upload className="mr-2 h-4 w-4"/>Import</Button>
@@ -317,7 +320,7 @@ export default function TimetableManagerPage() {
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="endTime" className="text-right">End Time</Label>
               <Select value={currentEntry.endTime} onValueChange={val => setCurrentEntry({...currentEntry, endTime: val})}>
-                <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="col-span-3"><SelectValue /></SelectValue>
                 <SelectContent>{TIME_SLOTS.map((t, i) => TIME_SLOTS[i+1] ? <SelectItem key={t} value={TIME_SLOTS[i+1]}>{TIME_SLOTS[i+1]}</SelectItem> : null)}</SelectContent>
               </Select>
             </div>
@@ -355,5 +358,3 @@ export default function TimetableManagerPage() {
     </div>
   );
 }
-
-    
