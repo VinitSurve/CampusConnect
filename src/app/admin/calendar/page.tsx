@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { TimetableEntry } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -35,7 +35,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { saveTimetableEntry, deleteTimetableEntry } from '@/app/admin/actions';
 import { Printer, Upload, Download, Share2, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -171,6 +170,7 @@ export default function TimetableManagerPage() {
         toast({ title: "Error", description: "Please select a class first.", variant: "destructive" });
         return;
     }
+    // Prepare a clean data object to save
     const dataToSave = {
         subject: currentEntry.subject || '',
         facultyName: currentEntry.facultyName || '',
@@ -183,28 +183,46 @@ export default function TimetableManagerPage() {
     };
 
     startTransition(async () => {
-        const result = await saveTimetableEntry(dataToSave, currentEntry.id);
-        if (result.success) {
-            toast({ title: "Success", description: "Timetable updated!" });
-            setIsFormOpen(false);
-            fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
+      try {
+        if (isEditMode && currentEntry.id) {
+          // Update existing document
+          const entryRef = doc(db, "timetables", currentEntry.id);
+          await updateDoc(entryRef, {
+            ...dataToSave,
+            updatedAt: serverTimestamp()
+          });
         } else {
-            toast({ title: "Error", description: result.error, variant: "destructive" });
+          // Add new document
+          await addDoc(collection(db, "timetables"), {
+            ...dataToSave,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
         }
+        toast({ title: "Success", description: "Timetable updated!" });
+        setIsFormOpen(false);
+        // Refetch data to update the UI
+        fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
+      } catch (error) {
+        console.error("Error saving timetable entry:", error);
+        toast({ title: "Permission Error", description: (error as Error).message, variant: "destructive" });
+      }
     });
   };
 
   const handleDelete = () => {
     if (!currentEntry.id) return;
     startTransition(async () => {
-        const result = await deleteTimetableEntry(currentEntry.id!);
-        if (result.success) {
-            toast({ title: "Success", description: "Timetable entry deleted." });
-            setIsFormOpen(false);
-            fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
-        } else {
-            toast({ title: "Error", description: result.error, variant: "destructive" });
-        }
+      try {
+        const entryRef = doc(db, "timetables", currentEntry.id!);
+        await deleteDoc(entryRef);
+        toast({ title: "Success", description: "Timetable entry deleted." });
+        setIsFormOpen(false);
+        fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
+      } catch (error) {
+        console.error("Error deleting timetable entry:", error);
+        toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+      }
     });
   };
 

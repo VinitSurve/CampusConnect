@@ -77,8 +77,10 @@ export type TimetableEntry = {
   year: string;
   division: string;
   subject: string;
-  dayOfWeek: number; // 0=Sun, 1=Mon, etc.
+  dayOfWeek: number; // 1=Mon, 2=Tues, etc.
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   facultyName: string;
+  createdAt?: any; // Firestore ServerTimestamp
+  updatedAt?: any; // Firestore ServerTimestamp
 };
