@@ -191,7 +191,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
             <div className="space-y-2">
               <label className="text-white text-sm">Select Location</label>
               <select value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
-                <option value="" className="bg-gray-800">Select a location</option>
+                <option value="" className="bg-gray-800">Select a location to filter calendar</option>
                 {locations.map(location => (
                   <option key={location.id} value={location.id} className="bg-gray-800" disabled={!!selectedDate && !locationAvailability[location.id]}>
                     {location.icon} {location.name} {!!selectedDate && !locationAvailability[location.id] ? '(Booked)' : ''}
@@ -226,8 +226,9 @@ export default function HostEventForm({ user }: HostEventFormProps) {
         <div className="sticky top-24">
           <AcademicCalendar
             onDateSelect={handleDateSelect}
-            headerToolbarRight="dayGridMonth"
+            headerToolbarRight=""
             initialView="dayGridMonth"
+            locationFilter={form.location}
           />
           {selectedDate && (
             <div className="mt-4 backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
