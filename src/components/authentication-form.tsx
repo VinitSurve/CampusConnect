@@ -86,8 +86,9 @@ export default function AuthenticationForm() {
     const querySnapshot = await getDocs(q);
 
     let sessionUid: string;
+    const isNewUser = querySnapshot.empty;
 
-    if (querySnapshot.empty) {
+    if (isNewUser) {
       // New user. Create doc with Google UID.
       sessionUid = uid;
       const isFaculty = isFacultyEmail(email);
@@ -105,9 +106,9 @@ export default function AuthenticationForm() {
       sessionUid = existingUserDoc.id;
     }
 
-    // Now that we have the correct UID, create the session.
-    await createSession(sessionUid);
-    router.refresh();
+    // Now that we have the correct UID, create the session and get redirect URL.
+    const redirectUrl = await createSession(sessionUid, isNewUser);
+    router.push(redirectUrl);
   };
 
   const handleTraditionalLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -118,8 +119,8 @@ export default function AuthenticationForm() {
       setLoginLoading(true);
 
       const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
-      await createSession(userCredential.user.uid);
-      router.refresh();
+      const redirectUrl = await createSession(userCredential.user.uid);
+      router.push(redirectUrl);
 
     } catch (err) {
       console.error("Login error:", err);
@@ -232,9 +233,9 @@ export default function AuthenticationForm() {
         createdAt: serverTimestamp()
       });
       
-      await createSession(user.uid, true);
+      const redirectUrl = await createSession(user.uid, true);
       toast({ title: "Registration successful!" });
-      router.refresh();
+      router.push(redirectUrl);
       
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -370,5 +371,7 @@ export default function AuthenticationForm() {
     </div>
   );
 }
+
+    
 
     
