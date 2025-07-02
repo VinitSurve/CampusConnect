@@ -62,8 +62,10 @@ export default function AdminClubsPage() {
     const handleOpenForm = async (club?: Club) => {
         try {
             // Always get the latest student list before opening the form
+            setLoading(true);
             const studentsData = await getStudents();
             setStudents(studentsData);
+            setLoading(false);
 
             if (club) {
                 // Edit mode
@@ -119,7 +121,7 @@ export default function AdminClubsPage() {
         setCurrentClub(prev => ({ ...prev, [name]: value }));
     };
 
-    if (loading) {
+    if (loading && clubs.length === 0) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                  <div className="flex justify-between items-center mb-6">
@@ -236,7 +238,7 @@ export default function AdminClubsPage() {
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                     <Command>
-                                        <CommandInput placeholder="Search student..." />
+                                        <CommandInput placeholder="Search student by name or email..." />
                                         <CommandList>
                                             <CommandEmpty>No student found.</CommandEmpty>
                                             <CommandGroup>
@@ -255,7 +257,10 @@ export default function AdminClubsPage() {
                                                                 currentClub.leadId === student.id ? "opacity-100" : "opacity-0"
                                                             )}
                                                         />
-                                                        {student.name} ({student.email})
+                                                        <div>
+                                                          <p>{student.name}</p>
+                                                          <p className="text-xs text-white/60">{student.email}</p>
+                                                        </div>
                                                     </CommandItem>
                                                 ))}
                                             </CommandGroup>
