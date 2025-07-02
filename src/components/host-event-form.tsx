@@ -32,7 +32,7 @@ const categories = [
 export default function HostEventForm({ user }: HostEventFormProps) {
   const [form, setForm] = useState({
     title: "",
-    location: "",
+    location: "seminar",
     category: "",
     registrationLink: "",
     clubId: "",
@@ -226,7 +226,6 @@ export default function HostEventForm({ user }: HostEventFormProps) {
         <div className="sticky top-24">
           <AcademicCalendar
             onDateSelect={handleDateSelect}
-            headerToolbarRight=""
             initialView="dayGridMonth"
             locationFilter={form.location}
           />

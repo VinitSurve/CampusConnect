@@ -8,7 +8,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventContentArg } from '@fullcalendar/core';
 import { db } from '@/lib/firebase';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
-import type { Event, TimetableEntry } from '@/types';
+import type { Event, TimetableEntry, SeminarBooking } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AcademicCalendarProps {
@@ -21,6 +21,7 @@ interface AcademicCalendarProps {
 const renderEventContent = (eventInfo: EventContentArg) => {
     const props = eventInfo.event.extendedProps;
     const isTimetable = props.eventType === 'timetable';
+    const isSeminar = props.eventType === 'seminar';
     
     return (
         <Tooltip>
@@ -38,6 +39,12 @@ const renderEventContent = (eventInfo: EventContentArg) => {
                     <p><strong>Course:</strong> {props.course} Year-{props.year} Div-{props.division}</p>
                     <p><strong>Time:</strong> {props.startTime} - {props.endTime}</p>
                     <p><strong>Location:</strong> {props.location}</p>
+                </div>
+            ) : isSeminar ? (
+                <div className="space-y-1 text-sm">
+                    <p><strong>Organizer:</strong> {props.organizer}</p>
+                    <p><strong>Time:</strong> {props.startTime} - {props.endTime}</p>
+                    <p><strong>Location:</strong> Seminar Hall</p>
                 </div>
             ) : (
                 <div className="space-y-1 text-sm">
@@ -109,7 +116,24 @@ export default function AcademicCalendar({
             }
         });
 
-        const allCalEvents = [...regularEvents, ...timetableEvents];
+        // Fetch seminar bookings
+        const seminarBookingsQuery = query(collection(db, "seminarBookings"));
+        const seminarBookingsSnapshot = await getDocs(seminarBookingsQuery);
+        const seminarBookingEvents = seminarBookingsSnapshot.docs.map(doc => {
+            const data = doc.data() as SeminarBooking;
+            return {
+                id: `sb-${doc.id}`,
+                title: data.title,
+                start: `${data.date}T${data.startTime}`,
+                end: `${data.date}T${data.endTime}`,
+                allDay: false,
+                display: 'block',
+                extendedProps: { ...data, eventType: 'seminar', location: 'seminar' },
+                className: 'bg-purple-500/30 text-purple-100 border-l-4 border-purple-500 h-full cursor-pointer'
+            }
+        });
+
+        const allCalEvents = [...regularEvents, ...timetableEvents, ...seminarBookingEvents];
         const filteredEvents = locationFilter
           ? allCalEvents.filter(e => e.extendedProps.location === locationFilter)
           : allCalEvents;
