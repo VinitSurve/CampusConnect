@@ -5,7 +5,8 @@ import { db } from './firebase'
 
 
 export async function getCurrentUser(): Promise<User | null> {
-  const uid = cookies().get('firebaseUid')?.value
+  const cookieStore = cookies()
+  const uid = cookieStore.get('firebaseUid')?.value
   if (!uid) {
     return null
   }
@@ -14,7 +15,7 @@ export async function getCurrentUser(): Promise<User | null> {
   const userDoc = await getDoc(userDocRef);
 
   if (!userDoc.exists()) {
-    cookies().set('firebaseUid', '', { maxAge: 0 })
+    cookieStore.set('firebaseUid', '', { maxAge: 0 })
     return null;
   }
   
