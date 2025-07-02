@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { TimetableEntry } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIME_SLOTS = [
-  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', 
+  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
   '14:00', '15:00', '16:00', '17:00'
 ];
 
@@ -60,16 +61,16 @@ type TimetableGrid = {
 }
 
 export default function TimetableManagerPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
-  
+
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedDivision, setSelectedDivision] = useState<string>('');
 
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([]);
   const [timetableGrid, setTimetableGrid] = useState<TimetableGrid>({});
-  
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<Partial<TimetableEntry>>({});
@@ -84,6 +85,7 @@ export default function TimetableManagerPage() {
     } else {
       setTimetableEntries([]);
       setTimetableGrid({});
+      setLoading(false);
     }
   }, [selectedCourse, selectedYear, selectedDivision]);
 
@@ -96,10 +98,10 @@ export default function TimetableManagerPage() {
         where('year', '==', year),
         where('division', '==', division)
       );
-      
+
       const querySnapshot = await getDocs(q);
       const entries: TimetableEntry[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TimetableEntry));
-      
+
       setTimetableEntries(entries);
       organizeEntriesIntoGrid(entries);
 
@@ -124,14 +126,16 @@ export default function TimetableManagerPage() {
       const dayOfWeekStr = DAYS_OF_WEEK[entry.dayOfWeek - 1];
       if (dayOfWeekStr && entry.startTime) {
         const startIndex = TIME_SLOTS.indexOf(entry.startTime);
-        const endIndex = entry.endTime ? TIME_SLOTS.indexOf(entry.endTime) : startIndex + 1;
-        
+        const endTime = entry.endTime ? entry.endTime : TIME_SLOTS[startIndex + 1];
+        const endIndex = TIME_SLOTS.indexOf(endTime);
+        const totalHours = endIndex > startIndex ? endIndex - startIndex : 1;
+
         if (startIndex !== -1) {
           for (let i = startIndex; i < endIndex && i < TIME_SLOTS.length; i++) {
             const timeSlot = TIME_SLOTS[i];
             const isFirstHour = i === startIndex;
             if (isFirstHour) {
-               newGrid[dayOfWeekStr][timeSlot] = { ...entry, isFirstHour: true, totalHours: endIndex - startIndex };
+               newGrid[dayOfWeekStr][timeSlot] = { ...entry, isFirstHour: true, totalHours: totalHours };
             } else {
                newGrid[dayOfWeekStr][timeSlot] = { ...entry, isFirstHour: false, totalHours: 0 };
             }
@@ -143,6 +147,10 @@ export default function TimetableManagerPage() {
   };
 
   const handleCellClick = (day: string, time: string) => {
+    if (!selectedCourse || !selectedYear || !selectedDivision) {
+        toast({ title: "Select a class", description: "Please select a course, year, and division first.", variant: "destructive" });
+        return;
+    }
     const entry = timetableGrid[day]?.[time];
     if (entry) {
       setIsEditMode(true);
@@ -157,7 +165,7 @@ export default function TimetableManagerPage() {
     }
     setIsFormOpen(true);
   };
-  
+
   const handleSave = () => {
     if (!selectedCourse || !selectedYear || !selectedDivision) {
         toast({ title: "Error", description: "Please select a class first.", variant: "destructive" });
@@ -174,7 +182,7 @@ export default function TimetableManagerPage() {
         startTime: currentEntry.startTime || '',
         endTime: currentEntry.endTime || '',
     };
-    
+
     startTransition(async () => {
         const result = await saveTimetableEntry(dataToSave, currentEntry.id);
         if (result.success) {
@@ -193,13 +201,14 @@ export default function TimetableManagerPage() {
         const result = await deleteTimetableEntry(currentEntry.id!);
         if (result.success) {
             toast({ title: "Success", description: "Timetable entry deleted." });
+            setIsFormOpen(false);
             fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
         } else {
             toast({ title: "Error", description: result.error, variant: "destructive" });
         }
     });
   };
-  
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold text-white mb-4">Timetable Manager</h1>
@@ -212,11 +221,11 @@ export default function TimetableManagerPage() {
               <SelectContent>{courses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={selectedYear} onValueChange={setSelectedYear} disabled={!selectedCourse}>
-              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Year..." /></SelectValue>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Year..." /></SelectTrigger>
               <SelectContent>{availableYears.map(y => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={selectedDivision} onValueChange={setSelectedDivision} disabled={!selectedYear}>
-              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Division..." /></SelectValue>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Division..." /></SelectTrigger>
               <SelectContent>{divisions.map(d => <SelectItem key={d} value={d}>Division {d}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -237,7 +246,7 @@ export default function TimetableManagerPage() {
             {TIME_SLOTS.map((time, index) => (
                 <div key={time} className="contents">
                     <div className="p-2 text-sm font-semibold text-white/70 sticky left-0 z-10 bg-blue-900/50">
-                        {`${time} - ${TIME_SLOTS[index+1] || '17:00'}`}
+                        {`${time} - ${TIME_SLOTS[index+1] || '18:00'}`}
                     </div>
                     {DAYS_OF_WEEK.map(day => {
                         const entry = timetableGrid[day]?.[time];
@@ -309,7 +318,7 @@ export default function TimetableManagerPage() {
               <Label htmlFor="endTime" className="text-right">End Time</Label>
               <Select value={currentEntry.endTime} onValueChange={val => setCurrentEntry({...currentEntry, endTime: val})}>
                 <SelectTrigger className="col-span-3"><SelectValue /></SelectValue>
-                <SelectContent>{TIME_SLOTS.map((t, i) => TIME_SLOTS[i+1] ? <SelectItem key={t} value={TIME_SLOTS[i+1]}>{TIME_SLOTS[i+1]}</SelectItem> : null)}</SelectContent>
+                <SelectContent>{TIME_SLOTS.slice(1).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
