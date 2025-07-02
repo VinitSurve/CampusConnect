@@ -12,9 +12,15 @@ import type { Event, TimetableEntry } from '@/types';
 
 interface AcademicCalendarProps {
   onDateSelect?: (selectInfo: DateSelectArg) => void;
+  headerToolbarRight?: string;
+  initialView?: string;
 }
 
-export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps) {
+export default function AcademicCalendar({ 
+  onDateSelect,
+  headerToolbarRight = 'dayGridMonth,timeGridWeek,timeGridDay',
+  initialView = 'timeGridWeek'
+}: AcademicCalendarProps) {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -118,9 +124,9 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: headerToolbarRight
           }}
-          initialView="timeGridWeek"
+          initialView={initialView}
           weekends={true}
           events={events}
           editable={true}

@@ -224,7 +224,11 @@ export default function HostEventForm({ user }: HostEventFormProps) {
           </form>
         </div>
         <div className="sticky top-24">
-          <AcademicCalendar onDateSelect={handleDateSelect} />
+          <AcademicCalendar
+            onDateSelect={handleDateSelect}
+            headerToolbarRight="dayGridMonth"
+            initialView="dayGridMonth"
+          />
           {selectedDate && (
             <div className="mt-4 backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
               <h3 className="text-lg font-medium text-white mb-4">Location Availability for {selectedDate.toLocaleDateString()}</h3>
