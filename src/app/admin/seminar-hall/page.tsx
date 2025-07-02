@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -27,28 +28,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const TIME_SLOTS = [
-  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
-  '14:00', '15:00', '16:00', '17:00'
-];
-
-type BookingGrid = {
-  [day: string]: {
-    [time: string]: (SeminarBooking & { isFirstHour: boolean; totalHours: number }) | null
-  }
-}
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function SeminarHallManagerPage() {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   const [bookings, setBookings] = useState<SeminarBooking[]>([]);
-  const [bookingGrid, setBookingGrid] = useState<BookingGrid>({});
-
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentBooking, setCurrentBooking] = useState<Partial<SeminarBooking>>({});
@@ -64,14 +56,14 @@ export default function SeminarHallManagerPage() {
     try {
       const q = query(
         collection(db, 'seminarBookings'),
-        orderBy('startTime')
+        orderBy('date', 'desc'),
+        orderBy('startTime', 'asc')
       );
 
       const querySnapshot = await getDocs(q);
       const entries: SeminarBooking[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SeminarBooking));
-
+      
       setBookings(entries);
-      organizeBookingsIntoGrid(entries);
 
     } catch (error) {
       console.error("Error fetching seminar bookings:", error);
@@ -81,68 +73,33 @@ export default function SeminarHallManagerPage() {
     }
   };
 
-  const organizeBookingsIntoGrid = (entries: SeminarBooking[]) => {
-    const newGrid: BookingGrid = {};
-    DAYS_OF_WEEK.forEach(day => {
-      newGrid[day] = {};
-      TIME_SLOTS.forEach(time => {
-        newGrid[day][time] = null;
-      });
+  const handleAddNewClick = () => {
+    setIsEditMode(false);
+    setCurrentBooking({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        startTime: '09:00',
+        endTime: '10:00',
     });
-
-    entries.forEach(entry => {
-      const dayOfWeekStr = DAYS_OF_WEEK[entry.dayOfWeek - 1];
-      if (dayOfWeekStr && entry.startTime) {
-        const startIndex = TIME_SLOTS.indexOf(entry.startTime);
-        const endTime = entry.endTime ? entry.endTime : TIME_SLOTS[startIndex + 1];
-        const endIndex = TIME_SLOTS.indexOf(endTime);
-        const totalHours = endIndex > startIndex ? endIndex - startIndex : 1;
-
-        if (startIndex !== -1) {
-          for (let i = startIndex; i < endIndex && i < TIME_SLOTS.length; i++) {
-            const timeSlot = TIME_SLOTS[i];
-            const isFirstHour = i === startIndex;
-            if (isFirstHour) {
-               newGrid[dayOfWeekStr][timeSlot] = { ...entry, isFirstHour: true, totalHours: totalHours };
-            } else {
-               newGrid[dayOfWeekStr][timeSlot] = { ...entry, isFirstHour: false, totalHours: 0 };
-            }
-          }
-        }
-      }
-    });
-    setBookingGrid(newGrid);
+    setIsFormOpen(true);
   };
 
-  const handleCellClick = (day: string, time: string, entry?: SeminarBooking) => {
-    if (entry) {
-      setCurrentBooking(entry);
-      setIsEditMode(true);
-    } else {
-      setIsEditMode(false);
-      const startTime = time;
-      const startTimeIndex = TIME_SLOTS.indexOf(startTime);
-      const endTime = TIME_SLOTS[startTimeIndex + 1] || startTime; // Default to 1 hour
-      setCurrentBooking({
-        dayOfWeek: DAYS_OF_WEEK.indexOf(day) + 1,
-        startTime: startTime,
-        endTime: endTime,
-      });
-    }
+  const handleEditClick = (booking: SeminarBooking) => {
+    setIsEditMode(true);
+    setCurrentBooking(booking);
     setIsFormOpen(true);
   };
 
   const handleSave = () => {
-    const dataToSave = {
+    const dataToSave: Omit<SeminarBooking, 'id'> = {
         title: currentBooking.title || '',
         organizer: currentBooking.organizer || '',
-        dayOfWeek: Number(currentBooking.dayOfWeek),
+        date: currentBooking.date || '',
         startTime: currentBooking.startTime || '',
         endTime: currentBooking.endTime || '',
     };
     
-    if (!dataToSave.title || !dataToSave.organizer) {
-        toast({ title: "Missing Information", description: "Please provide a title and organizer.", variant: "destructive" });
+    if (!dataToSave.title || !dataToSave.organizer || !dataToSave.date || !dataToSave.startTime || !dataToSave.endTime) {
+        toast({ title: "Missing Information", description: "Please fill all fields.", variant: "destructive" });
         return;
     }
 
@@ -189,51 +146,46 @@ export default function SeminarHallManagerPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-white mb-4">Seminar Hall Schedule</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-white">Seminar Hall Bookings</h1>
+        <Button onClick={handleAddNewClick}><PlusCircle className="mr-2 h-4 w-4" /> Add New Booking</Button>
+      </div>
       
       <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
-        <p className="text-white/80 mb-6">Manage recurring weekly bookings for the Seminar Hall. For one-time events, please use the event proposal system.</p>
+        <p className="text-white/80 mb-6">Manage one-off and recurring bookings for the Seminar Hall. Approved event proposals for the hall will appear here automatically.</p>
 
-        <div className="overflow-x-auto">
-          <div className="grid grid-cols-[auto_repeat(6,minmax(120px,1fr))] gap-1">
-            <div className="p-2 text-sm font-semibold text-white/80 sticky left-0 z-10 bg-blue-900/50">Time</div>
-            {DAYS_OF_WEEK.map(day => <div key={day} className="p-2 text-center text-sm font-semibold text-white/80">{day}</div>)}
-            
-            {TIME_SLOTS.map((time, index) => (
-                <div key={time} className="contents">
-                    <div className="p-2 text-sm font-semibold text-white/70 sticky left-0 z-10 bg-blue-900/50">
-                        {`${time} - ${TIME_SLOTS[index+1] || '18:00'}`}
+        <div className="space-y-4">
+            {loading && (
+                <>
+                    <Skeleton className="h-20 w-full bg-white/5" />
+                    <Skeleton className="h-20 w-full bg-white/5" />
+                    <Skeleton className="h-20 w-full bg-white/5" />
+                </>
+            )}
+            {!loading && bookings.length === 0 && (
+                <div className="text-center py-12 text-white/70">
+                    <p>No bookings found for the seminar hall.</p>
+                </div>
+            )}
+            {!loading && bookings.map((booking) => (
+                <div key={booking.id} 
+                    className="bg-white/5 rounded-lg p-4 flex flex-col sm:flex-row justify-between sm:items-center hover:bg-white/10 cursor-pointer transition-colors"
+                    onClick={() => handleEditClick(booking)}
+                >
+                    <div>
+                        <p className="font-bold text-white">{booking.title}</p>
+                        <p className="text-sm text-white/80">
+                            <span className="font-semibold">Date:</span> {format(new Date(`${booking.date}T00:00:00`), "PPP")}
+                        </p>
+                        <p className="text-sm text-white/80">
+                            <span className="font-semibold">Time:</span> {booking.startTime} - {booking.endTime}
+                        </p>
+                         <p className="text-sm text-white/60">
+                            <span className="font-semibold">Organizer:</span> {booking.organizer}
+                        </p>
                     </div>
-                    {DAYS_OF_WEEK.map(day => {
-                        const entry = bookingGrid[day]?.[time];
-                        if (loading) {
-                            return <div key={`${day}-${time}`} className="h-20"><Skeleton className="w-full h-full bg-white/5" /></div>
-                        }
-                        if (entry?.isFirstHour) {
-                            return (
-                                <div key={`${day}-${time}`} 
-                                    onClick={() => handleCellClick(day, time, entry)}
-                                    className="p-2 rounded-lg bg-purple-500/20 text-white cursor-pointer hover:bg-purple-500/30 transition-colors text-center flex flex-col justify-center"
-                                    style={{ gridRow: `span ${entry.totalHours || 1}`}}
-                                >
-                                    <p className="font-bold text-sm">{entry.title}</p>
-                                    <p className="text-xs text-white/80">{entry.organizer}</p>
-                                </div>
-                            );
-                        }
-                        if (entry && !entry.isFirstHour) {
-                           return null;
-                        }
-                        return (
-                            <div key={`${day}-${time}`} 
-                                onClick={() => handleCellClick(day, time)}
-                                className="h-20 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center text-white/30"
-                            >+</div>
-                        );
-                    })}
                 </div>
             ))}
-          </div>
         </div>
       </div>
 
@@ -250,6 +202,39 @@ export default function SeminarHallManagerPage() {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="organizer" className="text-right">Organizer</Label>
               <Input id="organizer" value={currentBooking.organizer || ''} onChange={e => setCurrentBooking({...currentBooking, organizer: e.target.value})} className="col-span-3"/>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="date" className="text-right">Date</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "col-span-3 justify-start text-left font-normal bg-transparent text-white hover:bg-white/10 hover:text-white",
+                            !currentBooking.date && "text-muted-foreground"
+                        )}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {currentBooking.date ? format(new Date(`${currentBooking.date}T00:00:00`), "PPP") : <span>Pick a date</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={currentBooking.date ? new Date(`${currentBooking.date}T00:00:00`) : undefined}
+                            onSelect={(date) => setCurrentBooking({...currentBooking, date: date ? format(date, 'yyyy-MM-dd') : ''})}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startTime" className="text-right">Time</Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Input id="startTime" type="time" value={currentBooking.startTime || ''} onChange={e => setCurrentBooking({...currentBooking, startTime: e.target.value})} />
+                <span>to</span>
+                <Input id="endTime" type="time" value={currentBooking.endTime || ''} onChange={e => setCurrentBooking({...currentBooking, endTime: e.target.value})} />
+              </div>
             </div>
           </div>
           <DialogFooter className="justify-between">

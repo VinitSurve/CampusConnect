@@ -58,6 +58,7 @@ export type EventProposal = {
   clubId?: string;
   clubName: string;
   date: string;
+  time?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdBy: string; // UID of user
   creatorEmail: string;
@@ -90,7 +91,7 @@ export type SeminarBooking = {
   id: string;
   title: string;
   organizer: string;
-  dayOfWeek: number; // 1=Mon, 2=Tues, etc.
+  date: string;
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   createdAt?: any;

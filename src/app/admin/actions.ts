@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
 import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import type { EventProposal, Event } from '@/types';
+import type { EventProposal, Event, SeminarBooking } from '@/types';
 
 export async function approveRequest(proposal: EventProposal) {
     try {
@@ -16,7 +16,7 @@ export async function approveRequest(proposal: EventProposal) {
             description: proposal.description || "No description provided.",
             longDescription: proposal.description || "No description provided.",
             date: proposal.date,
-            time: "12:00", // Default time, can be updated later
+            time: proposal.time || "12:00",
             location: proposal.location,
             organizer: proposal.clubName,
             category: proposal.category,
@@ -32,6 +32,28 @@ export async function approveRequest(proposal: EventProposal) {
 
         await addDoc(collection(db, "events"), newEvent);
 
+        // If the event is in the seminar hall, create a booking record
+        if (proposal.location === 'seminar') {
+            const startTime = proposal.time || "12:00";
+            const [hour, minute] = startTime.split(':').map(Number);
+            const endHour = hour + 1; // Assume 1 hour duration
+            const endTime = `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+            const newBooking: Omit<SeminarBooking, 'id'> = {
+                title: proposal.title,
+                organizer: proposal.clubName,
+                date: proposal.date,
+                startTime: startTime,
+                endTime: endTime,
+            };
+
+            await addDoc(collection(db, "seminarBookings"), {
+                ...newBooking,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+        }
+
         // Update the original request status
         await updateDoc(requestRef, {
             status: "approved",
@@ -40,6 +62,7 @@ export async function approveRequest(proposal: EventProposal) {
         
         revalidatePath("/admin");
         revalidatePath("/admin/calendar");
+        revalidatePath("/admin/seminar-hall"); // Revalidate new page
         return { success: true };
 
     } catch (error) {
