@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +7,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventContentArg } from '@fullcalendar/core';
 import { db } from '@/lib/firebase';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, where } from 'firebase/firestore';
 import type { Event, TimetableEntry, SeminarBooking } from '@/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -84,7 +83,7 @@ export default function AcademicCalendar({
                 <PopoverTrigger asChild>
                     {eventDisplay}
                 </PopoverTrigger>
-                <PopoverContent className="w-64 bg-background text-popover-foreground border-border">
+                <PopoverContent className="w-64 bg-slate-950 text-popover-foreground border-border shadow-lg backdrop-blur-none">
                     {eventDetails}
                 </PopoverContent>
             </Popover>
@@ -96,7 +95,7 @@ export default function AcademicCalendar({
             <TooltipTrigger asChild>
                 {eventDisplay}
             </TooltipTrigger>
-            <TooltipContent className="w-64 bg-background text-popover-foreground border-border">
+            <TooltipContent className="w-64 bg-slate-950 text-popover-foreground border-border shadow-lg backdrop-blur-none">
                 {eventDetails}
             </TooltipContent>
         </Tooltip>
@@ -138,7 +137,7 @@ export default function AcademicCalendar({
         const timetableEvents = timetablesSnapshot.docs.flatMap(doc => {
             const data = doc.data() as TimetableEntry;
             
-            if (typeof data.dayOfWeek !== 'number' || data.dayOfWeek < 0 || data.dayOfWeek > 6) { // Sunday is 0
+            if (typeof data.dayOfWeek !== 'number' || data.dayOfWeek < 1 || data.dayOfWeek > 6) { // 1=Monday, 6=Saturday
                 return []; 
             }
 
@@ -146,17 +145,16 @@ export default function AcademicCalendar({
             let currentDay = new Date(yearStart);
 
             while (currentDay <= yearEnd) {
-                // JS getDay() is 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
+                // JS getDay() is 0 for Sunday, ..., 6 for Saturday.
                 const jsDay = currentDay.getDay(); 
                 
-                // Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday. Let's assume this for now.
-                // To match, we need to compare `data.dayOfWeek` with `jsDay`.
+                // Firestore data for dayOfWeek is 1 for Monday... We want to match our data (1-6) with JS's day (1-6).
+                // We skip Sunday (jsDay === 0).
                 if (data.dayOfWeek === jsDay) {
                     const year = currentDay.getFullYear();
                     const month = currentDay.getMonth() + 1;
                     const date = currentDay.getDate();
                     
-                    // IMPORTANT: Construct date string manually to avoid timezone shifts from toISOString()
                     const dateString = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
                     
                     daysInYear.push({
@@ -243,6 +241,8 @@ export default function AcademicCalendar({
             initialView={initialView}
             weekends={true}
             events={events}
+                displayEventEnd={false}
+                displayEventTime={false}
             editable={false}
             selectable={true}
             selectMirror={true}
@@ -253,7 +253,6 @@ export default function AcademicCalendar({
             slotMinTime="08:00:00"
             slotMaxTime="17:00:00"
             slotLabelInterval="01:00:00"
-            displayEventTime={false}
             />
         )}
         </div>
