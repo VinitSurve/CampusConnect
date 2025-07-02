@@ -83,7 +83,7 @@ export default function AcademicCalendar({
                 <PopoverTrigger asChild>
                     {eventDisplay}
                 </PopoverTrigger>
-                <PopoverContent className="bg-background/90 backdrop-blur-lg border-border text-foreground w-64">
+                <PopoverContent className="w-64 bg-popover text-popover-foreground border-border">
                     {eventDetails}
                 </PopoverContent>
             </Popover>
@@ -95,7 +95,7 @@ export default function AcademicCalendar({
             <TooltipTrigger asChild>
                 {eventDisplay}
             </TooltipTrigger>
-            <TooltipContent className="bg-background/90 backdrop-blur-lg border-border text-foreground w-64">
+            <TooltipContent className="w-64 bg-popover text-popover-foreground border-border">
                 {eventDetails}
             </TooltipContent>
         </Tooltip>
@@ -134,21 +134,33 @@ export default function AcademicCalendar({
         const yearStart = new Date(today.getFullYear(), 0, 1); // January 1st
         const yearEnd = new Date(today.getFullYear(), 11, 31); // December 31st
 
-        const timetableEvents = timetablesSnapshot.docs.map(doc => {
+        const timetableEvents = timetablesSnapshot.docs.flatMap(doc => {
             const data = doc.data() as TimetableEntry;
-            return {
-                id: `tt-${doc.id}`,
-                title: `${data.subject}`,
-                daysOfWeek: [data.dayOfWeek],
-                startTime: data.startTime,
-                endTime: data.endTime,
-                startRecur: yearStart.toISOString().split('T')[0],
-                endRecur: yearEnd.toISOString().split('T')[0],
-                allDay: false,
-                display: 'block',
-                extendedProps: { ...data, eventType: 'timetable' },
-                className: 'bg-secondary text-secondary-foreground border-2 border-secondary-foreground/20 h-full'
+            const daysInYear = [];
+            let currentDay = new Date(yearStart);
+
+            while (currentDay <= yearEnd) {
+                // The day of the week from Date object is 0 for Sunday, 1 for Monday, etc.
+                // Firestore dayOfWeek is 1 for Monday, ..., 7 for Sunday.
+                // We need to align them. JS getDay() 0 -> 7
+                const jsDay = currentDay.getDay();
+                const comparableDay = jsDay === 0 ? 7 : jsDay;
+                
+                if (comparableDay === data.dayOfWeek) {
+                    daysInYear.push({
+                        id: `tt-${doc.id}-${currentDay.toISOString().split('T')[0]}`,
+                        title: `${data.subject}`,
+                        start: `${currentDay.toISOString().split('T')[0]}T${data.startTime}`,
+                        end: `${currentDay.toISOString().split('T')[0]}T${data.endTime}`,
+                        allDay: false,
+                        display: 'block',
+                        extendedProps: { ...data, eventType: 'timetable' },
+                        className: 'bg-secondary text-secondary-foreground border-2 border-secondary-foreground/20 h-full'
+                    });
+                }
+                currentDay.setDate(currentDay.getDate() + 1);
             }
+            return daysInYear;
         });
 
         // Fetch seminar bookings
@@ -169,11 +181,12 @@ export default function AcademicCalendar({
         });
 
         const allCalEvents = [...regularEvents, ...timetableEvents, ...seminarBookingEvents];
+        
         const filteredEvents = locationFilter
           ? allCalEvents.filter(e => {
               const eventLocation = e.extendedProps.location;
+              // Handle both short ID ("seminar") and full name ("Seminar Hall")
               const locationName = locationIdToNameMap[locationFilter] || locationFilter;
-              // Match by ID (for events and seminar bookings) OR by Name (for timetable entries)
               return eventLocation === locationFilter || eventLocation === locationName;
             })
           : allCalEvents;
