@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { Club } from '@/types';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -16,21 +16,29 @@ export async function saveClub(data: Partial<Club> & { id?: string }) {
 
         const { id, ...clubData } = data;
         
-        // Ensure tags are an array
-        if (typeof clubData.tags === 'string') {
-            clubData.tags = (clubData.tags as string).split(',').map(tag => tag.trim()).filter(Boolean);
-        } else if (!Array.isArray(clubData.tags)) {
-            clubData.tags = [];
+        if (!clubData.leadId) {
+            return { success: false, error: "A club lead must be selected." };
+        }
+
+        const studentDocRef = doc(db, "users", clubData.leadId);
+        const studentDoc = await getDoc(studentDocRef);
+
+        if (!studentDoc.exists()) {
+            return { success: false, error: "Selected club lead could not be found." };
+        }
+        const leadContactEmail = studentDoc.data().email;
+         if (!leadContactEmail) {
+            return { success: false, error: "The selected club lead does not have an email address." };
         }
 
         const dataToSave = {
             name: clubData.name || '',
             description: clubData.description || '',
-            image: clubData.image || 'https://placehold.co/600x400.png',
-            tags: clubData.tags,
-            contactEmail: clubData.contactEmail || '',
+            image: 'https://placehold.co/600x400.png',
+            tags: [],
+            contactEmail: leadContactEmail,
             facultyAdvisor: clubData.facultyAdvisor || '',
-            leadId: clubData.leadId || '',
+            leadId: clubData.leadId,
         };
 
         if (id) {

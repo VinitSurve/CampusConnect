@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -20,9 +21,6 @@ import Image from 'next/image';
 const DEFAULT_CLUB: Partial<Club> = {
     name: '',
     description: '',
-    image: 'https://placehold.co/600x400.png',
-    tags: [],
-    contactEmail: '',
     facultyAdvisor: '',
     leadId: ''
 };
@@ -194,18 +192,6 @@ export default function AdminClubsPage() {
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="description" className="text-right">Description</Label>
                             <Textarea id="description" name="description" value={currentClub.description || ''} onChange={handleFormChange} className="col-span-3"/>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="image" className="text-right">Image URL</Label>
-                            <Input id="image" name="image" value={currentClub.image || ''} onChange={handleFormChange} className="col-span-3"/>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="tags" className="text-right">Tags</Label>
-                            <Input id="tags" name="tags" value={Array.isArray(currentClub.tags) ? currentClub.tags.join(', ') : ''} onChange={handleFormChange} placeholder="e.g. Tech, Coding, Fun" className="col-span-3"/>
-                        </div>
-                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="contactEmail" className="text-right">Contact Email</Label>
-                            <Input id="contactEmail" name="contactEmail" type="email" value={currentClub.contactEmail || ''} onChange={handleFormChange} className="col-span-3"/>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="facultyAdvisor" className="text-right">Advisor*</Label>
