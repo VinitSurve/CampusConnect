@@ -138,9 +138,7 @@ export default function AcademicCalendar({
         const timetableEvents = timetablesSnapshot.docs.flatMap(doc => {
             const data = doc.data() as TimetableEntry;
             
-            // Defensively check the data from Firestore.
             if (typeof data.dayOfWeek !== 'number' || data.dayOfWeek < 1 || data.dayOfWeek > 6) {
-                // If dayOfWeek is not a number from 1 to 6, skip this entry.
                 return []; 
             }
 
@@ -150,15 +148,19 @@ export default function AcademicCalendar({
             while (currentDay <= yearEnd) {
                 const jsDay = currentDay.getDay(); // JS getDay() is 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
                 
-                // Our Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday.
-                // A direct comparison is correct. A lab on Monday (1) should appear when jsDay is 1.
-                // A Sunday (jsDay=0) will never match a valid dayOfWeek from Firestore (1-6).
+                // Firestore data for dayOfWeek is 1 for Monday, ..., 6 for Saturday.
+                // A direct comparison is correct because jsDay is 1 for Monday, 2 for Tuesday, etc.
                 if (jsDay === data.dayOfWeek) {
+                    const year = currentDay.getFullYear();
+                    const month = String(currentDay.getMonth() + 1).padStart(2, '0');
+                    const date = String(currentDay.getDate()).padStart(2, '0');
+                    const dateString = `${year}-${month}-${date}`;
+                    
                     daysInYear.push({
-                        id: `tt-${doc.id}-${currentDay.toISOString().split('T')[0]}`,
+                        id: `tt-${doc.id}-${dateString}`,
                         title: `${data.subject}`,
-                        start: `${currentDay.toISOString().split('T')[0]}T${data.startTime}`,
-                        end: `${currentDay.toISOString().split('T')[0]}T${data.endTime}`,
+                        start: `${dateString}T${data.startTime}`,
+                        end: `${dateString}T${data.endTime}`,
                         allDay: false,
                         display: 'block',
                         extendedProps: { ...data, eventType: 'timetable' },
