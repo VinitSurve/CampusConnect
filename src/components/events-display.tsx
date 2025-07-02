@@ -42,7 +42,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Categories */}
-      <div className="flex overflow-x-auto pb-4 mb-8 gap-4" style={{'scrollbarWidth': 'none', '-ms-overflow-style': 'none'}}>
+      <div className="flex overflow-x-auto pb-4 mb-8 gap-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {displayCategories.map(category => (
           <button
             key={category.id}

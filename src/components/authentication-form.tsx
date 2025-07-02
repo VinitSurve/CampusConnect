@@ -308,7 +308,7 @@ export default function AuthenticationForm() {
                   </div>
                 </div>
               </div>
-              <div className="p-8 flex-grow overflow-y-auto" style={{'scrollbarWidth': 'none', '-ms-overflow-style': 'none'}}>
+              <div className="p-8 flex-grow overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 <form onSubmit={handleRegisterSubmit} className="space-y-5">
                   {currentStep === 1 ? (
                     <>
@@ -354,5 +354,3 @@ export default function AuthenticationForm() {
     </div>
   );
 }
-
-    
