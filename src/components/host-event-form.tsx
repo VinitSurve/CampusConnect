@@ -178,6 +178,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     );
   }
 
+  const locationName = locations.find(l => l.id === form.location)?.name;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -227,7 +229,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
           <AcademicCalendar
             onDateSelect={handleDateSelect}
             initialView="dayGridMonth"
-            locationFilter={form.location}
+            headerToolbarRight="dayGridMonth"
+            locationFilter={locationName}
           />
           {selectedDate && (
             <div className="mt-4 backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">

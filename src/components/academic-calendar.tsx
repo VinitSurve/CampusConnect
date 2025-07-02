@@ -96,8 +96,8 @@ export default function AcademicCalendar({
         const timetablesSnapshot = await getDocs(timetablesQuery);
         
         const today = new Date();
-        const semesterStart = new Date(today.getFullYear(), 7, 1); // Assume semester starts August 1st
-        const semesterEnd = new Date(today.getFullYear(), 11, 31); // Assume semester ends December 31st
+        const yearStart = new Date(today.getFullYear(), 0, 1); // January 1st
+        const yearEnd = new Date(today.getFullYear(), 11, 31); // December 31st
 
         const timetableEvents = timetablesSnapshot.docs.map(doc => {
             const data = doc.data() as TimetableEntry;
@@ -107,8 +107,8 @@ export default function AcademicCalendar({
                 daysOfWeek: [data.dayOfWeek],
                 startTime: data.startTime,
                 endTime: data.endTime,
-                startRecur: semesterStart.toISOString().split('T')[0],
-                endRecur: semesterEnd.toISOString().split('T')[0],
+                startRecur: yearStart.toISOString().split('T')[0],
+                endRecur: yearEnd.toISOString().split('T')[0],
                 allDay: false,
                 display: 'block',
                 extendedProps: { ...data, eventType: 'timetable' },
