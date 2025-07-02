@@ -123,7 +123,6 @@ export default function TimetableManagerPage() {
     });
 
     entries.forEach(entry => {
-      // @ts-ignore
       const dayOfWeekStr = DAYS_OF_WEEK[entry.dayOfWeek - 1];
       if (dayOfWeekStr && entry.startTime) {
         const startIndex = TIME_SLOTS.indexOf(entry.startTime);
@@ -185,14 +184,12 @@ export default function TimetableManagerPage() {
     };
 
     startTransition(async () => {
-        // @ts-ignore
         const result = await saveTimetableEntry(dataToSave, currentEntry.id);
         if (result.success) {
             toast({ title: "Success", description: "Timetable updated!" });
             setIsFormOpen(false);
             fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
         } else {
-            // @ts-ignore
             toast({ title: "Error", description: result.error, variant: "destructive" });
         }
     });
@@ -207,7 +204,6 @@ export default function TimetableManagerPage() {
             setIsFormOpen(false);
             fetchTimetableData(selectedCourse, selectedYear, selectedDivision);
         } else {
-            // @ts-ignore
             toast({ title: "Error", description: result.error, variant: "destructive" });
         }
     });
