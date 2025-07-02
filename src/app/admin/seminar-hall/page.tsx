@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -28,12 +27,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calendar as CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import type { EventClickArg, DateSelectArg } from '@fullcalendar/core';
 
 export default function SeminarHallManagerPage() {
   const [loading, setLoading] = useState(true);
@@ -73,14 +77,25 @@ export default function SeminarHallManagerPage() {
     }
   };
 
-  const handleAddNewClick = () => {
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    const calendarApi = selectInfo.view.calendar;
+    calendarApi.unselect(); // clear date selection
+
     setIsEditMode(false);
     setCurrentBooking({
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: format(selectInfo.start, 'yyyy-MM-dd'),
         startTime: '09:00',
         endTime: '10:00',
     });
     setIsFormOpen(true);
+  };
+  
+  const handleEventClick = (clickInfo: EventClickArg) => {
+    const bookingId = clickInfo.event.id;
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+        handleEditClick(booking);
+    }
   };
 
   const handleEditClick = (booking: SeminarBooking) => {
@@ -143,50 +158,47 @@ export default function SeminarHallManagerPage() {
       }
     });
   };
+  
+  const calendarEvents = bookings.map(booking => ({
+    id: booking.id,
+    title: booking.title,
+    start: `${booking.date}T${booking.startTime}`,
+    end: `${booking.date}T${booking.endTime}`,
+    extendedProps: booking,
+    className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary cursor-pointer'
+  }));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-white">Seminar Hall Bookings</h1>
-        <Button onClick={handleAddNewClick}><PlusCircle className="mr-2 h-4 w-4" /> Add New Booking</Button>
       </div>
       
       <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
-        <p className="text-white/80 mb-6">Manage one-off and recurring bookings for the Seminar Hall. Approved event proposals for the hall will appear here automatically.</p>
+        <p className="text-white/80 mb-6">Manage bookings for the Seminar Hall. Click on a date to add a new booking, or click an existing booking to edit. Approved event proposals for the hall will appear here automatically.</p>
 
-        <div className="space-y-4">
-            {loading && (
-                <>
-                    <Skeleton className="h-20 w-full bg-white/5" />
-                    <Skeleton className="h-20 w-full bg-white/5" />
-                    <Skeleton className="h-20 w-full bg-white/5" />
-                </>
-            )}
-            {!loading && bookings.length === 0 && (
-                <div className="text-center py-12 text-white/70">
-                    <p>No bookings found for the seminar hall.</p>
-                </div>
-            )}
-            {!loading && bookings.map((booking) => (
-                <div key={booking.id} 
-                    className="bg-white/5 rounded-lg p-4 flex flex-col sm:flex-row justify-between sm:items-center hover:bg-white/10 cursor-pointer transition-colors"
-                    onClick={() => handleEditClick(booking)}
-                >
-                    <div>
-                        <p className="font-bold text-white">{booking.title}</p>
-                        <p className="text-sm text-white/80">
-                            <span className="font-semibold">Date:</span> {format(new Date(`${booking.date}T00:00:00`), "PPP")}
-                        </p>
-                        <p className="text-sm text-white/80">
-                            <span className="font-semibold">Time:</span> {booking.startTime} - {booking.endTime}
-                        </p>
-                         <p className="text-sm text-white/60">
-                            <span className="font-semibold">Organizer:</span> {booking.organizer}
-                        </p>
-                    </div>
-                </div>
-            ))}
-        </div>
+        {loading ? (
+            <Skeleton className="h-[700px] w-full bg-white/5" />
+        ) : (
+            <FullCalendar
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                headerToolbar={{
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek'
+                }}
+                initialView="dayGridMonth"
+                weekends={true}
+                events={calendarEvents}
+                editable={false}
+                selectable={true}
+                selectMirror={true}
+                dayMaxEvents={true}
+                eventClick={handleEventClick}
+                select={handleDateSelect}
+                height="auto"
+            />
+        )}
       </div>
 
       <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsEditMode(false); }}>
