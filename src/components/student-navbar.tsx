@@ -51,12 +51,12 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
     { path: '/dashboard/events', label: 'Events', icon: '🎫' },
     { path: '/dashboard/host-event', label: 'Host Event', icon: '🎭' },
     { path: '/dashboard/clubs', label: 'Clubs', icon: '👥' },
-    { path: '/dashboard/calendar', label: 'Calendar', icon: '📅' }
+    { path: '/dashboard/calendar', label: 'Timetable', icon: '📅' }
   ];
 
   const getActiveItem = () => {
     // Treat the base dashboard as the "Events" page for active state
-    if (pathname === '/dashboard') return 'events';
+    if (pathname === '/dashboard' || pathname === '/dashboard/events') return 'events';
     
     const item = navItems.find(item => pathname.startsWith(item.path));
     return item ? item.label.toLowerCase() : '';

@@ -1,11 +1,10 @@
+import AcademicCalendar from "@/components/academic-calendar";
 
 export default function CalendarPage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-      <div className="bg-white/10 backdrop-blur-xl rounded-xl p-8 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-white">Calendar</h1>
-        <p className="text-white/80 mt-2">This feature is coming soon.</p>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-2xl font-bold text-white mb-6">Campus Timetable</h1>
+      <AcademicCalendar />
     </div>
   );
 }
