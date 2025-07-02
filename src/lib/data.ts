@@ -25,7 +25,7 @@ export async function getClubs(): Promise<Club[]> {
     const querySnapshot = await getDocs(q);
     const clubs = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      return {
+      const club: Club = {
         id: doc.id,
         name: data.name,
         description: data.description,
@@ -37,7 +37,8 @@ export async function getClubs(): Promise<Club[]> {
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
-      } as Club;
+      };
+      return club;
     });
     return clubs;
   } catch (error) {
@@ -48,11 +49,13 @@ export async function getClubs(): Promise<Club[]> {
 
 export async function getStudents(): Promise<User[]> {
     try {
-        const q = query(collection(db, "users"), where("role", "==", "student"), orderBy("fullName", "asc"));
+        // Removed orderBy from the query to prevent needing a composite index.
+        // We will sort the results in JavaScript instead.
+        const q = query(collection(db, "users"), where("role", "==", "student"));
         const querySnapshot = await getDocs(q);
         const students = querySnapshot.docs.map(doc => {
             const data = doc.data();
-            return {
+            const user: User = {
                 id: doc.id,
                 uid: data.uid,
                 name: data.fullName || data.name || "Student",
@@ -66,8 +69,13 @@ export async function getStudents(): Promise<User[]> {
                 avatar: data.avatar,
                 department: data.department,
                 interests: data.interests
-            } as User;
+            };
+            return user;
         });
+
+        // Sort the students by fullName alphabetically after fetching.
+        students.sort((a, b) => (a.fullName || a.name).localeCompare(b.fullName || b.name));
+
         return students;
     } catch (error) {
         console.error("Error fetching students:", error);
@@ -84,7 +92,7 @@ export async function getEventProposals(): Promise<EventProposal[]> {
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      return {
+      const proposal: EventProposal = {
         id: doc.id,
         title: data.title,
         description: data.description,
@@ -98,14 +106,15 @@ export async function getEventProposals(): Promise<EventProposal[]> {
         status: data.status,
         createdBy: data.createdBy,
         creatorEmail: data.creatorEmail,
-        createdAt: data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         proposer: data.proposer,
         approvedBy: data.approvedBy,
-        approvedAt: data.approvedAt?.toDate?.().toISOString() || null,
+        approvedAt: data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : null,
         rejectedBy: data.rejectedBy,
-        rejectedAt: data.rejectedAt?.toDate?.().toISOString() || null,
+        rejectedAt: data.rejectedAt?.toDate ? data.rejectedAt.toDate().toISOString() : null,
         rejectionReason: data.rejectionReason,
-      } as EventProposal;
+      };
+      return proposal;
     });
     return requests;
   } catch (error) {

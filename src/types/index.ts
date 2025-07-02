@@ -7,7 +7,7 @@ export type User = {
   username?: string;
   email: string;
   mobile?: string;
-  avatar: string;
+  avatar?: string;
   role: 'student' | 'faculty' | 'admin';
   // Student-specific
   course?: string;
@@ -65,7 +65,7 @@ export type EventProposal = {
   status: 'pending' | 'approved' | 'rejected';
   createdBy: string; // UID of user
   creatorEmail: string;
-  createdAt: string;
+  createdAt: string | null;
   proposer?: string;
   // New fields for approval/rejection cycle
   approvedBy?: string;
