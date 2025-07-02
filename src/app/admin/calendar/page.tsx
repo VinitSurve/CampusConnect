@@ -52,6 +52,8 @@ const courseYears: { [key: string]: string[] } = {
   MBA: ["1", "2"],
 };
 const divisions = ["A", "B", "C"];
+const locations = ["Lab 401", "Lab 404", "Lab 503"];
+
 
 type TimetableGrid = {
   [day: string]: {
@@ -174,6 +176,7 @@ export default function TimetableManagerPage() {
     const dataToSave = {
         subject: currentEntry.subject || '',
         facultyName: currentEntry.facultyName || '',
+        location: currentEntry.location || '',
         course: selectedCourse,
         year: selectedYear,
         division: selectedDivision,
@@ -279,6 +282,7 @@ export default function TimetableManagerPage() {
                                 >
                                     <p className="font-bold text-sm">{entry.subject}</p>
                                     <p className="text-xs text-white/80">{entry.facultyName}</p>
+                                    <p className="text-xs text-white/60">{entry.location}</p>
                                 </div>
                             );
                         }
@@ -308,9 +312,20 @@ export default function TimetableManagerPage() {
               <Label htmlFor="subject" className="text-right">Subject</Label>
               <Input id="subject" value={currentEntry.subject || ''} onChange={e => setCurrentEntry({...currentEntry, subject: e.target.value})} className="col-span-3"/>
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="facultyName" className="text-right">Faculty</Label>
               <Input id="facultyName" value={currentEntry.facultyName || ''} onChange={e => setCurrentEntry({...currentEntry, facultyName: e.target.value})} className="col-span-3"/>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="location" className="text-right">Location</Label>
+                <Select value={currentEntry.location || ''} onValueChange={val => setCurrentEntry({...currentEntry, location: val})}>
+                    <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select location..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {locations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
           </div>
           <DialogFooter className="justify-between">

@@ -53,7 +53,7 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
             const data = doc.data() as TimetableEntry;
             return {
                 id: `tt-${doc.id}`,
-                title: `${data.subject} (${data.facultyName})`,
+                title: `${data.subject} (${data.location})`,
                 daysOfWeek: [data.dayOfWeek],
                 startTime: data.startTime,
                 endTime: data.endTime,
@@ -90,6 +90,7 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
     if (props.eventType === 'timetable') {
         alert(
             `Class: ${clickInfo.event.title}\n` +
+            `Faculty: ${props.facultyName}\n` +
             `Course: ${props.course} Year-${props.year} Div-${props.division}`
         );
     } else {
