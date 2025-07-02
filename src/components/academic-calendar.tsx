@@ -134,6 +134,7 @@ export default function AcademicCalendar({ onDateSelect }: AcademicCalendarProps
           slotMinTime="08:00:00"
           slotMaxTime="17:00:00"
           slotLabelInterval="01:00:00"
+          displayEventTime={false}
         />
       )}
     </div>

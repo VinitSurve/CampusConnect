@@ -220,6 +220,7 @@ export default function SeminarHallManagerPage() {
                 eventClick={handleEventClick}
                 select={handleDateSelect}
                 height="auto"
+                displayEventTime={false}
             />
         )}
       </div>
