@@ -18,6 +18,13 @@ interface AcademicCalendarProps {
   locationFilter?: string;
 }
 
+const locationIdToNameMap: { [key: string]: string } = {
+  'lab401': 'Lab 401',
+  'lab402': 'Lab 402',
+  'lab503': 'Lab 503',
+  'seminar': 'Seminar Hall'
+};
+
 const renderEventContent = (eventInfo: EventContentArg) => {
     const props = eventInfo.event.extendedProps;
     const isTimetable = props.eventType === 'timetable';
@@ -135,7 +142,12 @@ export default function AcademicCalendar({
 
         const allCalEvents = [...regularEvents, ...timetableEvents, ...seminarBookingEvents];
         const filteredEvents = locationFilter
-          ? allCalEvents.filter(e => e.extendedProps.location === locationFilter)
+          ? allCalEvents.filter(e => {
+              const eventLocation = e.extendedProps.location;
+              const locationName = locationIdToNameMap[locationFilter];
+              // Match by ID (for events and seminar bookings) OR by Name (for timetable entries)
+              return eventLocation === locationFilter || eventLocation === locationName;
+            })
           : allCalEvents;
 
         setEvents(filteredEvents);
