@@ -41,6 +41,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     keySpeakers: "",
     equipmentNeeds: "",
     budgetDetails: "",
+    whatYouWillLearn: "",
     location: "seminar",
     category: "",
     registrationLink: "",
@@ -240,6 +241,11 @@ export default function HostEventForm({ user }: HostEventFormProps) {
                 </div>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
             </div>
+            
+            <div className="space-y-2">
+              <label className="text-white text-sm">What You'll Learn</label>
+              <Textarea value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" />
+            </div>
 
             <div className="space-y-2">
               <label className="text-white text-sm">Target Audience</label>
@@ -248,7 +254,7 @@ export default function HostEventForm({ user }: HostEventFormProps) {
 
             <div className="space-y-2">
               <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>
-              <input type="text" value={form.keySpeakers} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Dr. Jane Doe (CEO of TechCorp)" />
+              <Textarea value={form.keySpeakers} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="List each speaker on a new line, e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
             </div>
 
             <div className="space-y-2">

@@ -1,22 +1,40 @@
 
 'use server'
 
-import { mockEvents } from './mock-data';
 import type { Club, Event, EventProposal, User } from '@/types';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
-// Simulate a database delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 export async function getEvents(): Promise<Event[]> {
-  await delay(200);
-  return mockEvents;
+  try {
+    const q = query(collection(db, "events"), orderBy("date", "desc"));
+    const querySnapshot = await getDocs(q);
+    const events = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { id: doc.id, ...data } as Event;
+    });
+    return events;
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return [];
+  }
 }
 
-export async function getEventById(id: string): Promise<Event | undefined> {
-  await delay(100);
-  return mockEvents.find(event => event.id === id);
+export async function getEventById(id: string): Promise<Event | null> {
+  try {
+    const docRef = doc(db, "events", id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Event;
+    } else {
+      console.log("No such document!");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching event by ID:", error);
+    return null;
+  }
 }
 
 export async function getClubs(): Promise<Club[]> {

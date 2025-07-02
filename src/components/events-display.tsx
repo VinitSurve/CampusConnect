@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -94,7 +95,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                 <div className="flex justify-between items-center">
                   <span className="text-white/80 text-sm">{event.location}</span>
                   <Link
-                    href={`/events/${event.id}`}
+                    href={`/dashboard/events/${event.id}`}
                     className="text-white hover:text-blue-300 text-sm font-medium"
                   >
                     View Details →

@@ -34,12 +34,13 @@ export type Event = {
   status: 'upcoming' | 'past' | 'cancelled';
   gallery: string[];
   interests: string[];
-  eventType: 'event' | 'timetable';
+  eventType?: 'event' | 'timetable';
   // New fields
   targetAudience?: string;
   keySpeakers?: string;
   equipmentNeeds?: string;
   budgetDetails?: string;
+  whatYouWillLearn?: string;
 };
 
 export type Club = {
@@ -83,6 +84,7 @@ export type EventProposal = {
   keySpeakers?: string;
   equipmentNeeds?: string;
   budgetDetails?: string;
+  whatYouWillLearn?: string;
 };
 
 export type TimetableEntry = {

@@ -27,12 +27,12 @@ export async function approveRequest(proposal: EventProposal) {
             status: 'upcoming',
             gallery: [],
             interests: [proposal.category],
-            eventType: 'event',
             // Pass new fields
             targetAudience: proposal.targetAudience,
             keySpeakers: proposal.keySpeakers,
             equipmentNeeds: proposal.equipmentNeeds,
             budgetDetails: proposal.budgetDetails,
+            whatYouWillLearn: proposal.whatYouWillLearn,
         };
 
         await addDoc(collection(db, "events"), newEvent);
