@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -60,12 +61,20 @@ export default function SeminarHallManagerPage() {
     try {
       const q = query(
         collection(db, 'seminarBookings'),
-        orderBy('date', 'desc'),
-        orderBy('startTime', 'asc')
+        orderBy('date', 'desc')
       );
 
       const querySnapshot = await getDocs(q);
       const entries: SeminarBooking[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SeminarBooking));
+      
+      // Secondary sort on client to order events within the same day
+      entries.sort((a, b) => {
+        if (a.date < b.date) return 1;
+        if (a.date > b.date) return -1;
+        if (a.startTime < b.startTime) return -1;
+        if (a.startTime > b.startTime) return 1;
+        return 0;
+      });
       
       setBookings(entries);
 
@@ -185,7 +194,7 @@ export default function SeminarHallManagerPage() {
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
+                    right: 'dayGridMonth'
                 }}
                 initialView="dayGridMonth"
                 weekends={true}
@@ -281,3 +290,5 @@ export default function SeminarHallManagerPage() {
     </div>
   );
 }
+
+    
