@@ -3,8 +3,7 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Button } from './ui/button';
-import { Calendar, Clock, MapPin, Tag, Target, Users, Mic, UserCircle } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface EventDetailPageProps {
@@ -12,14 +11,14 @@ interface EventDetailPageProps {
 }
 
 const DetailSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => {
-    if (!children || (typeof children === 'string' && !children.trim()) || (Array.isArray(children) && children.length === 0)) return null;
+    if (!children || (typeof children === 'string' && !children.trim()) || (Array.isArray(children) && children.length === 0) || (Array.isArray(children) && children.every(item => !item))) return null;
     return (
         <div className="bg-white/5 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
                 {icon}
                 <h2 className="text-xl font-semibold text-white">{title}</h2>
             </div>
-            <div className="text-white/80 space-y-3 prose prose-invert prose-p:my-0 prose-ul:my-0 prose-li:my-1">
+            <div className="text-white/80 space-y-3 prose prose-invert prose-p:my-0 prose-ul:my-0 prose-li:my-1 prose-ul:list-none prose-ul:p-0">
                 {children}
             </div>
         </div>
@@ -28,8 +27,8 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
 
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
-      title, longDescription, date, time, location, organizer, category, image, headerImage, eventLogo,
-      registrationLink, whatYouWillLearn, targetAudience, keySpeakers
+      title, longDescription, organizer, category, image, headerImage, eventLogo,
+      whatYouWillLearn, targetAudience, keySpeakers, tags
   } = event;
 
   const parseSpeakers = (speakers?: string) => {
@@ -64,36 +63,19 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
             </div>
 
             <div className="p-6 md:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="flex items-center gap-3 text-white/90 p-4 bg-white/5 rounded-lg">
-                        <Calendar className="h-6 w-6 text-blue-400" />
-                        <div>
-                            <p className="font-semibold">{new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        </div>
-                    </div>
-                     <div className="flex items-center gap-3 text-white/90 p-4 bg-white/5 rounded-lg">
-                        <Clock className="h-6 w-6 text-blue-400" />
-                        <div>
-                            <p className="font-semibold">{time}</p>
-                        </div>
-                    </div>
-                     <div className="flex items-center gap-3 text-white/90 p-4 bg-white/5 rounded-lg">
-                        <MapPin className="h-6 w-6 text-blue-400" />
-                        <div>
-                            <p className="font-semibold">{location}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex justify-center mb-8">
-                    <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-6">
-                        <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
-                    </Button>
-                </div>
-                
                 <div className="space-y-8">
-                    <DetailSection title="About this event" icon={<Tag className="h-6 w-6 text-blue-400" />}>
+                    <DetailSection title="About this event" icon={<Info className="h-6 w-6 text-blue-400" />}>
                         <p>{longDescription}</p>
+                    </DetailSection>
+                    
+                    <DetailSection title="Tags" icon={<Tag className="h-6 w-6 text-blue-400" />}>
+                        <div className="flex flex-wrap gap-2">
+                            {tags?.map((tag, index) => (
+                                <Badge key={index} variant="secondary" className="bg-white/10 text-white font-normal">
+                                    {tag}
+                                </Badge>
+                            ))}
+                        </div>
                     </DetailSection>
 
                     <DetailSection title="What You'll Learn" icon={<Target className="h-6 w-6 text-blue-400" />}>
