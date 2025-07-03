@@ -91,6 +91,45 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     };
   }, [proposals]);
 
+  const mapFormToEventPreview = (): Event => {
+    return {
+        id: 'preview',
+        title: form.title || 'Your Event Title',
+        description: form.description?.substring(0, 100) + '...',
+        longDescription: form.description || 'Your event description will appear here.',
+        date: form.date || new Date().toISOString().split('T')[0],
+        time: form.time || '12:00',
+        location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
+        organizer: form.clubName || 'Your Club/Org',
+        category: form.category || 'General',
+        image: previews.headerImage || 'https://placehold.co/600x400.png',
+        headerImage: previews.headerImage || 'https://placehold.co/2560x650.png',
+        eventLogo: previews.eventLogo,
+        attendees: 0,
+        capacity: 100,
+        registrationLink: form.registrationLink || '#',
+        status: 'upcoming',
+        gallery: [],
+        tags: form.tags ? form.tags.split(',').map((t: string) => t.trim()) : [],
+        targetAudience: form.targetAudience,
+        keySpeakers: form.keySpeakers,
+        whatYouWillLearn: form.whatYouWillLearn,
+    };
+  }
+
+  // Effect to update session storage for real-time preview
+  useEffect(() => {
+    if (view === 'form') {
+      const eventData = mapFormToEventPreview();
+      try {
+        sessionStorage.setItem('eventPreviewData', JSON.stringify(eventData));
+      } catch (error) {
+        // This can fail in some private browsing modes
+        console.error("Could not update preview data in storage:", error);
+      }
+    }
+  }, [form, previews, view]);
+
   const handleGenerateDetails = async () => {
       if (!form.title) {
           toast({ title: "Title needed", description: "Please enter an event title first.", variant: "destructive" });
@@ -186,7 +225,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setView('form');
     setStep(1);
   }
-
+  
   // Client-side handler for saving/submitting
   const handleFormSubmit = async (status: 'draft' | 'pending') => {
     const currentUser = auth.currentUser;
@@ -252,32 +291,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       }
     });
   };
-
-  const mapFormToEventPreview = (): Event => {
-    return {
-        id: 'preview',
-        title: form.title || 'Your Event Title',
-        description: form.description?.substring(0, 100) + '...',
-        longDescription: form.description || 'Your event description will appear here.',
-        date: form.date || new Date().toISOString().split('T')[0],
-        time: form.time || '12:00',
-        location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
-        organizer: form.clubName || 'Your Club/Org',
-        category: form.category || 'General',
-        image: previews.headerImage || 'https://placehold.co/600x400.png',
-        headerImage: previews.headerImage || 'https://placehold.co/2560x650.png',
-        eventLogo: previews.eventLogo,
-        attendees: 0,
-        capacity: 100,
-        registrationLink: form.registrationLink || '#',
-        status: 'upcoming',
-        gallery: [],
-        tags: form.tags ? form.tags.split(',').map((t: string) => t.trim()) : [],
-        targetAudience: form.targetAudience,
-        keySpeakers: form.keySpeakers,
-        whatYouWillLearn: form.whatYouWillLearn,
-    };
-  }
 
   const handlePreview = () => {
     const eventData = mapFormToEventPreview();
