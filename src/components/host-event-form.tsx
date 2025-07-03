@@ -20,6 +20,7 @@ import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { redirect } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { getUserProposals } from "@/lib/data";
 
 const EMPTY_FORM = {
     title: "",
