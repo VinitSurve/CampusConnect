@@ -1,4 +1,5 @@
 
+
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import HostEventForm from '@/components/host-event-form';
