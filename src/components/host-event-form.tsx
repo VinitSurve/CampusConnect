@@ -248,9 +248,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
     // Directly get the persistent info, don't rely on current form state.
+    const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
     const persistentInfo = {
-        clubId: userClubs[0]?.id || "",
-        clubName: userClubs[0]?.name || (user.role === 'faculty' ? (user.name || 'Faculty Event') : ''),
+        ...clubInfo,
+        ...(user.role === 'faculty' && !clubInfo.clubName && { clubName: user.name || 'Faculty Event' })
     };
     if (templateKey === 'scratch') {
       setForm({ ...EMPTY_FORM, ...persistentInfo });
@@ -486,14 +487,15 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 {step === 1 && (
                     <div className="space-y-6 animate-in fade-in-0 duration-300">
                         <div className="space-y-2">
-                            <label className="text-white text-sm">Event Title*</label>
-                            <div className="flex gap-2">
-                                <input type="text" name="title" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., 'Introduction to Cloud Computing'" required />
-                                <Button type="button" onClick={handleGenerateDetails} disabled={isGeneratingDetails || !form.title} variant="outline" className="bg-white/10 text-nowrap">
-                                    <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingDetails ? 'animate-spin' : ''}`} />
-                                    {isGeneratingDetails ? 'Generating...' : 'Generate with AI'}
-                                </Button>
-                            </div>
+                            <label className="text-white text-sm" htmlFor="event-title">Event Title*</label>
+                            <input id="event-title" type="text" name="title" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., 'Introduction to Cloud Computing'" required />
+                        </div>
+
+                        <div className="pt-2">
+                            <Button type="button" onClick={handleGenerateDetails} disabled={isGeneratingDetails || !form.title} variant="outline" className="bg-white/10">
+                                <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingDetails ? 'animate-spin' : ''}`} />
+                                {isGeneratingDetails ? 'Generating...' : 'Generate Event Details'}
+                            </Button>
                         </div>
 
                         <div className="space-y-2">
