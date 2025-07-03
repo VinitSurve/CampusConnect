@@ -17,7 +17,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
 import Image from "next/image";
 import { createEventProposalAction, saveDraftAction } from "../app/dashboard/host-event/actions";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import EventDetailPage from "./event-detail-page";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -185,14 +184,13 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
   const [isSavingDraft, startDraftTransition] = useTransition();
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [proposals, setProposals] = useState(initialProposals);
 
   const { toast } = useToast();
 
   useEffect(() => {
     const checkPermissions = async () => {
-      if (!user) return;
+      if (!user || !db) return;
       try {
         if (user.role === 'faculty') {
           setIsAllowed(true);
@@ -372,6 +370,21 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         whatYouWillLearn: form.whatYouWillLearn,
     };
   }
+
+  const handlePreview = () => {
+    const eventData = mapFormToEventPreview();
+    try {
+        sessionStorage.setItem('eventPreviewData', JSON.stringify(eventData));
+        window.open('/dashboard/host-event/preview', '_blank');
+    } catch (error) {
+        console.error("Could not open preview:", error);
+        toast({
+            title: "Preview Error",
+            description: "Could not prepare data for preview. Please check console for details.",
+            variant: "destructive",
+        });
+    }
+  };
 
   const validateStep = (targetStep: number) => {
       let isValid = true;
@@ -619,7 +632,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 <div>{step > 1 && <Button type="button" variant="outline" onClick={handleBack} className="bg-white/10">Back</Button>}</div>
                 <div className="flex items-center gap-2">
                     <Button type="button" variant="secondary" onClick={handleSaveDraft} disabled={isSavingDraft}>{isSavingDraft ? 'Saving...' : 'Save Draft'}</Button>
-                    <Button type="button" variant="outline" className="bg-white/10" onClick={() => setIsPreviewOpen(true)}>Preview</Button>
+                    <Button type="button" variant="outline" className="bg-white/10" onClick={handlePreview}>Preview</Button>
                     {step < 3 && <Button type="button" onClick={handleNext}>Next</Button>}
                     {step === 3 && <SubmitButton />}
                 </div>
@@ -641,18 +654,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           <AcademicCalendar onDateSelect={handleDateSelect} initialView="dayGridMonth" headerToolbarRight="" locationFilter={form.location} />
         </div>
       </div>
-      
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white max-w-4xl p-0">
-          <DialogHeader className="p-6">
-            <DialogTitle>Event Page Preview</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[80vh] overflow-y-auto">
-            <EventDetailPage event={mapFormToEventPreview()} />
-          </div>
-          <div className="p-6 border-t border-white/10"><DialogClose asChild><Button>Close Preview</Button></DialogClose></div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
