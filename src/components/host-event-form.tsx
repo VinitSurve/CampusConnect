@@ -92,6 +92,15 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   }, [proposals]);
 
   const mapFormToEventPreview = (): Event => {
+    // This function ensures tags are always an array of strings for the preview.
+    const getTagsArray = (tagsValue: any): string[] => {
+      if (!tagsValue) return [];
+      if (Array.isArray(tagsValue)) return tagsValue;
+      if (typeof tagsValue === 'string') return tagsValue.split(',').map((t: string) => t.trim()).filter(Boolean);
+      // Return empty array for any other unexpected type
+      return [];
+    };
+
     return {
         id: 'preview',
         title: form.title || 'Your Event Title',
@@ -110,7 +119,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         registrationLink: form.registrationLink || '#',
         status: 'upcoming',
         gallery: [],
-        tags: form.tags ? form.tags.split(',').map((t: string) => t.trim()) : [],
+        tags: getTagsArray(form.tags),
         targetAudience: form.targetAudience,
         keySpeakers: form.keySpeakers,
         whatYouWillLearn: form.whatYouWillLearn,
@@ -123,6 +132,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       const eventData = mapFormToEventPreview();
       try {
         sessionStorage.setItem('eventPreviewData', JSON.stringify(eventData));
+        // Dispatch a custom event that the preview page can listen for
+        window.dispatchEvent(new Event('storage'));
       } catch (error) {
         // This can fail in some private browsing modes
         console.error("Could not update preview data in storage:", error);
@@ -247,7 +258,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       try {
         const formData = new FormData();
         Object.entries(form).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) { // Allow empty strings
+            if (value !== null && value !== undefined) {
                 if (key === 'targetAudience' && Array.isArray(value)) {
                     value.forEach(item => formData.append(key, item));
                 } else if (value instanceof File) {
@@ -285,6 +296,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         setForm(prev => ({
             ...prev,
             ...dataToSave,
+             // Convert tags array back to string for the form's state
+            tags: Array.isArray(dataToSave.tags) ? dataToSave.tags.join(', ') : (dataToSave.tags || ''),
             headerImage: null, // Clear the file object, it's been uploaded
             eventLogo: null,   // Clear the file object, it's been uploaded
             headerImageUrl: dataToSave.headerImage,
