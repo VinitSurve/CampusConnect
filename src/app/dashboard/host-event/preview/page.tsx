@@ -60,7 +60,7 @@ export default function EventPreviewPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 text-white p-8">
+            <div className="p-8">
                 <div className="max-w-4xl mx-auto">
                     <Skeleton className="h-80 w-full mb-8 bg-white/10" />
                     <Skeleton className="h-16 w-1/2 mb-8 bg-white/10" />
@@ -75,7 +75,7 @@ export default function EventPreviewPage() {
     
     if (error) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 text-white p-4">
+            <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 p-8 max-w-md w-full text-center">
                     <h2 className="text-2xl font-bold text-white mb-4">Preview Error</h2>
                     <p className="text-white/70">{error}</p>
@@ -86,7 +86,7 @@ export default function EventPreviewPage() {
 
     if (!eventData) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 text-white p-4">
+            <div className="min-h-screen flex items-center justify-center p-4">
                  <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 p-8 max-w-md w-full text-center">
                      <h2 className="text-2xl font-bold text-white mb-4">No Data</h2>
                      <p className="text-white/70">No event data was found to display a preview.</p>
@@ -96,13 +96,11 @@ export default function EventPreviewPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 text-white">
-             <div className="container mx-auto px-4 py-8">
-                <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-200 text-sm rounded-lg p-4 mb-8 max-w-4xl mx-auto text-center">
-                    <strong>Note:</strong> This is a dynamic preview. Changes in the form tab will update here automatically. Close this tab to return to the form.
-                </div>
-                <EventDetailPage event={eventData} />
+        <div className="container mx-auto px-4 py-8">
+            <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-200 text-sm rounded-lg p-4 mb-8 max-w-4xl mx-auto text-center">
+                <strong>Note:</strong> This is a dynamic preview. Changes in the form tab will update here automatically. Close this tab to return to the form.
             </div>
+            <EventDetailPage event={eventData} />
         </div>
     );
 }

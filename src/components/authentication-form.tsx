@@ -15,7 +15,6 @@ import {
 } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { createSession } from "@/app/actions";
-import AnimatedParticles from "./animated-particles";
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 
@@ -280,7 +279,7 @@ export default function AuthenticationForm() {
   
   if (isCheckingRedirect || googleLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-white text-xl flex items-center">
           <svg className="animate-spin -ml-1 mr-3 h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -293,14 +292,8 @@ export default function AuthenticationForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden font-sans bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 p-4 [perspective:1000px]">
-      <div className="absolute inset-0 overflow-hidden -z-10">
-        <div className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-3xl animate-float" style={{ top: '10%', right: '15%' }}></div>
-        <div className="absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-blue-600/20 to-indigo-600/20 blur-3xl animate-float-delay" style={{ bottom: '5%', left: '10%' }}></div>
-        <AnimatedParticles />
-      </div>
-      
-      <div className="relative z-10 max-w-md w-full mx-auto h-[740px]">
+    <div className="min-h-screen flex items-center justify-center overflow-hidden font-sans p-4 [perspective:1000px]">
+      <div className="max-w-md w-full mx-auto h-[740px]">
         <div className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
           
           <div className="absolute w-full h-full [backface-visibility:hidden]">
