@@ -24,7 +24,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 text-white">
+        <div className="relative min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-900 text-white">
             <div className="absolute inset-0 overflow-hidden -z-10">
                 <div className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-3xl animate-float"
                 style={{ top: '10%', right: '15%' }}></div>
