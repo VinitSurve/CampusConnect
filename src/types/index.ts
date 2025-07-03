@@ -74,7 +74,7 @@ export type EventProposal = {
   status: 'pending' | 'approved' | 'rejected' | 'draft';
   createdBy: string; // UID of user
   creatorEmail: string;
-  createdAt: any;
+  createdAt: string;
   proposer?: string;
   // New fields for approval/rejection cycle
   approvedBy?: string;

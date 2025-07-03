@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import HostEventForm from '@/components/host-event-form';
 import type { User } from '@/types';
-import { getDraftEventProposals } from '@/lib/data';
+import { getUserProposals } from '@/lib/data';
 
 export default async function HostEventPage() {
   const user = await getCurrentUser();
@@ -12,7 +12,7 @@ export default async function HostEventPage() {
     redirect('/login');
   }
 
-  const drafts = await getDraftEventProposals(user.uid);
+  const proposals = await getUserProposals(user.uid);
 
-  return <HostEventForm user={user} drafts={drafts} />;
+  return <HostEventForm user={user} proposals={proposals} />;
 }

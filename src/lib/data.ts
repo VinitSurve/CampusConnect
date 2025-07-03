@@ -119,7 +119,11 @@ export async function getEventProposals(): Promise<EventProposal[]> {
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      return { ...data, id: doc.id } as EventProposal;
+      return { 
+        ...data, 
+        id: doc.id,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString()
+      } as EventProposal;
     });
     return requests;
   } catch (error) {
@@ -128,23 +132,33 @@ export async function getEventProposals(): Promise<EventProposal[]> {
   }
 }
 
-export async function getDraftEventProposals(userId: string): Promise<EventProposal[]> {
-  if (handleDbError('getDraftEventProposals')) return [];
+export async function getUserProposals(userId: string): Promise<EventProposal[]> {
+  if (handleDbError('getUserProposals')) return [];
   try {
     const q = query(
       collection(db, "eventRequests"),
-      where("status", "==", "draft"),
       where("createdBy", "==", userId),
       orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
-    const drafts = querySnapshot.docs.map(doc => {
+    const proposals = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      return { ...data, id: doc.id } as EventProposal;
+      // Important: Ensure date fields are serializable
+      const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString();
+      const approvedAt = data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : null;
+      const rejectedAt = data.rejectedAt?.toDate ? data.rejectedAt.toDate().toISOString() : null;
+
+      return { 
+        ...data, 
+        id: doc.id,
+        createdAt,
+        approvedAt,
+        rejectedAt
+      } as EventProposal;
     });
-    return drafts;
+    return proposals;
   } catch (error) {
-    console.error("Error fetching event proposal drafts:", error);
+    console.error("Error fetching user event proposals:", error);
     return [];
   }
 }
