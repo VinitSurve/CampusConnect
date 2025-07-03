@@ -53,17 +53,20 @@ const locations = [
 
 const categories = [
     { id: "Academic", name: "Academic", icon: "🎓" },
+    { id: "Guest Speaker", name: "Guest Speaker", icon: "🎤" },
     { id: "Cultural", name: "Cultural", icon: "🎭" },
     { id: "Technical", name: "Technical", icon: "💻" },
     { id: "Sports", name: "Sports", icon: "⚽" },
-    { id: "Workshop", name: "Workshop", icon: "🛠️" }
+    { id: "Workshop", name: "Workshop", icon: "🛠️" },
+    { id: "Social", name: "Social", icon: "🎉" },
+    { id: "Networking", name: "Networking", icon: "🤝" },
 ];
 
 const templates = {
   'speaker_session': {
     title: 'Speaker Session: [Your Topic Here]',
     description: 'Join us for an enlightening session with an industry expert. This talk will delve into [briefly describe topic], offering valuable insights for anyone interested in [field of interest]. A Q&A session will follow the presentation, providing a great opportunity for networking.',
-    category: 'Academic',
+    category: 'Guest Speaker',
     whatYouWillLearn: '- Gain deep insights from a seasoned professional.\n- Explore the latest trends and challenges in [field].\n- Understand key concepts and practical applications.\n- Network with the speaker and fellow attendees.',
     targetAudience: ['All Students'],
   },
@@ -174,6 +177,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<any>(EMPTY_FORM);
   const [currentProposalId, setCurrentProposalId] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates | 'scratch' | null>(null);
   const [previews, setPreviews] = useState({ headerImage: null as string | null, eventLogo: null as string | null });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isAllowed, setIsAllowed] = useState(false);
@@ -232,7 +236,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       }
       setIsGeneratingDetails(true);
       try {
-          const result = await generateEventDetails({ title: form.title });
+          const result = await generateEventDetails({ title: form.title, template: selectedTemplate || undefined });
           setForm((prev:any) => ({
               ...prev,
               description: result.description,
@@ -272,6 +276,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
   const handleEditProposal = (proposal: EventProposal) => {
     setCurrentProposalId(proposal.id);
+    setSelectedTemplate(null);
     setForm({
         ...EMPTY_FORM,
         ...proposal,
@@ -292,6 +297,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleNewRequest = () => {
     setForm(EMPTY_FORM);
     setCurrentProposalId(null);
+    setSelectedTemplate(null);
     setPreviews({ headerImage: null, eventLogo: null });
     setSelectedDate(null);
     setView('templates');
@@ -299,6 +305,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   }
   
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
+    setSelectedTemplate(templateKey);
     if (templateKey === 'scratch') {
       setForm(EMPTY_FORM);
     } else {
@@ -538,7 +545,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
                         <div className="space-y-2">
                             <label className="text-white text-sm">Event Description*</label>
-                            <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 min-h-[150px]" placeholder="A clear, engaging summary of what the event is about." required />
+                            <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 min-h-[200px]" placeholder="A clear, engaging summary of what the event is about." required />
                         </div>
 
                         <div className="space-y-2">
@@ -566,7 +573,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         </div>
                         <div className="space-y-2">
                             <label className="text-white text-sm">What You'll Learn*</label>
-                            <Textarea name="whatYouWillLearn" value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 min-h-[150px]" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" required/>
+                            <Textarea name="whatYouWillLearn" value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 min-h-[200px]" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" required/>
                         </div>
                         <div className="space-y-2">
                             <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>

@@ -84,7 +84,7 @@ export default function AcademicCalendar({
                 <PopoverTrigger asChild>
                     {eventDisplay}
                 </PopoverTrigger>
-                <PopoverContent className="w-64 bg-slate-950/10 text-white border border-white/10 shadow-xl backdrop-blur-none">
+                <PopoverContent className="w-64 bg-slate-950/100 text-white border border-white/10 shadow-xl backdrop-blur-none">
                     {eventDetails}
                 </PopoverContent>
             </Popover>
@@ -96,7 +96,7 @@ export default function AcademicCalendar({
             <TooltipTrigger asChild>
                 {eventDisplay}
             </TooltipTrigger>
-            <TooltipContent className="w-64 bg-slate-950/10 text-white border border-white/10 shadow-xl backdrop-blur-none">
+            <TooltipContent className="w-64 bg-slate-950/100 text-white border border-white/10 shadow-xl backdrop-blur-none">
                 {eventDetails}
             </TooltipContent>
         </Tooltip>
