@@ -307,10 +307,15 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
+    // Preserve essential user/club info that should not be overwritten by a template.
+    const persistentInfo = {
+        clubId: form.clubId,
+        clubName: form.clubName,
+    };
     if (templateKey === 'scratch') {
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, ...persistentInfo });
     } else {
-      setForm({ ...EMPTY_FORM, ...templates[templateKey] });
+      setForm({ ...EMPTY_FORM, ...templates[templateKey], ...persistentInfo });
     }
     setView('form');
     setStep(1);
