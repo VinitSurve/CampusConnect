@@ -1,3 +1,2 @@
 // src/ai/dev.ts
-import './flows/generate-event-description';
-import './flows/generate-event-takeaways';
+import './flows/generate-event-details';

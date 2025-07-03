@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -12,8 +12,7 @@ import type { User } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
 import { Sparkles, UploadCloud, X, Check } from "lucide-react";
-import { generateEventDescription } from "@/ai/flows/generate-event-description";
-import { generateEventTakeaways } from "@/ai/flows/generate-event-takeaways";
+import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
 import Image from "next/image";
@@ -145,8 +144,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [locationAvailability, setLocationAvailability] = useState<Record<string, boolean>>({});
-  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
-  const [isGeneratingTakeaways, setIsGeneratingTakeaways] = useState(false);
+  const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
+
 
   const [equipmentQuantities, setEquipmentQuantities] = useState<Record<string, number>>({
     wirelessMics: 0,
@@ -242,39 +241,29 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     setSelectedDate(selectedDateTime);
     toast({ title: "Date Selected", description: `You selected ${selectedDateTime.toLocaleString()}` });
   };
-
-  const handleGenerateDescription = async () => {
-    if (!form.title) {
-        toast({ title: "Title needed", description: "Please enter an event title first.", variant: "destructive" });
-        return;
-    }
-    setIsGeneratingDesc(true);
-    try {
-        const description = await generateEventDescription({ title: form.title });
-        setForm(prev => ({ ...prev, description }));
-    } catch (error) {
-        console.error("Error generating description:", error);
-        toast({ title: "AI Error", description: "Failed to generate description.", variant: "destructive" });
-    } finally {
-        setIsGeneratingDesc(false);
-    }
-  };
-
-  const handleGenerateTakeaways = async () => {
-    if (!form.title || !form.description) {
-        toast({ title: "Info needed", description: "Please enter title and description first.", variant: "destructive" });
-        return;
-    }
-    setIsGeneratingTakeaways(true);
-    try {
-        const takeaways = await generateEventTakeaways({ title: form.title, description: form.description });
-        setForm(prev => ({ ...prev, whatYouWillLearn: takeaways }));
-    } catch (error) {
-        console.error("Error generating takeaways:", error);
-        toast({ title: "AI Error", description: "Failed to generate takeaways.", variant: "destructive" });
-    } finally {
-        setIsGeneratingTakeaways(false);
-    }
+  
+  const handleGenerateDetails = async () => {
+      if (!form.title) {
+          toast({ title: "Title needed", description: "Please enter an event title first.", variant: "destructive" });
+          return;
+      }
+      setIsGeneratingDetails(true);
+      try {
+          const result = await generateEventDetails({ title: form.title });
+          setForm(prev => ({
+              ...prev,
+              description: result.description,
+              category: result.category,
+              whatYouWillLearn: result.whatYouWillLearn,
+              targetAudience: result.targetAudience,
+          }));
+          toast({ title: "AI Generated Content", description: "Event details have been filled in. Please review." });
+      } catch (error) {
+          console.error("Error generating details:", error);
+          toast({ title: "AI Error", description: "Failed to generate details.", variant: "destructive" });
+      } finally {
+          setIsGeneratingDetails(false);
+      }
   };
 
   const handleAudienceChange = (course: string) => {
@@ -401,16 +390,19 @@ export default function HostEventForm({ user }: HostEventFormProps) {
                         <label className="text-white text-sm">Event Title*</label>
                         <input type="text" name="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Enter event title" required />
                     </div>
+
                     <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <label className="text-white text-sm">Event Description*</label>
-                            <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc || !form.title} size="sm" variant="outline" className="bg-white/10 text-xs">
-                                <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingDesc ? 'animate-spin' : ''}`} />
-                                {isGeneratingDesc ? 'Generating...' : 'Generate with AI'}
+                        <div className="flex justify-between items-center mb-2">
+                             <label className="text-white text-sm">Event Details</label>
+                             <Button type="button" onClick={handleGenerateDetails} disabled={isGeneratingDetails || !form.title} size="sm" variant="outline" className="bg-white/10 text-xs">
+                                <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingDetails ? 'animate-spin' : ''}`} />
+                                {isGeneratingDetails ? 'Generating...' : 'Generate with AI'}
                             </Button>
                         </div>
-                        <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required />
+                        <label className="text-white/70 text-xs">Event Description*</label>
+                        <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="A clear, engaging summary of what the event is about." required rows={6} />
                     </div>
+
                     <div className="space-y-2">
                         <label className="text-white text-sm">Select Category*</label>
                         <select name="category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
@@ -435,14 +427,8 @@ export default function HostEventForm({ user }: HostEventFormProps) {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <label className="text-white text-sm">What You'll Learn</label>
-                             <Button type="button" onClick={handleGenerateTakeaways} disabled={isGeneratingTakeaways || !form.title || !form.description} size="sm" variant="outline" className="bg-white/10 text-xs">
-                                <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingTakeaways ? 'animate-spin' : ''}`} />
-                                {isGeneratingTakeaways ? 'Generating...' : 'Generate with AI'}
-                            </Button>
-                        </div>
-                        <Textarea name="whatYouWillLearn" value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" />
+                        <label className="text-white text-sm">What You'll Learn</label>
+                        <Textarea name="whatYouWillLearn" value={form.whatYouWillLearn} onChange={(e) => setForm({ ...form, whatYouWillLearn: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="Use bullet points for key takeaways, e.g.,&#10;- How to build in the Cloud&#10;- Key resources and learning paths&#10;- Common pitfalls to avoid" rows={6}/>
                     </div>
                     <div className="space-y-2">
                         <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>
