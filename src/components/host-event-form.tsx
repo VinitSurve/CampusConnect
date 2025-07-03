@@ -47,8 +47,18 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
   const [isSubmitting, startTransition] = useTransition();
   const [proposals, setProposals] = useState(initialProposals);
+  const [previewChannel, setPreviewChannel] = useState<BroadcastChannel | null>(null);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    const channel = new BroadcastChannel('event_preview_channel');
+    setPreviewChannel(channel);
+
+    return () => {
+        channel.close();
+    };
+  }, []);
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -132,14 +142,15 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       const eventData = mapFormToEventPreview();
       try {
         sessionStorage.setItem('eventPreviewData', JSON.stringify(eventData));
-        // Dispatch a custom event that the preview page can listen for
-        window.dispatchEvent(new Event('storage'));
+        if (previewChannel) {
+          previewChannel.postMessage(eventData);
+        }
       } catch (error) {
         // This can fail in some private browsing modes
-        console.error("Could not update preview data in storage:", error);
+        console.error("Could not update preview data:", error);
       }
     }
-  }, [form, previews, view]);
+  }, [form, previews, view, previewChannel]);
 
   const handleGenerateDetails = async () => {
       if (!form.title) {

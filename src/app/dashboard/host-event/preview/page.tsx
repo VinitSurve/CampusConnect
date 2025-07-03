@@ -11,45 +11,49 @@ export default function EventPreviewPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const loadDataFromStorage = () => {
-        try {
-            const storedData = sessionStorage.getItem('eventPreviewData');
-            if (storedData) {
-                const parsedData = JSON.parse(storedData);
-                setEventData(parsedData);
-            } else {
-                setError("No preview data found. Please generate a preview from the event form.");
-            }
-        } catch (e) {
-            console.error("Error parsing preview data:", e);
-            setError("Could not load preview. The data might be corrupted.");
-        } finally {
-            setLoading(false);
-        }
-    };
-    
     useEffect(() => {
-        // Initial load from storage
-        loadDataFromStorage();
-
-        // Set up listener for real-time updates from other tabs
-        const handleStorageChange = (event: StorageEvent) => {
-            if (event.key === 'eventPreviewData' && event.newValue) {
-                try {
-                    const parsedData = JSON.parse(event.newValue);
+        // Function for initial load from sessionStorage
+        const loadInitialData = () => {
+            setLoading(true);
+            try {
+                const storedData = sessionStorage.getItem('eventPreviewData');
+                if (storedData) {
+                    const parsedData = JSON.parse(storedData);
                     setEventData(parsedData);
+                } else {
+                    setError("No preview data found. Please generate a preview from the event form.");
+                }
+            } catch (e) {
+                console.error("Error parsing preview data:", e);
+                setError("Could not load preview. The data might be corrupted.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadInitialData();
+
+        // Set up Broadcast Channel for real-time updates
+        const channel = new BroadcastChannel('event_preview_channel');
+        
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data) {
+                try {
+                    // The event.data should be a JavaScript object
+                    setEventData(event.data);
                 } catch (e) {
-                     console.error("Error parsing updated preview data:", e);
+                     console.error("Error processing preview update:", e);
                      setError("Could not update preview. The data might be corrupted.");
                 }
             }
         };
 
-        window.addEventListener('storage', handleStorageChange);
+        channel.addEventListener('message', handleMessage);
 
         // Cleanup listener on component unmount
         return () => {
-            window.removeEventListener('storage', handleStorageChange);
+            channel.removeEventListener('message', handleMessage);
+            channel.close();
         };
     }, []); // Empty dependency array ensures this effect runs only once on mount
 
