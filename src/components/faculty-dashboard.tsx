@@ -23,16 +23,44 @@ interface FacultyDashboardClientProps {
   initialRequests: EventProposal[];
 }
 
-const DetailItem = ({ label, value }: { label: string; value?: string | string[] }) => {
+const DetailItem = ({ label, value, isPreformatted = false }: { label: string; value?: string | string[]; isPreformatted?: boolean }) => {
   if (!value) return null;
   const displayValue = Array.isArray(value) ? value.join(', ') : value;
   return (
     <div>
       <p className="text-sm font-medium text-white/70">{label}</p>
-      <p className="text-base text-white whitespace-pre-wrap">{displayValue}</p>
+      {isPreformatted ? (
+        <pre className="text-base text-white whitespace-pre-wrap font-sans">{displayValue}</pre>
+      ) : (
+        <p className="text-base text-white">{displayValue}</p>
+      )}
     </div>
   )
 }
+
+const EquipmentDetails = ({ equipmentData }: { equipmentData?: string | any }) => {
+    if (!equipmentData) return <DetailItem label="Equipment Needs" value="None" />;
+
+    let data;
+    try {
+        data = typeof equipmentData === 'string' ? JSON.parse(equipmentData) : equipmentData;
+    } catch (e) {
+        return <DetailItem label="Equipment Needs" value={equipmentData} isPreformatted />;
+    }
+
+    const items = [
+        data.wirelessMics && `Wireless Mics: ${data.wirelessMics}`,
+        data.collarMics && `Collar Mics: ${data.collarMics}`,
+        data.chairs && `Chairs: ${data.chairs}`,
+        data.table && `Table: 1`,
+        data.waterBottles && `Water Bottles: ${data.waterBottles}`,
+    ].filter(Boolean);
+
+    if (items.length === 0) return <DetailItem label="Equipment Needs" value="None" />;
+
+    return <DetailItem label="Equipment Needs" value={items.join('\n')} isPreformatted />;
+};
+
 
 export default function FacultyDashboardClient({ initialRequests }: FacultyDashboardClientProps) {
   const [requests, setRequests] = useState(initialRequests);
@@ -167,13 +195,13 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
-             <DetailItem label="Description" value={requestForDetails?.description} />
+             <DetailItem label="Description" value={requestForDetails?.description} isPreformatted />
              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                 <DetailItem label="Target Audience" value={requestForDetails?.targetAudience} />
-                <DetailItem label="Key Speakers / Guests" value={requestForDetails?.keySpeakers} />
+                <DetailItem label="Key Speakers / Guests" value={requestForDetails?.keySpeakers} isPreformatted />
              </div>
-             <DetailItem label="Equipment Needs" value={requestForDetails?.equipmentNeeds} />
-             <DetailItem label="Budget & Funding" value={requestForDetails?.budgetDetails} />
+             <EquipmentDetails equipmentData={requestForDetails?.equipmentNeeds} />
+             <DetailItem label="Budget & Funding" value={requestForDetails?.budgetDetails} isPreformatted />
              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                 <DetailItem label="Location" value={requestForDetails?.location} />
                 <DetailItem label="Time" value={requestForDetails?.time} />

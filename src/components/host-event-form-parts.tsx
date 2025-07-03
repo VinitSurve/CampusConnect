@@ -6,7 +6,9 @@ import Image from "next/image";
 import type { EventProposal } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, FileText } from "lucide-react";
+import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, Minus, Plus } from "lucide-react";
+import { Checkbox } from "./ui/checkbox";
+import { Label } from "./ui/label";
 
 // --- CONSTANTS ---
 
@@ -31,6 +33,14 @@ export const EMPTY_FORM = {
     headerImageUrl: "",
     eventLogoUrl: "",
     googleDriveFolderId: ""
+};
+
+export const EMPTY_EQUIPMENT_STATE = {
+    wirelessMics: 0,
+    collarMics: 0,
+    waterBottles: 0,
+    table: false,
+    chairs: 0,
 };
 
 export const locations = [
@@ -179,3 +189,62 @@ export const TemplateCard = ({ icon, title, description, onClick }: { icon: Reac
       <p className="text-sm text-white/70">{description}</p>
     </button>
 );
+
+const QuantityControl = ({ label, value, onValueChange, max, step = 1 }: { label: string, value: number, onValueChange: (newValue: number) => void, max: number, step?: number }) => {
+    const handleDecrement = () => onValueChange(Math.max(0, value - step));
+    const handleIncrement = () => onValueChange(Math.min(max, value + step));
+
+    return (
+        <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+            <Label className="text-white">{label} <span className="text-white/60 text-xs">(Max: {max})</span></Label>
+            <div className="flex items-center gap-3">
+                <Button type="button" size="icon" variant="outline" onClick={handleDecrement} className="h-7 w-7 bg-white/10 hover:bg-white/20">
+                    <Minus className="w-4 h-4" />
+                </Button>
+                <span className="font-semibold text-lg w-6 text-center">{value}</span>
+                <Button type="button" size="icon" variant="outline" onClick={handleIncrement} className="h-7 w-7 bg-white/10 hover:bg-white/20">
+                    <Plus className="w-4 h-4" />
+                </Button>
+            </div>
+        </div>
+    );
+};
+
+
+export const EquipmentSelector = ({ equipment, setEquipment }: { equipment: any, setEquipment: (newEquipment: any) => void }) => {
+    
+    const handleWaterBottleChange = (increment: number) => {
+        setEquipment((prev: any) => ({
+            ...prev,
+            waterBottles: (prev.waterBottles || 0) + increment,
+        }));
+    };
+
+    return (
+        <div className="space-y-2">
+            <p className="text-white text-sm">Equipment Needs</p>
+            <div className="space-y-3 p-4 bg-black/20 rounded-xl border border-white/10">
+                 <QuantityControl label="Wireless Mics" value={equipment.wirelessMics || 0} onValueChange={(v) => setEquipment({...equipment, wirelessMics: v})} max={2} />
+                 <QuantityControl label="Collar Mics" value={equipment.collarMics || 0} onValueChange={(v) => setEquipment({...equipment, collarMics: v})} max={2} />
+                 <QuantityControl label="Chairs" value={equipment.chairs || 0} onValueChange={(v) => setEquipment({...equipment, chairs: v})} max={5} />
+
+                 <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+                    <Label htmlFor="table-checkbox" className="text-white">Table <span className="text-white/60 text-xs">(Max: 1)</span></Label>
+                    <Checkbox id="table-checkbox" checked={equipment.table || false} onCheckedChange={(checked) => setEquipment({ ...equipment, table: !!checked })} className="h-5 w-5"/>
+                </div>
+
+                <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+                    <Label className="text-white">Water Bottles</Label>
+                     <div className="flex items-center gap-2">
+                        <span className="font-semibold text-lg w-8 text-center">{equipment.waterBottles || 0}</span>
+                        <div className="flex gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={() => handleWaterBottleChange(5)} className="bg-white/10 hover:bg-white/20">+5</Button>
+                            <Button type="button" size="sm" variant="outline" onClick={() => handleWaterBottleChange(10)} className="bg-white/10 hover:bg-white/20">+10</Button>
+                            <Button type="button" size="sm" variant="outline" onClick={() => setEquipment({...equipment, waterBottles: 0})} className="bg-red-900/50 hover:bg-red-900/80 text-white border-red-500/50 hover:border-red-500/80">Clear</Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+};

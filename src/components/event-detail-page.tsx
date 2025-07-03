@@ -4,7 +4,7 @@
 import type { Event } from '@/types';
 import Image from 'next/image';
 import { Button } from './ui/button';
-import { Calendar, Clock, MapPin, Tag, Target, Users, Mic, UserCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, Tag, Target, Users, Mic, UserCircle, Hammer } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface EventDetailPageProps {
@@ -29,7 +29,7 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
       title, longDescription, date, time, location, organizer, category, image, headerImage, eventLogo,
-      registrationLink, whatYouWillLearn, targetAudience, keySpeakers 
+      registrationLink, whatYouWillLearn, targetAudience, keySpeakers, equipmentNeeds
   } = event;
 
   const parseSpeakers = (speakers?: string) => {
@@ -41,6 +41,36 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   };
   
   const speakersList = parseSpeakers(keySpeakers);
+
+  const EquipmentList = () => {
+    if (!equipmentNeeds) return null;
+
+    let data;
+    try {
+        data = typeof equipmentNeeds === 'string' ? JSON.parse(equipmentNeeds) : equipmentNeeds;
+    } catch (e) {
+        // If it's not a JSON string, display it as is.
+        return <p>{equipmentNeeds}</p>;
+    }
+
+    const items = [
+        data.wirelessMics && { item: 'Wireless Mics', quantity: data.wirelessMics },
+        data.collarMics && { item: 'Collar Mics', quantity: data.collarMics },
+        data.chairs && { item: 'Chairs', quantity: data.chairs },
+        data.table && { item: 'Table', quantity: 1 },
+        data.waterBottles && { item: 'Water Bottles', quantity: data.waterBottles },
+    ].filter(Boolean);
+
+    if (items.length === 0) return <p>None specified.</p>;
+
+    return (
+        <ul className="list-disc pl-5 space-y-2">
+            {items.map((item: any, index: number) => (
+                <li key={index}>{item.item}: {item.quantity}</li>
+            ))}
+        </ul>
+    );
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -100,6 +130,10 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                          <ul className="list-disc pl-5 space-y-2">
                             {whatYouWillLearn?.split('\n').map((item, index) => item.trim() && <li key={index}>{item.replace(/^-/, '').trim()}</li>)}
                         </ul>
+                    </DetailSection>
+
+                    <DetailSection title="Equipment Requested" icon={<Hammer className="h-6 w-6 text-blue-400" />}>
+                        <EquipmentList />
                     </DetailSection>
                     
                     <DetailSection title="Who Should Attend" icon={<Users className="h-6 w-6 text-blue-400" />}>

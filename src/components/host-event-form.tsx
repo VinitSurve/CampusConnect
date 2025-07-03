@@ -21,7 +21,9 @@ import {
     FileInput, 
     ProposalList,
     TemplateCard,
+    EquipmentSelector,
     EMPTY_FORM,
+    EMPTY_EQUIPMENT_STATE,
     locations,
     categories,
     templates,
@@ -38,6 +40,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [view, setView] = useState<'list' | 'templates' | 'form'>('list');
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<any>(EMPTY_FORM);
+  const [equipment, setEquipment] = useState(EMPTY_EQUIPMENT_STATE);
   const [currentProposalId, setCurrentProposalId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates | 'scratch' | null>(null);
   const [previews, setPreviews] = useState({ headerImage: null as string | null, eventLogo: null as string | null });
@@ -102,12 +105,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   }, [proposals]);
 
   const mapFormToEventPreview = (): Event => {
-    // This function ensures tags are always an array of strings for the preview.
     const getTagsArray = (tagsValue: any): string[] => {
       if (!tagsValue) return [];
       if (Array.isArray(tagsValue)) return tagsValue;
       if (typeof tagsValue === 'string') return tagsValue.split(',').map((t: string) => t.trim()).filter(Boolean);
-      // Return empty array for any other unexpected type
       return [];
     };
 
@@ -133,24 +134,22 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         targetAudience: form.targetAudience,
         keySpeakers: form.keySpeakers,
         whatYouWillLearn: form.whatYouWillLearn,
+        equipmentNeeds: JSON.stringify(equipment),
     };
   }
 
   // Effect to update session storage for real-time preview
   useEffect(() => {
-    if (view === 'form') {
+    if (view === 'form' && previewChannel) {
       const eventData = mapFormToEventPreview();
       try {
         sessionStorage.setItem('eventPreviewData', JSON.stringify(eventData));
-        if (previewChannel) {
-          previewChannel.postMessage(eventData);
-        }
+        previewChannel.postMessage(eventData);
       } catch (error) {
-        // This can fail in some private browsing modes
         console.error("Could not update preview data:", error);
       }
     }
-  }, [form, previews, view, previewChannel]);
+  }, [form, equipment, previews, view, previewChannel]);
 
   const handleGenerateDetails = async () => {
       if (!form.title) {
@@ -204,7 +203,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setForm({
         ...EMPTY_FORM,
         ...proposal,
-        tags: proposal.tags?.join(', ') || '',
+        tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
     });
@@ -215,6 +214,17 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     if (proposal.date) {
         setSelectedDate(new Date(proposal.date + 'T00:00:00'));
     }
+    
+    let parsedEquipment = EMPTY_EQUIPMENT_STATE;
+    if (proposal.equipmentNeeds) {
+        try {
+            parsedEquipment = { ...parsedEquipment, ...JSON.parse(proposal.equipmentNeeds) };
+        } catch (e) {
+            console.error("Could not parse equipment needs:", e);
+        }
+    }
+    setEquipment(parsedEquipment);
+    
     setView('form');
     setStep(1);
   }
@@ -225,6 +235,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         clubName: userClubs[0]?.name || (user.role === 'faculty' ? (user.name || 'Faculty Event') : ''),
     };
     setForm({...EMPTY_FORM, ...persistentInfo});
+    setEquipment(EMPTY_EQUIPMENT_STATE);
     setCurrentProposalId(null);
     setSelectedTemplate(null);
     setPreviews({ headerImage: null, eventLogo: null });
@@ -244,6 +255,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     } else {
       setForm({ ...EMPTY_FORM, ...templates[templateKey], ...persistentInfo });
     }
+    setEquipment(EMPTY_EQUIPMENT_STATE);
     setView('form');
     setStep(1);
   }
@@ -280,6 +292,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             }
         });
         
+        formData.set('equipmentNeeds', JSON.stringify(equipment));
+
         const result = await handleEventMediaUpload(formData, form.googleDriveFolderId);
 
         if (!result.success || !result.data) {
@@ -302,18 +316,17 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           setCurrentProposalId(newDoc.id);
         }
         
-        // After saving, update the form and preview state with the definitive URLs
-        // This ensures the live preview is also updated.
-        setForm(prev => ({
-            ...prev,
+        const finalFormState = {
+            ...form,
             ...dataToSave,
-             // Convert tags array back to string for the form's state
             tags: Array.isArray(dataToSave.tags) ? dataToSave.tags.join(', ') : (dataToSave.tags || ''),
-            headerImage: null, // Clear the file object, it's been uploaded
-            eventLogo: null,   // Clear the file object, it's been uploaded
+            headerImage: null,
+            eventLogo: null,
             headerImageUrl: dataToSave.headerImage,
             eventLogoUrl: dataToSave.eventLogo,
-        }));
+        };
+
+        setForm(finalFormState);
 
         setPreviews({
             headerImage: dataToSave.headerImage || null,
@@ -323,9 +336,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         toast({ title: "Success!", description: status === 'draft' ? "Your draft has been saved." : "Your proposal has been submitted!" });
 
         if (status === 'pending') {
-          setView('list'); // Go back to list after submitting
+          setView('list'); 
         }
-        // Fetch latest proposals after any write
         const updatedProposals = await getUserProposals(user.uid);
         setProposals(updatedProposals);
 
@@ -510,7 +522,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
                                 {availableCourses.map((course) => (
                                     <div key={course} className="flex items-center space-x-2 bg-white/5 p-3 rounded-lg border border-transparent has-[:checked]:border-blue-500/50 has-[:checked]:bg-blue-900/20 transition-all">
-                                        <Checkbox id={`course-${course}`} name="targetAudience" value={course} checked={form.targetAudience.includes(course)} onCheckedChange={() => handleAudienceChange(course)} className="h-5 w-5" />
+                                        <Checkbox id={`course-${course}`} name="targetAudience" value={course} checked={Array.isArray(form.targetAudience) && form.targetAudience.includes(course)} onCheckedChange={() => handleAudienceChange(course)} className="h-5 w-5" />
                                         <label htmlFor={`course-${course}`} className="text-sm font-medium leading-none text-white peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-grow">{course}</label>
                                     </div>
                                 ))}
@@ -531,10 +543,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                     <div className="space-y-6 animate-in fade-in-0 duration-300">
                         <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.headerImage} />
                         <FileInput name="eventLogo" label="Event Logo (Optional)" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
-                        <div className="space-y-2">
-                            <label className="text-white text-sm">Equipment Needs (Optional)</label>
-                             <Textarea name="equipmentNeeds" value={form.equipmentNeeds || ''} onChange={(e) => setForm({ ...form, equipmentNeeds: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Projector, Whiteboard, 5 Microphones" />
-                        </div>
+                        
+                        <EquipmentSelector equipment={equipment} setEquipment={setEquipment} />
+                        
                         <div className="space-y-2">
                             <label className="text-white text-sm">Budget & Funding (Optional)</label>
                             <Textarea name="budgetDetails" value={form.budgetDetails || ''} onChange={(e) => setForm({ ...form, budgetDetails: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
