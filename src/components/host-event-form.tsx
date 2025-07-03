@@ -280,6 +280,22 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           setCurrentProposalId(newDoc.id);
         }
         
+        // After saving, update the form and preview state with the definitive URLs
+        // This ensures the live preview is also updated.
+        setForm(prev => ({
+            ...prev,
+            ...dataToSave,
+            headerImage: null, // Clear the file object, it's been uploaded
+            eventLogo: null,   // Clear the file object, it's been uploaded
+            headerImageUrl: dataToSave.headerImage,
+            eventLogoUrl: dataToSave.eventLogo,
+        }));
+
+        setPreviews({
+            headerImage: dataToSave.headerImage || null,
+            eventLogo: dataToSave.eventLogo || null,
+        });
+
         toast({ title: "Success!", description: status === 'draft' ? "Your draft has been saved." : "Your proposal has been submitted!" });
 
         if (status === 'pending') {
