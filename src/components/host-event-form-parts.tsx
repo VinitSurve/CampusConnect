@@ -19,7 +19,7 @@ export const EMPTY_FORM = {
     budgetDetails: "",
     whatYouWillLearn: "",
     tags: "",
-    location: "",
+    location: "seminar",
     category: "",
     registrationLink: "",
     clubId: "",
