@@ -17,6 +17,7 @@ import { Button } from "./ui/button";
 import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserProposals } from "@/lib/data";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { 
     FileInput, 
     ProposalList,
@@ -45,6 +46,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates | 'scratch' | null>(null);
   const [previews, setPreviews] = useState({ headerImage: null as string | null, eventLogo: null as string | null });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
@@ -113,24 +115,21 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     };
 
     const getOrganizerName = () => {
-        // Priority 1: If the user is a club lead, use their club's name.
-        if (user.role !== 'faculty' && userClubs.length > 0) {
-            const selectedClub = userClubs.find(c => c.id === form.clubId) || userClubs[0];
-            if (selectedClub) {
-              return selectedClub.name;
-            }
+        // Priority 1: Use the explicitly set club name from the form state
+        if (form.clubName) {
+            return form.clubName;
         }
         
-        // Priority 2: If it's a faculty member, use their name.
+        // Priority 2: If the user is a club lead, use their first club's name.
+        if (user.role !== 'faculty' && userClubs.length > 0) {
+            return userClubs[0].name;
+        }
+        
+        // Priority 3: If it's a faculty member, use their name.
         if (user.role === 'faculty') {
             return user.name || 'Faculty Event';
         }
         
-        // Priority 3: Fallback for loaded drafts where clubName is explicitly set.
-        if (form.clubName) {
-            return form.clubName;
-        }
-
         // Final fallback.
         return 'CampusConnect';
     };
@@ -158,6 +157,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         keySpeakers: form.keySpeakers,
         whatYouWillLearn: form.whatYouWillLearn,
         equipmentNeeds: JSON.stringify(equipment),
+        googleDriveFolderId: form.googleDriveFolderId
     };
   }
 
@@ -238,7 +238,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setForm({
         ...EMPTY_FORM,
         ...proposal,
-        location: proposal.location || 'seminar',
+        location: proposal.location || 'seminar', // Fallback for existing drafts
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
@@ -423,14 +423,20 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
   const handleNext = () => { if (validateStep(step)) setStep(s => s + 1) };
   const handleBack = () => setStep(s => s - 1);
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
+  
+  const handleDateClick = (selectInfo: DateSelectArg) => {
+    setSelectedDate(selectInfo.start);
+    setIsTimeModalOpen(true);
+  };
+
+  const handleTimeSelect = (selectInfo: DateSelectArg) => {
     const selectedDateTime = selectInfo.start;
     const dateStr = selectedDateTime.toISOString().split('T')[0];
     const timeStr = selectedDateTime.toTimeString().split(' ')[0].substring(0, 5);
     
     setForm((prev:any) => ({ ...prev, date: dateStr, time: timeStr }));
-    setSelectedDate(selectedDateTime);
-    toast({ title: "Date Selected", description: `You selected ${selectedDateTime.toLocaleString()}` });
+    toast({ title: "Slot Selected", description: `You selected ${selectedDateTime.toLocaleString()}` });
+    setIsTimeModalOpen(false);
   };
 
 
@@ -625,7 +631,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         <div className="sticky top-24 self-start">
           <div className="space-y-2 mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
               <h3 className="font-semibold text-white">Select Date, Time & Location*</h3>
-              <p className="text-sm text-white/70">Click a date on the calendar. This will auto-fill the date and time, which you can adjust.</p>
+              <p className="text-sm text-white/70">Click a date on the calendar. This will open a popup to select an available time slot.</p>
           </div>
           <div className="mb-4">
             <select name="location" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
@@ -633,9 +639,32 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 {locations.map(loc => (<option key={loc.id} value={loc.id} className="bg-gray-800">{loc.icon} {loc.name}</option>))}
             </select>
           </div>
-          <AcademicCalendar onDateSelect={handleDateSelect} initialView="dayGridMonth" headerToolbarRight="" locationFilter={form.location} />
+          <AcademicCalendar onDateSelect={handleDateClick} initialView="dayGridMonth" headerToolbarRight="" locationFilter={form.location} />
         </div>
       </div>
+
+      <Dialog open={isTimeModalOpen} onOpenChange={setIsTimeModalOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+            <DialogHeader>
+                <DialogTitle>Select an available time slot for {selectedDate?.toLocaleDateString()}</DialogTitle>
+            </DialogHeader>
+            <div className="flex-grow overflow-y-auto -mx-6 -my-2 pr-2">
+              {selectedDate && form.location && (
+                  <AcademicCalendar
+                      key={`${form.location}-${selectedDate.toISOString()}`}
+                      initialView="timeGridDay"
+                      initialDate={selectedDate}
+                      locationFilter={form.location}
+                      onDateSelect={handleTimeSelect}
+                      headerToolbarRight=""
+                  />
+              )}
+            </div>
+            <DialogFooter>
+               <Button variant="outline" onClick={() => setIsTimeModalOpen(false)}>Cancel</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

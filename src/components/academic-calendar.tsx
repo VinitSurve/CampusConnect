@@ -20,6 +20,7 @@ interface AcademicCalendarProps {
   headerToolbarRight?: string;
   initialView?: string;
   locationFilter?: string;
+  initialDate?: Date;
 }
 
 const locationIdToNameMap: { [key: string]: string } = {
@@ -34,7 +35,8 @@ export default function AcademicCalendar({
   onDateSelect,
   headerToolbarRight = 'dayGridMonth,timeGridWeek,timeGridDay',
   initialView = 'timeGridWeek',
-  locationFilter
+  locationFilter,
+  initialDate
 }: AcademicCalendarProps) {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +175,7 @@ export default function AcademicCalendar({
         const filteredEvents = locationFilter
           ? allCalEvents.filter(e => {
               const eventLocation = e.extendedProps.location;
-              const expectedLocationName = locationIdToNameMap[locationFilter];
+              const expectedLocationName = locationIdToNameMap[locationFilter] || locationFilter;
               return eventLocation === expectedLocationName;
             })
           : allCalEvents;
@@ -214,6 +216,7 @@ export default function AcademicCalendar({
                 right: headerToolbarRight
             }}
             initialView={initialView}
+            initialDate={initialDate}
             weekends={true}
             events={events}
             displayEventTime={false}
