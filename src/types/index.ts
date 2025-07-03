@@ -24,6 +24,7 @@ export type Event = {
   longDescription: string;
   date: string;
   time: string;
+  endTime?: string;
   location: string;
   organizer: string;
   category: string;
@@ -71,6 +72,7 @@ export type EventProposal = {
   clubName: string;
   date: string;
   time?: string;
+  endTime?: string;
   status: 'pending' | 'approved' | 'rejected' | 'draft';
   createdBy: string; // UID of user
   creatorEmail: string;

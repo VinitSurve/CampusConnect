@@ -28,6 +28,7 @@ export const EMPTY_FORM = {
     clubName: "",
     date: "",
     time: "",
+    endTime: "",
     headerImage: null as File | null,
     eventLogo: null as File | null,
     headerImageUrl: "",

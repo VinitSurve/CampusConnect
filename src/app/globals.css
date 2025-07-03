@@ -152,9 +152,20 @@ body {
 }
 
 .fc .fc-timegrid-slot-lane {
-    @apply hover:bg-white/5 transition-colors duration-200;
+    @apply hover:bg-white/5 transition-colors duration-200 border-white/10;
 }
 
 .fc .fc-timegrid-event-harness {
     @apply p-0.5; /* Add a little gap between events */
+}
+
+/* Make time grid lines more visible */
+.fc .fc-timegrid-slots tr {
+    border-color: hsl(var(--border) / 0.2);
+}
+
+/* Style the selection box */
+.fc .fc-highlight {
+    background: hsl(var(--primary) / 0.2);
+    border: 1px dashed hsl(var(--primary));
 }

@@ -10,14 +10,15 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer } from "lucide-react";
+import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit } from "lucide-react";
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
 import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserProposals } from "@/lib/data";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { format } from 'date-fns';
 import { 
     FileInput, 
     ProposalList,
@@ -47,6 +48,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [previews, setPreviews] = useState({ headerImage: null as string | null, eventLogo: null as string | null });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
+  const [tempTime, setTempTime] = useState<{ start: string; end: string } | null>(null);
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
@@ -69,24 +71,26 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     const checkPermissions = async () => {
       if (!user || !db) return;
       try {
+        let clubs: { id: string; name: string; }[] = [];
         if (user.role === 'faculty') {
           setIsAllowed(true);
           setForm((prev:any) => ({...prev, clubName: user.name || 'Faculty Event' }));
-          return;
+        } else {
+            const clubsQuery = query(collection(db, "clubs"), where("leadId", "==", user.uid));
+            const querySnapshot = await getDocs(clubsQuery);
+            if (!querySnapshot.empty) {
+                clubs = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+                setUserClubs(clubs);
+                setIsAllowed(true);
+            } else {
+                setIsAllowed(false);
+            }
+        }
+        
+        if (clubs.length > 0) {
+            setForm((prev: any) => ({ ...prev, clubId: clubs[0].id, clubName: clubs[0].name }));
         }
 
-        const clubsQuery = query(collection(db, "clubs"), where("leadId", "==", user.uid));
-        const querySnapshot = await getDocs(clubsQuery);
-        if (!querySnapshot.empty) {
-            const clubs = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
-            setUserClubs(clubs);
-            setIsAllowed(true);
-            if (clubs.length > 0) {
-              setForm((prev:any) => ({ ...prev, clubId: clubs[0].id, clubName: clubs[0].name }));
-            }
-        } else {
-            setIsAllowed(false);
-        }
       } catch (error) {
         console.error("Error checking permissions:", error);
         toast({ title: "Error", description: "Could not verify your permissions.", variant: "destructive"});
@@ -94,6 +98,20 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     };
     checkPermissions();
   }, [user, toast]);
+
+  const getOrganizerName = () => {
+    // Priority 1: Use the explicitly set club name from the form state
+    if (form.clubName) return form.clubName;
+    
+    // Priority 2: If the user is a club lead, use their first club's name.
+    if (user.role !== 'faculty' && userClubs.length > 0) return userClubs[0].name;
+    
+    // Priority 3: If it's a faculty member, use their name.
+    if (user.role === 'faculty') return user.name || 'Faculty Event';
+    
+    // Final fallback.
+    return 'CampusConnect';
+  };
 
   const { liveProposals, completedProposals, draftProposals, rejectedProposals } = useMemo(() => {
     const now = new Date();
@@ -114,26 +132,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       return [];
     };
 
-    const getOrganizerName = () => {
-        // Priority 1: Use the explicitly set club name from the form state
-        if (form.clubName) {
-            return form.clubName;
-        }
-        
-        // Priority 2: If the user is a club lead, use their first club's name.
-        if (user.role !== 'faculty' && userClubs.length > 0) {
-            return userClubs[0].name;
-        }
-        
-        // Priority 3: If it's a faculty member, use their name.
-        if (user.role === 'faculty') {
-            return user.name || 'Faculty Event';
-        }
-        
-        // Final fallback.
-        return 'CampusConnect';
-    };
-
     return {
         id: 'preview',
         title: form.title || 'Your Event Title',
@@ -141,6 +139,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         longDescription: form.description || 'Your event description will appear here.',
         date: form.date || new Date().toISOString().split('T')[0],
         time: form.time || '12:00',
+        endTime: form.endTime,
         location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
         organizer: getOrganizerName(),
         category: form.category || 'General',
@@ -156,7 +155,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         targetAudience: form.targetAudience,
         keySpeakers: form.keySpeakers,
         whatYouWillLearn: form.whatYouWillLearn,
-        equipmentNeeds: JSON.stringify(equipment),
         googleDriveFolderId: form.googleDriveFolderId
     };
   }
@@ -172,7 +170,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         console.error("Could not update preview data:", error);
       }
     }
-  }, [form, equipment, previews, view, previewChannel]);
+  }, [form, equipment, previews, view, previewChannel, userClubs]);
 
   const handleGenerateDetails = async () => {
       if (!form.title) {
@@ -426,17 +424,40 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   
   const handleDateClick = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo.start);
+    setTempTime(null); // Reset previous temporary selection
     setIsTimeModalOpen(true);
   };
-
+  
   const handleTimeSelect = (selectInfo: DateSelectArg) => {
-    const selectedDateTime = selectInfo.start;
-    const dateStr = selectedDateTime.toISOString().split('T')[0];
-    const timeStr = selectedDateTime.toTimeString().split(' ')[0].substring(0, 5);
-    
-    setForm((prev:any) => ({ ...prev, date: dateStr, time: timeStr }));
-    toast({ title: "Slot Selected", description: `You selected ${selectedDateTime.toLocaleString()}` });
-    setIsTimeModalOpen(false);
+      const start = selectInfo.start;
+      const end = selectInfo.end;
+  
+      if (end.getTime() === start.getTime() || (start.getDate() !== end.getDate() && end.getTime() - start.getTime() > 3600000)) {
+          selectInfo.view.calendar.unselect();
+          setTempTime(null);
+          return;
+      }
+  
+      setTempTime({ start: selectInfo.startStr, end: selectInfo.endStr });
+  };
+  
+  const handleConfirmTime = () => {
+      if (!tempTime || !selectedDate) return;
+  
+      const startTimeStr = new Date(tempTime.start).toTimeString().split(' ')[0].substring(0, 5);
+      const endTimeStr = new Date(tempTime.end).toTimeString().split(' ')[0].substring(0, 5);
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      
+      setForm((prev:any) => ({
+        ...prev,
+        date: dateStr,
+        time: startTimeStr,
+        endTime: endTimeStr,
+      }));
+      
+      toast({ title: "Time Slot Confirmed", description: `Set to ${dateStr} from ${startTimeStr} to ${endTimeStr}` });
+      setIsTimeModalOpen(false);
+      setTempTime(null);
   };
 
 
@@ -530,7 +551,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                             <label className="text-white text-sm" htmlFor="event-title">Event Title*</label>
                             <input id="event-title" type="text" name="title" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., 'Introduction to Cloud Computing'" required />
                         </div>
-
+                        
                         <div className="pt-2">
                             <Button type="button" onClick={handleGenerateDetails} disabled={isGeneratingDetails || !form.title} variant="outline" className="bg-white/10">
                                 <Sparkles className={`mr-1.5 h-4 w-4 ${isGeneratingDetails ? 'animate-spin' : ''}`} />
@@ -585,6 +606,29 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 
                 {step === 3 && (
                     <div className="space-y-6 animate-in fade-in-0 duration-300">
+                        <div className="space-y-2">
+                            <label className="text-white text-sm">Date & Time*</label>
+                            <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                                {form.date && form.time ? (
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex gap-4 items-center">
+                                            <Calendar className="w-8 h-8 text-blue-300"/>
+                                            <div>
+                                                <p className="font-semibold text-white">{format(new Date(form.date+'T00:00:00'), 'EEEE, MMMM d, yyyy')}</p>
+                                                <p className="text-white/70">{form.time} - {form.endTime}</p>
+                                            </div>
+                                        </div>
+                                        <Button variant="outline" onClick={() => handleDateClick({start: new Date(form.date+'T00:00:00')} as DateSelectArg)}>
+                                            <Edit className="w-4 h-4 mr-2"/>
+                                            Change
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <p className="text-white/60">Please select a date, time, and location from the calendar view on the right.</p>
+                                )}
+                            </div>
+                        </div>
+
                         <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.headerImage} />
                         <FileInput name="eventLogo" label="Event Logo (Optional)" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
                         
@@ -644,9 +688,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       </div>
 
       <Dialog open={isTimeModalOpen} onOpenChange={setIsTimeModalOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col bg-gray-900/90 backdrop-blur-lg border border-gray-700 text-white">
             <DialogHeader>
-                <DialogTitle>Select an available time slot for {selectedDate?.toLocaleDateString()}</DialogTitle>
+                <DialogTitle className="text-xl">Select an available time for {selectedDate && format(selectedDate, 'EEEE, MMMM d')}</DialogTitle>
+                <DialogDescription>Click and drag on the calendar to select your desired time range.</DialogDescription>
             </DialogHeader>
             <div className="flex-grow overflow-y-auto -mx-6 -my-2 pr-2">
               {selectedDate && form.location && (
@@ -660,8 +705,24 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                   />
               )}
             </div>
-            <DialogFooter>
-               <Button variant="outline" onClick={() => setIsTimeModalOpen(false)}>Cancel</Button>
+            <DialogFooter className="bg-gray-900/80 -mx-6 -mb-6 p-4 border-t border-gray-700 flex justify-between items-center">
+                <div className="text-white">
+                    {tempTime ? (
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-blue-400"/>
+                            <div>
+                                <span className="font-semibold">Selected:</span>{' '}
+                                <span className="font-mono bg-white/10 px-2 py-1 rounded-md">{format(new Date(tempTime.start), 'p')} - {format(new Date(tempTime.end), 'p')}</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <span className="text-white/60">No time slot selected.</span>
+                    )}
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="ghost" onClick={() => setIsTimeModalOpen(false)}>Cancel</Button>
+                    <Button onClick={handleConfirmTime} disabled={!tempTime}>Confirm Selection</Button>
+                </div>
             </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -59,6 +59,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                 clubName: formData.get('clubName') as string,
                 date: formData.get('date') as string,
                 time: formData.get('time') as string,
+                endTime: formData.get('endTime') as string,
                 headerImage: headerImageUrl,
                 eventLogo: eventLogoUrl,
                 googleDriveFolderId: googleDriveFolderId,

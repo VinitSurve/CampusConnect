@@ -29,6 +29,7 @@ export async function approveRequest(proposal: EventProposal) {
             longDescription: proposal.description,
             date: proposal.date,
             time: proposal.time || "12:00",
+            endTime: proposal.endTime,
             location: locationName, // Use the mapped name
             organizer: proposal.clubName,
             category: proposal.category,
@@ -54,17 +55,17 @@ export async function approveRequest(proposal: EventProposal) {
 
         // Check for the seminar hall using the ID from the proposal
         if (proposal.location === 'seminar') {
-            const startTime = proposal.time || "12:00";
-            const [hour, minute] = startTime.split(':').map(Number);
-            const endHour = hour + 1; // Assume 1 hour duration
-            const endTime = `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-
             const newBooking: Omit<SeminarBooking, 'id'> = {
                 title: proposal.title,
                 organizer: proposal.clubName,
                 date: proposal.date,
-                startTime: startTime,
-                endTime: endTime,
+                startTime: proposal.time || "12:00",
+                endTime: proposal.endTime || (() => {
+                    const startTime = proposal.time || "12:00";
+                    const [hour, minute] = startTime.split(':').map(Number);
+                    const endHour = hour + 1;
+                    return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                })(),
             };
 
             await addDoc(collection(db, "seminarBookings"), {
