@@ -21,6 +21,7 @@ interface AcademicCalendarProps {
   initialView?: string;
   locationFilter?: string;
   initialDate?: Date;
+  showToolbar?: boolean;
 }
 
 const locationIdToNameMap: { [key: string]: string } = {
@@ -36,7 +37,8 @@ export default function AcademicCalendar({
   headerToolbarRight = 'dayGridMonth,timeGridWeek,timeGridDay',
   initialView = 'timeGridWeek',
   locationFilter,
-  initialDate
+  initialDate,
+  showToolbar = true
 }: AcademicCalendarProps) {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,11 +212,11 @@ export default function AcademicCalendar({
         ) : (
             <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            headerToolbar={{
+            headerToolbar={showToolbar ? {
                 left: 'prev,next today',
                 center: 'title',
                 right: headerToolbarRight
-            }}
+            } : false}
             initialView={initialView}
             initialDate={initialDate}
             weekends={true}

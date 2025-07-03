@@ -72,25 +72,18 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       if (!user || !db) return;
       try {
         let clubs: { id: string; name: string; }[] = [];
-        if (user.role === 'faculty') {
+        const clubsQuery = query(collection(db, "clubs"), where("leadId", "==", user.uid));
+        const querySnapshot = await getDocs(clubsQuery);
+        if (!querySnapshot.empty) {
+            clubs = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+            setUserClubs(clubs);
+            setIsAllowed(true);
+        } else if (user.role === 'faculty') {
           setIsAllowed(true);
-          setForm((prev:any) => ({...prev, clubName: user.name || 'Faculty Event' }));
         } else {
-            const clubsQuery = query(collection(db, "clubs"), where("leadId", "==", user.uid));
-            const querySnapshot = await getDocs(clubsQuery);
-            if (!querySnapshot.empty) {
-                clubs = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
-                setUserClubs(clubs);
-                setIsAllowed(true);
-            } else {
-                setIsAllowed(false);
-            }
+            setIsAllowed(false);
         }
         
-        if (clubs.length > 0) {
-            setForm((prev: any) => ({ ...prev, clubId: clubs[0].id, clubName: clubs[0].name }));
-        }
-
       } catch (error) {
         console.error("Error checking permissions:", error);
         toast({ title: "Error", description: "Could not verify your permissions.", variant: "destructive"});
@@ -101,13 +94,14 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
   const getOrganizerName = () => {
     // If a club was selected in the form, use that name.
-    const selectedClub = userClubs.find(c => c.id === form.clubId);
-    if (selectedClub) return selectedClub.name;
+    if (form.clubId) {
+        const selectedClub = userClubs.find(c => c.id === form.clubId);
+        if (selectedClub) return selectedClub.name;
+    }
 
     // Fallback logic
-    if (form.clubName) return form.clubName;
-    if (user.role !== 'faculty' && userClubs.length > 0) return userClubs[0].name;
     if (user.role === 'faculty') return user.name || 'Faculty Event';
+    if (userClubs.length > 0) return userClubs[0].name;
     
     return 'CampusConnect';
   };
@@ -235,7 +229,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setForm({
         ...EMPTY_FORM,
         ...proposal,
-        location: proposal.location || 'seminar', // Fallback for existing drafts
+        location: proposal.location || 'seminar',
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
@@ -251,7 +245,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     let parsedEquipment = EMPTY_EQUIPMENT_STATE;
     if (proposal.equipmentNeeds) {
         try {
-            parsedEquipment = { ...parsedEquipment, ...JSON.parse(proposal.equipmentNeeds) };
+            const parsed = JSON.parse(proposal.equipmentNeeds);
+            // Ensure all keys from default state are present
+            parsedEquipment = { ...EMPTY_EQUIPMENT_STATE, ...parsed };
         } catch (e) {
             console.error("Could not parse equipment needs:", e);
         }
@@ -263,11 +259,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   }
 
   const handleNewRequest = () => {
-    const persistentInfo = {
-        clubId: userClubs[0]?.id || "",
-        clubName: userClubs[0]?.name || (user.role === 'faculty' ? (user.name || 'Faculty Event') : ''),
-    };
-    setForm({...EMPTY_FORM, ...persistentInfo});
+    const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
+    const facultyInfo = user.role === 'faculty' ? { clubName: user.name || 'Faculty Event' } : {};
+    
+    setForm({...EMPTY_FORM, ...clubInfo, ...facultyInfo});
     setEquipment(EMPTY_EQUIPMENT_STATE);
     setCurrentProposalId(null);
     setSelectedTemplate(null);
@@ -280,10 +275,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
     const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
-    const persistentInfo = {
-        ...clubInfo,
-        ...(user.role === 'faculty' && !clubInfo.clubName && { clubName: user.name || 'Faculty Event' })
-    };
+    const facultyInfo = user.role === 'faculty' ? { clubName: user.name || 'Faculty Event' } : {};
+    const persistentInfo = {...clubInfo, ...facultyInfo};
+
     if (templateKey === 'scratch') {
       setForm({ ...EMPTY_FORM, ...persistentInfo });
     } else {
@@ -430,7 +424,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleTimeSelect = (selectInfo: DateSelectArg) => {
     const { start, end, view } = selectInfo;
     const isSameDay = start.getDate() === end.getDate();
-    // A selection is valid if it ends at midnight on the next day (end of current day)
     const isEndOfDaySelection = !isSameDay && end.getHours() === 0 && end.getMinutes() === 0 && (end.getTime() - start.getTime() === 86400000 || start.getHours() !== 0);
 
     if (!isSameDay && !isEndOfDaySelection) {
@@ -456,7 +449,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     const hasConflict = events.some(event => {
       const eventStart = event.start!.getTime();
       const eventEnd = event.end!.getTime();
-      // Check for overlap: (StartA < EndB) and (EndA > StartB)
       return selectionStart < eventEnd && selectionEnd > eventStart;
     });
 
@@ -721,22 +713,19 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       </div>
 
       <Dialog open={isTimeModalOpen} onOpenChange={setIsTimeModalOpen}>
-        <DialogContent className="sm:max-w-4xl p-0 bg-white/10 backdrop-blur-xl border-white/20 text-white rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="relative bg-gradient-to-r from-blue-700/80 to-indigo-800/80 p-6">
-                <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full opacity-50"></div>
-                <div className="relative z-10">
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl text-white">Select Time Slot</DialogTitle>
-                        <DialogDescription className="text-white/80">
-                            For {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')}
-                            <br />
-                            Click and drag on an empty time slot to make a selection.
-                        </DialogDescription>
-                    </DialogHeader>
-                </div>
+        <DialogContent className="sm:max-w-6xl p-0 bg-white/10 backdrop-blur-xl border-white/20 text-white rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-white/10 bg-black/20">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl text-white">Select Available Time Slot</DialogTitle>
+                    <DialogDescription className="text-white/80">
+                        For {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')} in {locations.find(l => l.id === form.location)?.name || 'selected location'}.
+                        <br />
+                        Click and drag on an empty time slot to make a selection. Already booked slots are shown.
+                    </DialogDescription>
+                </DialogHeader>
             </div>
             
-            <div className="flex-grow p-6 overflow-y-auto">
+            <div className="flex-grow p-4 md:p-6 overflow-y-auto">
               {selectedDate && form.location && (
                   <AcademicCalendar
                       key={`${form.location}-${selectedDate.toISOString()}`}
@@ -744,7 +733,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                       initialDate={selectedDate}
                       locationFilter={form.location}
                       onDateSelect={handleTimeSelect}
-                      headerToolbarRight=""
+                      showToolbar={false}
                   />
               )}
             </div>
