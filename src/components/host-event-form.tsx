@@ -100,16 +100,15 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   }, [user, toast]);
 
   const getOrganizerName = () => {
-    // Priority 1: Use the explicitly set club name from the form state
+    // If a club was selected in the form, use that name.
+    const selectedClub = userClubs.find(c => c.id === form.clubId);
+    if (selectedClub) return selectedClub.name;
+
+    // Fallback logic
     if (form.clubName) return form.clubName;
-    
-    // Priority 2: If the user is a club lead, use their first club's name.
     if (user.role !== 'faculty' && userClubs.length > 0) return userClubs[0].name;
-    
-    // Priority 3: If it's a faculty member, use their name.
     if (user.role === 'faculty') return user.name || 'Faculty Event';
     
-    // Final fallback.
     return 'CampusConnect';
   };
 
@@ -722,12 +721,22 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       </div>
 
       <Dialog open={isTimeModalOpen} onOpenChange={setIsTimeModalOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col bg-gray-900/90 backdrop-blur-lg border border-gray-700 text-white">
-            <DialogHeader>
-                <DialogTitle className="text-xl">Select an available time for {selectedDate && format(selectedDate, 'EEEE, MMMM d')}</DialogTitle>
-                <DialogDescription>Click and drag on an empty time slot to make a selection.</DialogDescription>
-            </DialogHeader>
-            <div className="flex-grow overflow-y-auto -mx-6 -my-2 pr-2">
+        <DialogContent className="sm:max-w-4xl p-0 bg-white/10 backdrop-blur-xl border-white/20 text-white rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="relative bg-gradient-to-r from-blue-700/80 to-indigo-800/80 p-6">
+                <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full opacity-50"></div>
+                <div className="relative z-10">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl text-white">Select Time Slot</DialogTitle>
+                        <DialogDescription className="text-white/80">
+                            For {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                            <br />
+                            Click and drag on an empty time slot to make a selection.
+                        </DialogDescription>
+                    </DialogHeader>
+                </div>
+            </div>
+            
+            <div className="flex-grow p-6 overflow-y-auto">
               {selectedDate && form.location && (
                   <AcademicCalendar
                       key={`${form.location}-${selectedDate.toISOString()}`}
@@ -739,22 +748,23 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                   />
               )}
             </div>
-            <DialogFooter className="bg-gray-900/80 -mx-6 -mb-6 p-4 border-t border-gray-700 flex justify-between items-center">
+            
+            <DialogFooter className="p-6 border-t border-white/20 flex justify-between items-center bg-black/20">
                 <div className="text-white">
                     {tempTime ? (
-                        <div className="flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-blue-400"/>
+                        <div className="flex items-center gap-3">
+                            <Clock className="w-6 h-6 text-blue-300 flex-shrink-0"/>
                             <div>
-                                <span className="font-semibold">Selected:</span>{' '}
-                                <span className="font-mono bg-white/10 px-2 py-1 rounded-md">{format(new Date(tempTime.start), 'p')} - {format(new Date(tempTime.end), 'p')}</span>
+                                <p className="font-semibold text-white">Selected Slot:</p>
+                                <p className="font-mono bg-white/10 px-2 py-1 rounded-md text-sm">{format(new Date(tempTime.start), 'p')} - {format(new Date(tempTime.end), 'p')}</p>
                             </div>
                         </div>
                     ) : (
-                        <span className="text-white/60">No time slot selected.</span>
+                        <span className="text-white/60 text-sm">No time slot selected.</span>
                     )}
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => setIsTimeModalOpen(false)}>Cancel</Button>
+                    <Button variant="outline" className="bg-white/10 hover:bg-white/20 text-white" onClick={() => setIsTimeModalOpen(false)}>Cancel</Button>
                     <Button onClick={handleConfirmTime} disabled={!tempTime}>Confirm Selection</Button>
                 </div>
             </DialogFooter>
