@@ -164,6 +164,7 @@ export default function TimetableManagerPage() {
         dayOfWeek: DAYS_OF_WEEK.indexOf(day) + 1,
         startTime: startTime,
         endTime: endTime,
+ location: 'Seminar Hall', // Default location
       });
     }
     setIsFormOpen(true);
@@ -178,7 +179,7 @@ export default function TimetableManagerPage() {
     const dataToSave = {
         subject: currentEntry.subject || '',
         facultyName: currentEntry.facultyName || '',
-        location: currentEntry.location || '',
+        location: currentEntry.location || 'Seminar Hall',
         course: selectedCourse,
         year: selectedYear,
         division: selectedDivision,
@@ -320,7 +321,7 @@ export default function TimetableManagerPage() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="location" className="text-right">Location</Label>
-                <Select value={currentEntry.location || ''} onValueChange={val => setCurrentEntry({...currentEntry, location: val})}>
+                <Select value={currentEntry.location} onValueChange={val => setCurrentEntry({...currentEntry, location: val})}>
                     <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select location..." />
                     </SelectTrigger>

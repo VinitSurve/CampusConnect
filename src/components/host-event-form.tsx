@@ -203,6 +203,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setForm({
         ...EMPTY_FORM,
         ...proposal,
+        location: proposal.location || 'seminar', // Explicit fallback HERE
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
@@ -246,9 +247,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
+    // Directly get the persistent info, don't rely on current form state.
     const persistentInfo = {
-        clubId: form.clubId,
-        clubName: form.clubName,
+        clubId: userClubs[0]?.id || "",
+        clubName: userClubs[0]?.name || (user.role === 'faculty' ? (user.name || 'Faculty Event') : ''),
     };
     if (templateKey === 'scratch') {
       setForm({ ...EMPTY_FORM, ...persistentInfo });
