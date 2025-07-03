@@ -127,53 +127,29 @@ export default function AcademicCalendar({
           };
         });
 
-        // Fetch timetable entries
+        // Fetch timetable entries as recurring events
         const timetablesQuery = query(collection(db, "timetables"));
         const timetablesSnapshot = await getDocs(timetablesQuery);
-        
-        const today = new Date();
-        const yearStart = new Date(today.getFullYear(), 0, 1); // January 1st
-        const yearEnd = new Date(today.getFullYear(), 11, 31); // December 31st
-
-        const timetableEvents = timetablesSnapshot.docs.flatMap(doc => {
+        const timetableEvents = timetablesSnapshot.docs.map(doc => {
             const data = doc.data() as TimetableEntry;
-            
-            if (typeof data.dayOfWeek !== 'number' || data.dayOfWeek < 1 || data.dayOfWeek > 6) { // 1=Monday, 6=Saturday
-                return []; 
+            const dayOfWeek = data.dayOfWeek;
+
+            if (typeof dayOfWeek !== 'number' || dayOfWeek < 1 || dayOfWeek > 6) {
+                return null;
             }
 
-            const daysInYear = [];
-            let currentDay = new Date(yearStart);
+            return {
+                id: `tt-${doc.id}`,
+                title: `${data.subject}`,
+                startTime: data.startTime,
+                endTime: data.endTime,
+                daysOfWeek: [ dayOfWeek ], // 1=Mon, 2=Tue, etc.
+                display: 'block',
+                extendedProps: { ...data, eventType: 'timetable' },
+                className: 'bg-secondary/30 text-secondary-foreground border-l-4 border-secondary cursor-pointer'
+            };
+        }).filter(Boolean);
 
-            while (currentDay <= yearEnd) {
-                // JS getDay() is 0 for Sunday, ..., 6 for Saturday. We map our 1-6 to this.
-                const jsDay = currentDay.getDay(); 
-                
-                if (data.dayOfWeek === jsDay) {
-                    const year = currentDay.getFullYear();
-                    const month = currentDay.getMonth(); // 0-indexed
-                    const date = currentDay.getDate();
-                    
-                    // Construct date string manually to avoid timezone issues with toISOString()
-                    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-                    
-                    daysInYear.push({
-                        id: `tt-${doc.id}-${dateString}`,
-                        title: `${data.subject}`,
-                        start: `${dateString}T${data.startTime}`,
-                        end: `${dateString}T${data.endTime}`,
-                        allDay: false,
-                        display: 'block',
-                        extendedProps: { ...data, eventType: 'timetable' },
-                        className: 'bg-secondary/30 text-secondary-foreground border-l-4 border-secondary cursor-pointer'
-                    });
-                }
-                
-                // Move to the next day
-                currentDay.setDate(currentDay.getDate() + 1);
-            }
-            return daysInYear;
-        });
 
         // Fetch seminar bookings
         const seminarBookingsQuery = query(collection(db, "seminarBookings"));
@@ -187,7 +163,7 @@ export default function AcademicCalendar({
                 end: `${data.date}T${data.endTime}`,
                 allDay: false,
                 display: 'block',
-                extendedProps: { ...data, eventType: 'seminar', location: 'seminar' },
+                extendedProps: { ...data, eventType: 'seminar', location: 'Seminar Hall' },
                 className: 'bg-purple-600/30 text-purple-100 border-l-4 border-purple-400 cursor-pointer'
             }
         });
@@ -197,13 +173,12 @@ export default function AcademicCalendar({
         const filteredEvents = locationFilter
           ? allCalEvents.filter(e => {
               const eventLocation = e.extendedProps.location;
-              // Handle both short ID ("seminar") and full name ("Seminar Hall")
-              const locationName = locationIdToNameMap[locationFilter] || locationFilter;
-              return eventLocation === locationFilter || eventLocation === locationName;
+              const expectedLocationName = locationIdToNameMap[locationFilter];
+              return eventLocation === expectedLocationName;
             })
           : allCalEvents;
 
-        setEvents(filteredEvents);
+        setEvents(filteredEvents as any[]);
       } catch (error) {
         console.error("Error fetching calendar data:", error);
       } finally {

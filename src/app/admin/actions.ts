@@ -7,9 +7,20 @@ import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc 
 import type { EventProposal, Event, SeminarBooking } from '@/types';
 import { deleteFolder } from '@/lib/drive';
 
+// Add a map for location IDs to names
+const locationIdToNameMap: { [key: string]: string } = {
+  'lab401': 'Lab 401',
+  'lab402': 'Lab 402',
+  'lab503': 'Lab 503',
+  'seminar': 'Seminar Hall'
+};
+
 export async function approveRequest(proposal: EventProposal) {
     try {
         const requestRef = doc(db, "eventRequests", proposal.id);
+
+        // Convert location ID to name for display consistency
+        const locationName = locationIdToNameMap[proposal.location] || proposal.location;
 
         // Create a new event from the proposal data
         const newEvent: Omit<Event, 'id'> = {
@@ -18,7 +29,7 @@ export async function approveRequest(proposal: EventProposal) {
             longDescription: proposal.description,
             date: proposal.date,
             time: proposal.time || "12:00",
-            location: proposal.location,
+            location: locationName, // Use the mapped name
             organizer: proposal.clubName,
             category: proposal.category,
             image: proposal.headerImage || 'https://placehold.co/600x400.png',
@@ -41,7 +52,7 @@ export async function approveRequest(proposal: EventProposal) {
 
         await addDoc(collection(db, "events"), newEvent);
 
-        // If the event is in the seminar hall, create a booking record
+        // Check for the seminar hall using the ID from the proposal
         if (proposal.location === 'seminar') {
             const startTime = proposal.time || "12:00";
             const [hour, minute] = startTime.split(':').map(Number);

@@ -385,7 +385,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         longDescription: form.description || 'Your event description will appear here.',
         date: form.date || new Date().toISOString().split('T')[0],
         time: form.time || '12:00',
-        location: form.location || 'TBD',
+        location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
         organizer: form.clubName || 'Your Club/Org',
         category: form.category || 'General',
         image: previews.headerImage || 'https://placehold.co/600x400.png',
@@ -676,7 +676,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           <div className="mb-4">
             <select name="location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                 <option value="" className="bg-gray-800">Select a location...</option>
-                {locations.map(loc => (<option key={loc.id} value={loc.name} className="bg-gray-800">{loc.icon} {loc.name}</option>))}
+                {locations.map(loc => (<option key={loc.id} value={loc.id} className="bg-gray-800">{loc.icon} {loc.name}</option>))}
             </select>
           </div>
           <AcademicCalendar onDateSelect={handleDateSelect} initialView="dayGridMonth" headerToolbarRight="" locationFilter={form.location} />
