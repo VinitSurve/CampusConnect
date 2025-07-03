@@ -112,6 +112,19 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       return [];
     };
 
+    const getOrganizerName = () => {
+        if (form.clubName) return form.clubName;
+        
+        if (user.role === 'faculty') return user.name || 'Faculty Event';
+        
+        if (form.clubId && userClubs.length > 0) {
+            const club = userClubs.find(c => c.id === form.clubId);
+            if (club) return club.name;
+        }
+
+        return 'Your Club/Org';
+    };
+
     return {
         id: 'preview',
         title: form.title || 'Your Event Title',
@@ -120,7 +133,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         date: form.date || new Date().toISOString().split('T')[0],
         time: form.time || '12:00',
         location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
-        organizer: form.clubName || 'Your Club/Org',
+        organizer: getOrganizerName(),
         category: form.category || 'General',
         image: previews.headerImage || 'https://placehold.co/600x400.png',
         headerImage: previews.headerImage || 'https://placehold.co/2560x650.png',
@@ -177,14 +190,30 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   };
 
   const handleAudienceChange = (course: string) => {
-    setForm((prev:any) => {
-        const currentAudience = prev.targetAudience || [];
-        const newAudience = currentAudience.includes(course)
-            ? currentAudience.filter(c => c !== course)
-            : [...currentAudience, course];
+    setForm((prev: any) => {
+        const currentAudience: string[] = prev.targetAudience || [];
+        let newAudience: string[];
+
+        if (course === "All Students") {
+            // If "All Students" is clicked, it becomes the only item, or the list becomes empty.
+            newAudience = currentAudience.includes("All Students") ? [] : ["All Students"];
+        } else {
+            // If a specific course is clicked...
+            // 1. Start with the current audience, but remove "All Students".
+            let updatedAudience = currentAudience.filter(c => c !== "All Students");
+            
+            // 2. Toggle the specific course.
+            if (updatedAudience.includes(course)) {
+                newAudience = updatedAudience.filter(c => c !== course);
+            } else {
+                newAudience = [...updatedAudience, course];
+            }
+        }
+        
         return { ...prev, targetAudience: newAudience };
     });
   };
+
 
   const handleFileChange = (name: string, file: File | null) => {
     setForm((prev:any) => ({ ...prev, [name]: file, [`${name}Url`]: "" }));
@@ -247,7 +276,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
-    // Directly get the persistent info, don't rely on current form state.
     const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
     const persistentInfo = {
         ...clubInfo,
