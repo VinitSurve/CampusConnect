@@ -71,7 +71,7 @@ export type EventProposal = {
   clubName: string;
   date: string;
   time?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'draft';
   createdBy: string; // UID of user
   creatorEmail: string;
   createdAt: any;

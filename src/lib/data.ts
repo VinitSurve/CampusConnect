@@ -119,41 +119,32 @@ export async function getEventProposals(): Promise<EventProposal[]> {
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      const proposal: EventProposal = {
-        id: doc.id,
-        title: data.title,
-        description: data.description,
-        whatYouWillLearn: data.whatYouWillLearn,
-        targetAudience: data.targetAudience,
-        keySpeakers: data.keySpeakers,
-        equipmentNeeds: data.equipmentNeeds,
-        budgetDetails: data.budgetDetails,
-        location: data.location,
-        category: data.category,
-        registrationLink: data.registrationLink,
-        clubId: data.clubId,
-        clubName: data.clubName,
-        date: data.date,
-        time: data.time,
-        status: data.status,
-        createdBy: data.createdBy,
-        creatorEmail: data.creatorEmail,
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
-        proposer: data.proposer,
-        approvedBy: data.approvedBy,
-        approvedAt: data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : null,
-        rejectedBy: data.rejectedBy,
-        rejectedAt: data.rejectedAt?.toDate ? data.rejectedAt.toDate().toISOString() : null,
-        rejectionReason: data.rejectionReason,
-        headerImage: data.headerImage,
-        eventLogo: data.eventLogo,
-        googleDriveFolderId: data.googleDriveFolderId,
-      };
-      return proposal;
+      return { ...data, id: doc.id } as EventProposal;
     });
     return requests;
   } catch (error) {
     console.error("Error fetching event proposals:", error);
+    return [];
+  }
+}
+
+export async function getDraftEventProposals(userId: string): Promise<EventProposal[]> {
+  if (handleDbError('getDraftEventProposals')) return [];
+  try {
+    const q = query(
+      collection(db, "eventRequests"),
+      where("status", "==", "draft"),
+      where("createdBy", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    const drafts = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { ...data, id: doc.id } as EventProposal;
+    });
+    return drafts;
+  } catch (error) {
+    console.error("Error fetching event proposal drafts:", error);
     return [];
   }
 }
