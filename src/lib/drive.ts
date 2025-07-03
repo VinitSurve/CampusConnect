@@ -4,20 +4,19 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-if (!process.env.GOOGLE_CREDENTIALS_JSON) {
-  console.warn("GOOGLE_CREDENTIALS_JSON environment variable not set. Google Drive features will not work.");
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  console.warn("GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Google Drive features will not work. Please add the path to your credentials.json file in the .env file.");
 }
 if (!process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID) {
     console.warn("GOOGLE_DRIVE_PARENT_FOLDER_ID environment variable not set. Google Drive features will not work.");
 }
 
 const getDriveClient = () => {
-    if (!process.env.GOOGLE_CREDENTIALS_JSON) {
-        throw new Error("GOOGLE_CREDENTIALS_JSON is not configured.");
+    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        throw new Error("GOOGLE_APPLICATION_CREDENTIALS path is not configured in .env file.");
     }
-    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
     const auth = new google.auth.GoogleAuth({
-        credentials,
+        keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
         scopes: ['https://www.googleapis.com/auth/drive'],
     });
     return google.drive({ version: 'v3', auth });

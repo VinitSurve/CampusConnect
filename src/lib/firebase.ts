@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -14,7 +15,16 @@ const firebaseConfig: FirebaseOptions = {
 
 // A more helpful error message if the configuration is missing or empty.
 if (!firebaseConfig.apiKey) {
-    throw new Error('Firebase API Key is missing from .env file. Please go to your Firebase project settings, find your Web App configuration, copy the keys into the .env file, and restart the development server.');
+    throw new Error(`Firebase configuration is missing in your .env file.
+
+To fix this:
+1. Go to your Firebase project console.
+2. Navigate to Project Settings (click the gear icon ⚙️).
+3. Under the "General" tab, scroll to the "Your apps" card.
+4. Find and select your Web App.
+5. Look for the 'firebaseConfig' object and copy the values.
+6. Paste these values into the corresponding NEXT_PUBLIC_... variables in your .env file.
+7. IMPORTANT: Restart the development server after saving the .env file.`);
 }
 
 // Initialize Firebase
