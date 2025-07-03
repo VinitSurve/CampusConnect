@@ -16,8 +16,12 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             googleDriveFolderId = await createFolder(title);
         }
         
-        let headerImageUrl: string | undefined = formData.get('headerImageUrl') as string || undefined;
-        let eventLogoUrl: string | undefined = formData.get('eventLogoUrl') as string || undefined;
+        const rawHeaderUrl = formData.get('headerImageUrl');
+        const rawLogoUrl = formData.get('eventLogoUrl');
+
+        let headerImageUrl: string | undefined = typeof rawHeaderUrl === 'string' ? rawHeaderUrl : undefined;
+        let eventLogoUrl: string | undefined = typeof rawLogoUrl === 'string' ? rawLogoUrl : undefined;
+
 
         if (googleDriveFolderId) {
             const headerImageFile = formData.get('headerImage') as File;
