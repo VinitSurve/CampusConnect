@@ -113,24 +113,26 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     };
 
     const getOrganizerName = () => {
-        // Priority 1: Find club name from selected ID. This is most reliable for club leads.
-        if (form.clubId && userClubs.length > 0) {
-            const club = userClubs.find(c => c.id === form.clubId);
-            if (club) return club.name;
-        }
-
-        // Priority 2: Use the club name directly from form state. This handles faculty names and loaded drafts.
-        if (form.clubName) {
-            return form.clubName;
+        // Priority 1: If the user is a club lead, use their club's name.
+        if (user.role !== 'faculty' && userClubs.length > 0) {
+            const selectedClub = userClubs.find(c => c.id === form.clubId) || userClubs[0];
+            if (selectedClub) {
+              return selectedClub.name;
+            }
         }
         
-        // Priority 3: Fallback for faculty role if no club name is set yet.
+        // Priority 2: If it's a faculty member, use their name.
         if (user.role === 'faculty') {
             return user.name || 'Faculty Event';
         }
+        
+        // Priority 3: Fallback for loaded drafts where clubName is explicitly set.
+        if (form.clubName) {
+            return form.clubName;
+        }
 
-        // Final fallback
-        return 'Your Club/Org';
+        // Final fallback.
+        return 'CampusConnect';
     };
 
     return {
@@ -203,14 +205,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         let newAudience: string[];
 
         if (course === "All Students") {
-            // If "All Students" is clicked, it becomes the only item, or the list becomes empty.
             newAudience = currentAudience.includes("All Students") ? [] : ["All Students"];
         } else {
-            // If a specific course is clicked...
-            // 1. Start with the current audience, but remove "All Students".
             let updatedAudience = currentAudience.filter(c => c !== "All Students");
             
-            // 2. Toggle the specific course.
             if (updatedAudience.includes(course)) {
                 newAudience = updatedAudience.filter(c => c !== course);
             } else {
@@ -240,7 +238,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setForm({
         ...EMPTY_FORM,
         ...proposal,
-        location: proposal.location || 'seminar', // Explicit fallback HERE
+        location: proposal.location || 'seminar',
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
