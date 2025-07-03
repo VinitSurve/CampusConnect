@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -534,5 +534,3 @@ export default function HostEventForm({ user }: HostEventFormProps) {
     </div>
   );
 }
-
-    
