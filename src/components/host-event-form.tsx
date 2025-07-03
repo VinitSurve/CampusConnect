@@ -429,16 +429,50 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   };
   
   const handleTimeSelect = (selectInfo: DateSelectArg) => {
-      const start = selectInfo.start;
-      const end = selectInfo.end;
-  
-      if (end.getTime() === start.getTime() || (start.getDate() !== end.getDate() && end.getTime() - start.getTime() > 3600000)) {
-          selectInfo.view.calendar.unselect();
-          setTempTime(null);
-          return;
-      }
-  
-      setTempTime({ start: selectInfo.startStr, end: selectInfo.endStr });
+    const { start, end, view } = selectInfo;
+    const isSameDay = start.getDate() === end.getDate();
+    // A selection is valid if it ends at midnight on the next day (end of current day)
+    const isEndOfDaySelection = !isSameDay && end.getHours() === 0 && end.getMinutes() === 0 && (end.getTime() - start.getTime() === 86400000 || start.getHours() !== 0);
+
+    if (!isSameDay && !isEndOfDaySelection) {
+      view.calendar.unselect();
+      toast({
+        title: "Invalid Selection",
+        description: "Please select a time range within a single day.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (start.getTime() === end.getTime()) {
+      view.calendar.unselect();
+      setTempTime(null);
+      return;
+    }
+    
+    // Conflict detection
+    const events = view.calendar.getEvents();
+    const selectionStart = start.getTime();
+    const selectionEnd = end.getTime();
+    const hasConflict = events.some(event => {
+      const eventStart = event.start!.getTime();
+      const eventEnd = event.end!.getTime();
+      // Check for overlap: (StartA < EndB) and (EndA > StartB)
+      return selectionStart < eventEnd && selectionEnd > eventStart;
+    });
+
+    if (hasConflict) {
+      view.calendar.unselect();
+      toast({
+        title: "Time Slot Unavailable",
+        description: "Your selection overlaps with an existing event. Please choose a different time.",
+        variant: "destructive",
+      });
+      setTempTime(null);
+      return;
+    }
+
+    setTempTime({ start: selectInfo.startStr, end: selectInfo.endStr });
   };
   
   const handleConfirmTime = () => {
@@ -691,7 +725,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col bg-gray-900/90 backdrop-blur-lg border border-gray-700 text-white">
             <DialogHeader>
                 <DialogTitle className="text-xl">Select an available time for {selectedDate && format(selectedDate, 'EEEE, MMMM d')}</DialogTitle>
-                <DialogDescription>Click and drag on the calendar to select your desired time range.</DialogDescription>
+                <DialogDescription>Click and drag on an empty time slot to make a selection.</DialogDescription>
             </DialogHeader>
             <div className="flex-grow overflow-y-auto -mx-6 -my-2 pr-2">
               {selectedDate && form.location && (
