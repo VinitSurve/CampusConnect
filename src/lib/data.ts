@@ -137,8 +137,8 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
   try {
     const q = query(
       collection(db, "eventRequests"),
-      where("createdBy", "==", userId),
-      orderBy("createdAt", "desc")
+      where("createdBy", "==", userId)
+      // Removed orderBy to prevent needing a composite index
     );
     const querySnapshot = await getDocs(q);
     const proposals = querySnapshot.docs.map(doc => {
@@ -156,6 +156,10 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
         rejectedAt
       } as EventProposal;
     });
+
+    // Sort proposals manually by date since we removed it from the query
+    proposals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return proposals;
   } catch (error) {
     console.error("Error fetching user event proposals:", error);
