@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event } from "@/types";
@@ -16,8 +16,8 @@ import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
 import Image from "next/image";
-import { createEventProposalAction, saveDraftAction } from "../app/dashboard/host-event/actions";
-import EventDetailPage from "./event-detail-page";
+import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
+import { redirect } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
@@ -95,15 +95,6 @@ const templates = {
 
 
 const availableCourses = ["All Students", "BCA", "BBA", "BAF", "MBA"];
-
-function SubmitButton() {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" disabled={pending} className="w-full bg-blue-600 hover:bg-blue-700">
-            {pending ? 'Submitting...' : 'Submit Event Request'}
-        </Button>
-    );
-}
 
 const FileInput = ({ name, label, accepted, helpText, onFileChange, currentPreview }: { name: string, label: string, accepted: string, helpText: string, onFileChange: (name: string, file: File | null) => void, currentPreview: string | null }) => {
     const [preview, setPreview] = useState<string | null>(currentPreview);
@@ -183,7 +174,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
-  const [isSavingDraft, startDraftTransition] = useTransition();
+  const [isSubmitting, startTransition] = useTransition();
   const [proposals, setProposals] = useState(initialProposals);
 
   const { toast } = useToast();
@@ -307,7 +298,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
-    // Preserve essential user/club info that should not be overwritten by a template.
     const persistentInfo = {
         clubId: form.clubId,
         clubName: form.clubName,
@@ -321,34 +311,71 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setStep(1);
   }
 
-  const handleSaveDraft = async () => {
-    if (!form.title) {
-        toast({ title: "Title is required", description: "Please enter a title to save a draft.", variant: "destructive" });
+  // Client-side handler for saving/submitting
+  const handleFormSubmit = async (status: 'draft' | 'pending') => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+
+    if (status === 'pending' && (!form.location || !form.category || !form.description || !form.date || !form.time)) {
+        toast({ title: "Missing Information", description: "Please fill all required fields before submitting.", variant: "destructive"});
         return;
     }
-    startDraftTransition(async () => {
+    if (status === 'draft' && !form.title) {
+        toast({ title: "Title Required", description: "Please enter a title to save a draft.", variant: "destructive" });
+        return;
+    }
+    
+    startTransition(async () => {
+      try {
         const formData = new FormData();
         Object.entries(form).forEach(([key, value]) => {
             if (value) {
                 if (key === 'targetAudience' && Array.isArray(value)) value.forEach(item => formData.append(key, item));
-                else if (value instanceof File) formData.append(key, value);
-                else formData.append(key, value as string);
+                else if (value instanceof File) formData.append(key, value as File);
+                else formData.append(key, String(value));
             }
         });
-        if (currentProposalId) formData.append('proposalId', currentProposalId);
         
-        const result = await saveDraftAction(formData);
+        const result = await handleEventMediaUpload(formData, form.googleDriveFolderId);
 
-        if (result.success && result.id) {
-            toast({ title: "Draft Saved!", description: "Your event proposal has been saved." });
-            setCurrentProposalId(result.id);
-            const updatedProposals = await getUserProposals(user.uid);
-            setProposals(updatedProposals);
-        } else {
-            toast({ title: "Error Saving Draft", description: result.error, variant: "destructive" });
+        if (!result.success || !result.data) {
+          toast({ title: "Upload Failed", description: result.error || "Could not process file uploads.", variant: "destructive" });
+          return;
         }
+
+        const dataToSave = {
+          ...result.data,
+          status,
+          createdBy: currentUser.uid,
+          creatorEmail: currentUser.email ?? '',
+        };
+
+        if (currentProposalId) {
+          const docRef = doc(db, "eventRequests", currentProposalId);
+          await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
+        } else {
+          const newDoc = await addDoc(collection(db, "eventRequests"), { ...dataToSave, createdAt: serverTimestamp() });
+          setCurrentProposalId(newDoc.id);
+        }
+        
+        toast({ title: "Success!", description: status === 'draft' ? "Your draft has been saved." : "Your proposal has been submitted!" });
+
+        if (status === 'pending') {
+          setView('list'); // Go back to list after submitting
+        }
+        // Fetch latest proposals after any write
+        const updatedProposals = await getUserProposals(user.uid);
+        setProposals(updatedProposals);
+
+      } catch (error) {
+        console.error("Error submitting form:", error);
+        toast({ title: "An Error Occurred", description: (error as Error).message, variant: "destructive" });
+      }
     });
-  }
+  };
 
   const mapFormToEventPreview = (): Event => {
     return {
@@ -539,17 +566,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 ))}
             </div>
 
-          <form action={createEventProposalAction}>
-            <input type="hidden" name="clubId" value={form.clubId} />
-            <input type="hidden" name="clubName" value={form.clubName} />
-            <input type="hidden" name="date" value={form.date} />
-            <input type="hidden" name="time" value={form.time} />
-            <input type="hidden" name="equipmentNeeds" value={form.equipmentNeeds} />
-            <input type="hidden" name="headerImageUrl" value={form.headerImageUrl} />
-            <input type="hidden" name="eventLogoUrl" value={form.eventLogoUrl} />
-            {currentProposalId && <input type="hidden" name="proposalId" value={currentProposalId} />}
-            {form.googleDriveFolderId && <input type="hidden" name="googleDriveFolderId" value={form.googleDriveFolderId} />}
-            
+          <form onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-6">
                 {step === 1 && (
                     <div className="space-y-6 animate-in fade-in-0 duration-300">
@@ -636,10 +653,16 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center">
                 <div>{step > 1 && <Button type="button" variant="outline" onClick={handleBack} className="bg-white/10">Back</Button>}</div>
                 <div className="flex items-center gap-2">
-                    <Button type="button" variant="secondary" onClick={handleSaveDraft} disabled={isSavingDraft}>{isSavingDraft ? 'Saving...' : 'Save Draft'}</Button>
+                    <Button type="button" variant="secondary" onClick={() => handleFormSubmit('draft')} disabled={isSubmitting}>
+                        {isSubmitting ? 'Saving...' : 'Save Draft'}
+                    </Button>
                     <Button type="button" variant="outline" className="bg-white/10" onClick={handlePreview}>Preview</Button>
                     {step < 3 && <Button type="button" onClick={handleNext}>Next</Button>}
-                    {step === 3 && <SubmitButton />}
+                    {step === 3 && 
+                        <Button type="button" onClick={() => handleFormSubmit('pending')} disabled={isSubmitting}>
+                            {isSubmitting ? 'Submitting...' : 'Submit Event Request'}
+                        </Button>
+                    }
                 </div>
             </div>
 
