@@ -72,7 +72,7 @@ export const mockEvents: Event[] = [
     registrationLink: '#',
     status: 'upcoming',
     gallery: ['https://placehold.co/400x300.png', 'https://placehold.co/400x300.png', 'https://placehold.co/400x300.png'],
-    interests: ['technology', 'coding', 'innovation', 'sustainability']
+    tags: ['technology', 'coding', 'innovation', 'sustainability']
   },
   {
     id: 'event-2',
@@ -90,7 +90,7 @@ export const mockEvents: Event[] = [
     registrationLink: '#',
     status: 'upcoming',
     gallery: [],
-    interests: ['music', 'social', 'food']
+    tags: ['music', 'social', 'food']
   },
   {
     id: 'event-3',
@@ -108,7 +108,7 @@ export const mockEvents: Event[] = [
     registrationLink: '#',
     status: 'upcoming',
     gallery: [],
-    interests: ['career', 'technology', 'engineering', 'networking']
+    tags: ['career', 'technology', 'engineering', 'networking']
   },
     {
     id: 'event-4',
@@ -126,7 +126,7 @@ export const mockEvents: Event[] = [
     registrationLink: '#',
     status: 'upcoming',
     gallery: [],
-    interests: ['technology', 'AI', 'ethics', 'academic']
+    tags: ['technology', 'AI', 'ethics', 'academic']
   },
 ];
 
@@ -191,7 +191,7 @@ export const mockEventProposals: EventProposal[] = [
         category: 'academic',
         createdBy: 'some-user-id',
         creatorEmail: 'some-user@email.com',
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
     },
     {
         id: 'prop-2',
@@ -204,7 +204,7 @@ export const mockEventProposals: EventProposal[] = [
         category: 'social',
         createdBy: 'some-user-id',
         creatorEmail: 'some-user@email.com',
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
     },
     {
         id: 'prop-3',
@@ -217,7 +217,7 @@ export const mockEventProposals: EventProposal[] = [
         category: 'social',
         createdBy: 'some-user-id',
         creatorEmail: 'some-user@email.com',
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
     },
     {
         id: 'prop-4',
@@ -230,6 +230,6 @@ export const mockEventProposals: EventProposal[] = [
         category: 'sports',
         createdBy: 'some-user-id',
         creatorEmail: 'some-user@email.com',
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
     }
 ]

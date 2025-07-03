@@ -35,7 +35,7 @@ export type Event = {
   registrationLink: string;
   status: 'upcoming' | 'past' | 'cancelled';
   gallery: string[];
-  interests: string[];
+  tags: string[];
   eventType?: 'event' | 'timetable';
   // New fields
   targetAudience?: string[];
@@ -91,6 +91,7 @@ export type EventProposal = {
   headerImage?: string;
   eventLogo?: string;
   googleDriveFolderId?: string;
+  tags?: string[];
 };
 
 export type TimetableEntry = {

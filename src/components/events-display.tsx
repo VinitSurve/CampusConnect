@@ -73,7 +73,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                 <p className="text-white/80 mb-4 text-sm">{event.description}</p>
                 
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {event.interests?.slice(0, 3).map((tag, index) => (
+                  {event.tags?.slice(0, 3).map((tag, index) => (
                     <span
                       key={index}
                       className="px-2 py-1 text-xs bg-white/20 text-white rounded-full"

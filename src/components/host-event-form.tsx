@@ -30,6 +30,7 @@ const EMPTY_FORM = {
     equipmentNeeds: "",
     budgetDetails: "",
     whatYouWillLearn: "",
+    tags: "",
     location: "",
     category: "",
     registrationLink: "",
@@ -243,6 +244,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
               category: result.category,
               whatYouWillLearn: result.whatYouWillLearn,
               targetAudience: result.targetAudience,
+              tags: result.tags.join(', '),
           }));
           toast({ title: "AI Generated Content", description: "Event details have been filled in. Please review." });
       } catch (error) {
@@ -280,6 +282,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setForm({
         ...EMPTY_FORM,
         ...proposal,
+        tags: proposal.tags?.join(', ') || '',
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
     });
@@ -363,7 +366,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         registrationLink: form.registrationLink || '#',
         status: 'upcoming',
         gallery: [],
-        interests: form.category ? [form.category] : [],
+        tags: form.tags ? form.tags.split(',').map((t: string) => t.trim()) : [],
         targetAudience: form.targetAudience,
         keySpeakers: form.keySpeakers,
         whatYouWillLearn: form.whatYouWillLearn,
@@ -546,6 +549,12 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         <div className="space-y-2">
                             <label className="text-white text-sm">Event Description*</label>
                             <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 min-h-[200px]" placeholder="A clear, engaging summary of what the event is about." required />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-white text-sm">Tags</label>
+                            <input type="text" name="tags" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., AI, Career, Networking" />
+                            <p className="text-xs text-white/60">Comma-separated tags to help students discover your event.</p>
                         </div>
 
                         <div className="space-y-2">

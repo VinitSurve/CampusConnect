@@ -29,7 +29,7 @@ export async function approveRequest(proposal: EventProposal) {
             registrationLink: proposal.registrationLink || '#',
             status: 'upcoming',
             gallery: [],
-            interests: [proposal.category],
+            tags: [...(proposal.tags || []), proposal.category].filter((value, index, self) => self.indexOf(value) === index),
             // Pass new fields
             targetAudience: proposal.targetAudience,
             keySpeakers: proposal.keySpeakers,

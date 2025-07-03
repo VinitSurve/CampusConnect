@@ -37,6 +37,9 @@ async function buildProposalData(formData: FormData, existingFolderId?: string) 
     
     const whatYouWillLearnRaw = formData.get('whatYouWillLearn') as string;
     const whatYouWillLearn = whatYouWillLearnRaw.split('\n').map(s => s.replace(/^-/, '').trim()).filter(Boolean).join('\n');
+    
+    const tagsRaw = formData.get('tags') as string || '';
+    const tags = tagsRaw.split(',').map(tag => tag.trim()).filter(Boolean);
 
     return {
         title: title,
@@ -56,6 +59,7 @@ async function buildProposalData(formData: FormData, existingFolderId?: string) 
         headerImage: headerImageUrl,
         eventLogo: eventLogoUrl,
         googleDriveFolderId: googleDriveFolderId,
+        tags: tags,
     };
 }
 
