@@ -47,21 +47,27 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
 
     let data;
     try {
+        // This handles both object and JSON string representations
         data = typeof equipmentNeeds === 'string' ? JSON.parse(equipmentNeeds) : equipmentNeeds;
     } catch (e) {
-        // If it's not a JSON string, display it as is.
-        return <p>{equipmentNeeds}</p>;
+        // If it's not valid JSON and not an object, it might be a plain string from old data.
+        if (typeof equipmentNeeds === 'string' && equipmentNeeds.trim()) {
+            return <p>{equipmentNeeds}</p>;
+        }
+        return null;
     }
+    
+    if (typeof data !== 'object' || data === null) return null;
 
     const items = [
-        data.wirelessMics && { item: 'Wireless Mics', quantity: data.wirelessMics },
-        data.collarMics && { item: 'Collar Mics', quantity: data.collarMics },
-        data.chairs && { item: 'Chairs', quantity: data.chairs },
-        data.table && { item: 'Table', quantity: 1 },
-        data.waterBottles && { item: 'Water Bottles', quantity: data.waterBottles },
+        data.wirelessMics > 0 && { item: 'Wireless Mics', quantity: data.wirelessMics },
+        data.collarMics > 0 && { item: 'Collar Mics', quantity: data.collarMics },
+        data.chairs > 0 && { item: 'Chairs', quantity: data.chairs },
+        data.table === true && { item: 'Table', quantity: 1 },
+        data.waterBottles > 0 && { item: 'Water Bottles', quantity: data.waterBottles },
     ].filter(Boolean);
 
-    if (items.length === 0) return <p>None specified.</p>;
+    if (items.length === 0) return null; // Hide if no equipment is requested
 
     return (
         <ul className="list-disc pl-5 space-y-2">

@@ -113,15 +113,23 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     };
 
     const getOrganizerName = () => {
-        if (form.clubName) return form.clubName;
-        
-        if (user.role === 'faculty') return user.name || 'Faculty Event';
-        
+        // Priority 1: Find club name from selected ID. This is most reliable for club leads.
         if (form.clubId && userClubs.length > 0) {
             const club = userClubs.find(c => c.id === form.clubId);
             if (club) return club.name;
         }
 
+        // Priority 2: Use the club name directly from form state. This handles faculty names and loaded drafts.
+        if (form.clubName) {
+            return form.clubName;
+        }
+        
+        // Priority 3: Fallback for faculty role if no club name is set yet.
+        if (user.role === 'faculty') {
+            return user.name || 'Faculty Event';
+        }
+
+        // Final fallback
         return 'Your Club/Org';
     };
 
