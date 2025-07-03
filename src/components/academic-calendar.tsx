@@ -228,7 +228,7 @@ export default function AcademicCalendar({
             eventContent={renderEventContent}
             height="auto"
             slotMinTime="08:00:00"
-            slotMaxTime="17:00:00"
+            slotMaxTime="18:00:00"
             slotLabelInterval="01:00:00"
             />
         )}

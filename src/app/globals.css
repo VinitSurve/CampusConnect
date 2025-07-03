@@ -153,6 +153,7 @@ body {
 
 .fc .fc-timegrid-slot-lane {
     @apply hover:bg-white/5 transition-colors duration-200 border-white/10;
+    min-height: 60px;
 }
 
 .fc .fc-timegrid-event-harness {
