@@ -143,17 +143,19 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
     const querySnapshot = await getDocs(q);
     const proposals = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      // Important: Ensure date fields are serializable
+      // Important: Ensure all date fields are serializable to plain strings
       const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString();
       const approvedAt = data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : null;
       const rejectedAt = data.rejectedAt?.toDate ? data.rejectedAt.toDate().toISOString() : null;
+      const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null;
 
       return { 
         ...data, 
         id: doc.id,
         createdAt,
         approvedAt,
-        rejectedAt
+        rejectedAt,
+        updatedAt,
       } as EventProposal;
     });
 

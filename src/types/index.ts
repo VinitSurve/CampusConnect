@@ -75,6 +75,7 @@ export type EventProposal = {
   createdBy: string; // UID of user
   creatorEmail: string;
   createdAt: string;
+  updatedAt?: string | null;
   proposer?: string;
   // New fields for approval/rejection cycle
   approvedBy?: string;
