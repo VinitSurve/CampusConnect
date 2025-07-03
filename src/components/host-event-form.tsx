@@ -247,10 +247,14 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       try {
         const formData = new FormData();
         Object.entries(form).forEach(([key, value]) => {
-            if (value) {
-                if (key === 'targetAudience' && Array.isArray(value)) value.forEach(item => formData.append(key, item));
-                else if (value instanceof File) formData.append(key, value as File);
-                else formData.append(key, String(value));
+            if (value !== null && value !== undefined) { // Allow empty strings
+                if (key === 'targetAudience' && Array.isArray(value)) {
+                    value.forEach(item => formData.append(key, item));
+                } else if (value instanceof File) {
+                    formData.append(key, value as File);
+                } else {
+                    formData.append(key, String(value));
+                }
             }
         });
         
