@@ -595,7 +595,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
                         <div className="space-y-2">
                             <label className="text-white text-sm">Select Category*</label>
-                            <select name="category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
+                            <select name="category" value={form.category || ''} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                                 <option value="" className="bg-gray-800">Select a category...</option>
                                 {categories.map(category => (<option key={category.id} value={category.id} className="bg-gray-800">{category.icon} {category.name}</option>))}
                             </select>
@@ -642,7 +642,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         {user.role !== 'faculty' && userClubs.length > 0 && (
                             <div>
                                 <label className="block text-white text-sm font-medium mb-2">Hosting as Club</label>
-                                <select name="clubId" value={form.clubId} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm((prev:any) => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
+                                <select name="clubId" value={form.clubId || ''} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm((prev:any) => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
                                 {userClubs.map(club => (<option key={club.id} value={club.id} className="bg-gray-800">{club.name}</option>))}
                                 </select>
                             </div>
@@ -675,7 +675,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
               <p className="text-sm text-white/70">Click a date on the calendar. This will auto-fill the date and time, which you can adjust.</p>
           </div>
           <div className="mb-4">
-            <select name="location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
+            <select name="location" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
                 <option value="" className="bg-gray-800">Select a location...</option>
                 {locations.map(loc => (<option key={loc.id} value={loc.id} className="bg-gray-800">{loc.icon} {loc.name}</option>))}
             </select>
