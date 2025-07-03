@@ -1,7 +1,7 @@
 
-import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,8 +13,13 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// A more helpful error message if the configuration is missing or empty.
-if (!firebaseConfig.apiKey) {
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let firebase_error: Error | null = null;
+
+try {
+  if (!firebaseConfig.apiKey) {
     throw new Error(`Firebase configuration is missing in your .env file.
 
 To fix this:
@@ -25,11 +30,18 @@ To fix this:
 5. Look for the 'firebaseConfig' object and copy the values.
 6. Paste these values into the corresponding NEXT_PUBLIC_... variables in your .env file.
 7. IMPORTANT: Restart the development server after saving the .env file.`);
+  }
+  
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+
+} catch (e) {
+    firebase_error = e as Error;
+    console.error("--- FIREBASE INIT ERROR ---");
+    console.error(firebase_error.message);
+    console.error("Firebase features will be disabled.");
+    console.error("---------------------------");
 }
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-export { app, auth, db };
+export { app, auth, db, firebase_error };

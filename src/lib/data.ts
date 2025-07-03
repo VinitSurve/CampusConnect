@@ -5,7 +5,16 @@ import type { Club, Event, EventProposal, User } from '@/types';
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
+const handleDbError = (operation: string) => {
+  if (!db) {
+    console.warn(`Firebase not initialized. Cannot perform: ${operation}. Returning empty data.`);
+    return true;
+  }
+  return false;
+}
+
 export async function getEvents(): Promise<Event[]> {
+  if (handleDbError('getEvents')) return [];
   try {
     const q = query(collection(db, "events"), orderBy("date", "desc"));
     const querySnapshot = await getDocs(q);
@@ -21,6 +30,7 @@ export async function getEvents(): Promise<Event[]> {
 }
 
 export async function getEventById(id: string): Promise<Event | null> {
+  if (handleDbError('getEventById')) return null;
   try {
     const docRef = doc(db, "events", id);
     const docSnap = await getDoc(docRef);
@@ -38,6 +48,7 @@ export async function getEventById(id: string): Promise<Event | null> {
 }
 
 export async function getClubs(): Promise<Club[]> {
+  if (handleDbError('getClubs')) return [];
   try {
     const q = query(collection(db, "clubs"), orderBy("name"));
     const querySnapshot = await getDocs(q);
@@ -66,9 +77,8 @@ export async function getClubs(): Promise<Club[]> {
 }
 
 export async function getStudents(): Promise<User[]> {
+    if (handleDbError('getStudents')) return [];
     try {
-        // Removed orderBy from the query to prevent needing a composite index.
-        // We will sort the results in JavaScript instead.
         const q = query(collection(db, "users"), where("role", "==", "student"));
         const querySnapshot = await getDocs(q);
         const students = querySnapshot.docs.map(doc => {
@@ -90,10 +100,7 @@ export async function getStudents(): Promise<User[]> {
             };
             return user;
         });
-
-        // Sort the students by fullName alphabetically after fetching.
         students.sort((a, b) => (a.fullName || a.name).localeCompare(b.fullName || b.name));
-
         return students;
     } catch (error) {
         console.error("Error fetching students:", error);
@@ -102,6 +109,7 @@ export async function getStudents(): Promise<User[]> {
 }
 
 export async function getEventProposals(): Promise<EventProposal[]> {
+  if (handleDbError('getEventProposals')) return [];
   try {
     const q = query(
       collection(db, "eventRequests"),
@@ -146,8 +154,6 @@ export async function getEventProposals(): Promise<EventProposal[]> {
     return requests;
   } catch (error) {
     console.error("Error fetching event proposals:", error);
-    // In case of permissions error or other issues, return an empty array
-    // This prevents the page from crashing.
     return [];
   }
 }

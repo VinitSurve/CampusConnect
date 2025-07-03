@@ -1,14 +1,21 @@
+
 import { cookies } from 'next/headers'
 import type { User } from '@/types'
 import { getDoc, doc } from 'firebase/firestore'
 import { db } from './firebase'
 
-
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = cookies()
   const uid = cookieStore.get('firebaseUid')?.value
+  
   if (!uid) {
     return null
+  }
+  
+  if (!db) {
+    // Firebase is not initialized, cannot fetch user.
+    // This happens if credentials are not in .env
+    return null;
   }
   
   const userDocRef = doc(db, "users", uid);
