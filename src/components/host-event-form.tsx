@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
@@ -340,7 +341,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             const result = await createFacultyEvent(dataToSave);
             if (result.success) {
                 toast({ title: "Event Published!", description: "Your event has been created and is now live." });
-                setView('list');
+                handleNewRequest(); // Reset form for a new event
             } else {
                 toast({ title: "Error Publishing Event", description: result.error, variant: "destructive" });
             }

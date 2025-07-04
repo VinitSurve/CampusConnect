@@ -197,15 +197,27 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         const eventsSnapshot = await getDocs(eventsQuery);
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
-            const booking = {
-                title: data.title,
-                organizer: data.organizer,
-                location: data.location,
-                type: 'Event',
-                startTime: data.time || '08:00', // Default for all-day
-                endTime: data.endTime || (data.time ? `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00` : '18:00') // Default for all-day
-            };
-            allBookingsForDay.push(booking);
+            // If it's an all-day event (no specific time)
+            if (!data.time) {
+                allBookingsForDay.push({
+                    title: data.title,
+                    organizer: data.organizer,
+                    location: data.location,
+                    type: 'Event (All Day)',
+                    startTime: '08:00',
+                    endTime: '18:00', // Book out the whole working day
+                });
+            } else {
+                // It's a timed event
+                allBookingsForDay.push({
+                    title: data.title,
+                    organizer: data.organizer,
+                    location: data.location,
+                    type: 'Event',
+                    startTime: data.time,
+                    endTime: data.endTime || `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00`, // Default to 1 hour if no end time
+                });
+            }
         });
 
         // Fetch seminar bookings on that date.
