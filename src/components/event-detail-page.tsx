@@ -69,33 +69,35 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
             </div>
 
             <div className="p-6 md:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-white/5 p-6 rounded-xl border border-white/10 items-center">
-                    <div className="flex items-center gap-4">
-                        <Calendar className="h-8 w-8 text-blue-400 flex-shrink-0" />
-                        <div>
-                            <p className="font-semibold text-white">{format(eventDate, 'MMMM d, yyyy')}</p>
-                            <p className="text-white/70 text-sm">{format(eventDate, 'EEEE')}</p>
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8 bg-white/5 p-6 rounded-xl border border-white/10">
+                    <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+                        <div className="flex items-center gap-4">
+                            <Calendar className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold text-white">{format(eventDate, 'MMMM d, yyyy')}</p>
+                                <p className="text-white/70 text-sm">{format(eventDate, 'EEEE')}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <Clock className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold text-white">{time}{endTime && ` - ${endTime}`}</p>
+                                <p className="text-white/70 text-sm">Event Time</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <MapPin className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold text-white">{location}</p>
+                                <p className="text-white/70 text-sm">Location</p>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <Clock className="h-8 w-8 text-blue-400 flex-shrink-0" />
-                        <div>
-                            <p className="font-semibold text-white">{time}{endTime && ` - ${endTime}`}</p>
-                            <p className="text-white/70 text-sm">Event Time</p>
-                        </div>
-                    </div>
-                     <div className="flex items-center gap-4">
-                        <MapPin className="h-8 w-8 text-blue-400 flex-shrink-0" />
-                        <div>
-                            <p className="font-semibold text-white">{location}</p>
-                            <p className="text-white/70 text-sm">Location</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-start md:justify-end">
-                         {registrationLink && registrationLink !== '#' && (
-                            <Button asChild size="lg" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
-                                <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
-                            </Button>
+                    <div className="w-full md:w-auto flex-shrink-0">
+                        {registrationLink && registrationLink !== '#' && (
+                        <Button asChild size="lg" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
+                            <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
+                        </Button>
                         )}
                     </div>
                 </div>
