@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
@@ -15,7 +14,7 @@ import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, 
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
-import { handleEventMediaUpload, createFacultyEvent } from "../app/dashboard/host-event/actions";
+import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserProposals } from '@/lib/data';
 import { format } from 'date-fns';
@@ -78,8 +77,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             clubs = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
             setUserClubs(clubs);
             setIsAllowed(true);
-        } else if (user.role === 'faculty') {
-          setIsAllowed(true);
         } else {
             setIsAllowed(false);
         }
@@ -93,23 +90,19 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   }, [user, toast]);
 
   const getOrganizerName = () => {
-    // If a club was selected in the form, use that name.
     if (form.clubId) {
         const selectedClub = userClubs.find(c => c.id === form.clubId);
         if (selectedClub) return selectedClub.name;
     }
-    
-    // Fallback logic for faculty or pre-selected club lead
     return form.clubName || 'CampusConnect';
   };
 
   const { liveProposals, completedProposals, draftProposals, rejectedProposals } = useMemo(() => {
     const now = new Date();
-    const pendingAndDraft = proposals.filter(p => p.status === 'pending' || p.status === 'draft');
     return {
       liveProposals: proposals.filter(p => p.status === 'approved' && new Date(p.date) >= now),
       completedProposals: proposals.filter(p => p.status === 'approved' && new Date(p.date) < now),
-      draftProposals: pendingAndDraft, // Combining pending and draft for simplicity in one view
+      draftProposals: proposals.filter(p => p.status === 'pending' || p.status === 'draft'),
       rejectedProposals: proposals.filter(p => p.status === 'rejected'),
     };
   }, [proposals]);
@@ -149,7 +142,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     };
   }
 
-  // Effect to update session storage for real-time preview
   useEffect(() => {
     if (view === 'form' && previewChannel) {
       const eventData = mapFormToEventPreview();
@@ -224,7 +216,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setCurrentProposalId(proposal.id);
     setSelectedTemplate(null);
     
-    // Ensure `location` defaults to "seminar" if it's missing or null in the draft
     const draftLocation = proposal.location || 'seminar';
 
     setForm({
@@ -247,7 +238,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     if (proposal.equipmentNeeds) {
         try {
             const parsed = JSON.parse(proposal.equipmentNeeds);
-            // Ensure all keys from default state are present
             parsedEquipment = { ...EMPTY_EQUIPMENT_STATE, ...parsed };
         } catch (e) {
             console.error("Could not parse equipment needs:", e);
@@ -261,9 +251,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
   const handleNewRequest = () => {
     const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
-    const facultyInfo = user.role === 'faculty' ? { clubName: user.name || 'Faculty Event' } : {};
     
-    setForm({...EMPTY_FORM, ...clubInfo, ...facultyInfo});
+    setForm({...EMPTY_FORM, ...clubInfo});
     setEquipment(EMPTY_EQUIPMENT_STATE);
     setCurrentProposalId(null);
     setSelectedTemplate(null);
@@ -276,8 +265,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
     const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
-    const facultyInfo = user.role === 'faculty' ? { clubName: user.name || 'Faculty Event' } : {};
-    const persistentInfo = {...clubInfo, ...facultyInfo};
+    const persistentInfo = {...clubInfo};
 
     if (templateKey === 'scratch') {
       setForm({ ...EMPTY_FORM, ...persistentInfo });
@@ -289,7 +277,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setStep(1);
   }
   
-  // Client-side handler for saving/submitting
   const handleFormSubmit = async (status: 'draft' | 'pending') => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -336,19 +323,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           creatorEmail: currentUser.email ?? '',
         };
 
-        // NEW LOGIC: Faculty events are auto-approved
-        if (user.role === 'faculty' && status === 'pending') {
-            const result = await createFacultyEvent(dataToSave);
-            if (result.success) {
-                toast({ title: "Event Published!", description: "Your event has been created and is now live." });
-                handleNewRequest(); // Reset form for a new event
-            } else {
-                toast({ title: "Error Publishing Event", description: result.error, variant: "destructive" });
-            }
-            return; // End execution here for faculty
-        }
-
-        // Existing logic for student proposals and drafts
         const finalDataToSave = {
             ...dataToSave,
             status,
@@ -461,7 +435,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 p-8 max-w-md w-full text-center">
           <h2 className="text-2xl font-bold text-white mb-4">Access Denied</h2>
-          <p className="text-white/70 mb-6">Only faculty members and designated club leads can host events.</p>
+          <p className="text-white/70 mb-6">Only designated club leads can host events.</p>
           <Link href="/dashboard/events" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Back to Events</Link>
         </div>
       </div>
@@ -476,7 +450,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             <h1 className="text-2xl font-bold text-white">My Event Proposals</h1>
             <p className="text-white/70">Create and manage your event proposals.</p>
           </div>
-          <Button onClick={handleNewRequest} className="mt-4 sm:mt-0"><Plus className="mr-2"/> New Event</Button>
+          <Button onClick={handleNewRequest} className="mt-4 sm:mt-0"><Plus className="mr-2"/> New Event Proposal</Button>
         </div>
         <Tabs defaultValue="drafts" className="w-full">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
@@ -498,7 +472,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     return (
       <div className="container mx-auto px-4 py-8">
          <div className="mb-6">
-            <Button onClick={() => setView('list')} variant="ghost"><ArrowLeft className="mr-2 h-4 w-4" /> Back to My Events</Button>
+            <Button onClick={() => setView('list')} variant="ghost"><ArrowLeft className="mr-2 h-4 w-4" /> Back to My Proposals</Button>
          </div>
          <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white">Start a New Proposal</h1>
@@ -520,7 +494,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <Button onClick={() => setView('list')} variant="ghost"><ArrowLeft className="mr-2 h-4 w-4" /> Back to My Events</Button>
+        <Button onClick={() => setView('list')} variant="ghost"><ArrowLeft className="mr-2 h-4 w-4" /> Back to My Proposals</Button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
@@ -594,7 +568,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         </div>
                         <div className="space-y-2">
                             <label className="text-white text-sm">Key Speakers or Guests (Optional)</label>
-                            <Textarea name="keySpeakers" value={form.keySpeakers || ''} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="List each speaker on a new line, e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
+                            <Textarea name="keySpeakers" value={form.keySpeakers || ''} onChange={(e) => setForm({ ...form, keySpeakers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g.,&#10;Rakesh Varade - Google Cloud Specialist&#10;Jane Doe - AI Researcher" />
                         </div>
                     </div>
                 )}
@@ -637,7 +611,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                             <label className="text-white text-sm">Registration Link (Optional)</label>
                             <input name="registrationLink" type="url" value={form.registrationLink || ''} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." />
                         </div>
-                        {user.role !== 'faculty' && userClubs.length > 0 && (
+                        {userClubs.length > 0 && (
                             <div>
                                 <label className="block text-white text-sm font-medium mb-2">Hosting as Club</label>
                                 <select name="clubId" value={form.clubId || ''} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm((prev:any) => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
@@ -659,7 +633,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                     {step < 3 && <Button type="button" onClick={handleNext}>Next</Button>}
                     {step === 3 && 
                         <Button type="button" onClick={() => handleFormSubmit('pending')} disabled={isSubmitting}>
-                            {isSubmitting ? 'Submitting...' : (user.role === 'faculty' ? 'Publish Event' : 'Submit Event Request')}
+                            {isSubmitting ? 'Submitting...' : 'Submit Event Request'}
                         </Button>
                     }
                 </div>

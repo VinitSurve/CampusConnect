@@ -24,13 +24,10 @@ export async function approveRequest(proposal: EventProposal) {
         const requestRef = doc(db, "eventRequests", proposal.id);
 
         // --- NEW ROBUST TIME LOGIC ---
-        // This new logic ensures every approved event has a valid start and end time,
-        // preventing inconsistent data from being saved to the database. This was the
-        // root cause of previous calendar display bugs.
-        const startTime = proposal.time || '09:00'; // Default to a safe start time
+        const startTime = proposal.time || '09:00'; 
         const endTime = proposal.endTime || (() => {
             const [hour, minute] = startTime.split(':').map(Number);
-            const endHour = hour + 1; // Default to a 1-hour duration
+            const endHour = hour + 1; 
             return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         })();
         // --- END OF NEW LOGIC ---
@@ -42,8 +39,8 @@ export async function approveRequest(proposal: EventProposal) {
             description: proposal.description.substring(0, 100) + (proposal.description.length > 100 ? '...' : ''),
             longDescription: proposal.description,
             date: proposal.date,
-            time: startTime, // Use guaranteed valid start time
-            endTime: endTime, // Use guaranteed valid end time
+            time: startTime,
+            endTime: endTime,
             location: locationName,
             organizer: proposal.clubName,
             category: proposal.category,
@@ -65,15 +62,15 @@ export async function approveRequest(proposal: EventProposal) {
             createdBy: proposal.createdBy,
         };
 
-        await addDoc(collection(db, "events"), newEvent);
+        const newEventRef = await addDoc(collection(db, "events"), newEvent);
 
         if (proposal.location === 'seminar') {
             const newBooking: Omit<SeminarBooking, 'id'> = {
                 title: proposal.title,
                 organizer: proposal.clubName,
                 date: proposal.date,
-                startTime: startTime, // Use guaranteed valid start time
-                endTime: endTime,     // Use guaranteed valid end time
+                startTime: startTime,
+                endTime: endTime,
             };
 
             await addDoc(collection(db, "seminarBookings"), {
@@ -86,11 +83,13 @@ export async function approveRequest(proposal: EventProposal) {
         await updateDoc(requestRef, {
             status: "approved",
             approvedAt: serverTimestamp(),
+            publishedEventId: newEventRef.id,
         });
         
         revalidatePath("/admin");
         revalidatePath("/admin/calendar");
         revalidatePath("/admin/seminar-hall");
+        revalidatePath("/dashboard/host-event");
         return { success: true };
 
     } catch (error) {

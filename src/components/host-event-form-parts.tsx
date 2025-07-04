@@ -1,12 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Image from "next/image";
 import type { EventProposal } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, Minus, Plus, CheckCircle2, XCircle } from "lucide-react";
+import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, Minus, Plus, CheckCircle2, XCircle, Share2 } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { getDayScheduleForLocation } from "@/lib/data";
 import { format } from 'date-fns';
+import Link from "next/link";
 
 // --- CONSTANTS ---
 
@@ -180,7 +181,24 @@ export const ProposalList = ({ list, emptyText, onEdit }: { list: EventProposal[
                 {p.status && <Badge variant={statusVariantMap[p.status]} className="capitalize">{p.status}</Badge>}
               </div>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => onEdit(p)}><FileEdit className="mr-2 h-4 w-4"/>Edit</Button>
+             <div className="w-44 text-right">
+              {p.status === 'approved' && p.publishedEventId ? (
+                <Button asChild size="sm" variant="outline" className="bg-green-600/20 border-green-500/50 hover:bg-green-600/40 text-white">
+                  <Link href={`/dashboard/events/${p.publishedEventId}`} target="_blank">
+                    <Share2 className="mr-2 h-4 w-4"/> View Published
+                  </Link>
+                </Button>
+              ) : p.status === 'pending' ? (
+                <Button size="sm" variant="ghost" disabled>
+                    Pending Review
+                </Button>
+              ) : (
+                 <Button size="sm" variant="ghost" onClick={() => onEdit(p)}>
+                    <FileEdit className="mr-2 h-4 w-4"/>
+                    {p.status === 'rejected' ? 'View & Resubmit' : 'Edit Draft'}
+                </Button>
+              )}
+            </div>
           </div>
         ))}
       </div>

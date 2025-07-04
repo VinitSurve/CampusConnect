@@ -96,6 +96,7 @@ export type EventProposal = {
   eventLogo?: string;
   googleDriveFolderId?: string;
   tags?: string[];
+  publishedEventId?: string;
 };
 
 export type TimetableEntry = {

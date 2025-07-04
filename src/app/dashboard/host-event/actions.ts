@@ -2,11 +2,6 @@
 'use server'
 
 import { createFolder, uploadFile } from "@/lib/drive";
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
-import type { Event } from '@/types';
-
 
 // This is a data preparation function that runs on the server.
 // It handles the secure file uploads to Google Drive.
@@ -74,95 +69,6 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
 
     } catch (error) {
         console.error("Error handling event media upload:", error);
-        return { success: false, error: (error as Error).message };
-    }
-}
-
-
-const locationIdToNameMap: { [key: string]: string } = {
-  'lab401': 'Lab 401',
-  'lab402': 'Lab 402',
-  'lab503': 'Lab 503',
-  'seminar': 'Seminar Hall'
-};
-
-export async function createFacultyEvent(eventData: any) {
-    try {
-        if (!db) {
-            throw new Error("Database not initialized");
-        }
-        if (!eventData.date) {
-            throw new Error("Cannot create an event without a date.");
-        }
-
-        const startTime = eventData.time || '09:00';
-        const endTime = eventData.endTime || (() => {
-            const [hour, minute] = startTime.split(':').map(Number);
-            const endHour = hour + 1;
-            return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        })();
-        
-        const locationName = locationIdToNameMap[eventData.location] || eventData.location;
-
-        const newEvent: Omit<Event, 'id'> = {
-            title: eventData.title,
-            description: eventData.description.substring(0, 100) + (eventData.description.length > 100 ? '...' : ''),
-            longDescription: eventData.description,
-            date: eventData.date,
-            time: startTime,
-            endTime: endTime,
-            location: locationName,
-            organizer: eventData.clubName, // For faculty, this is their name
-            category: eventData.category,
-            image: eventData.headerImage || 'https://placehold.co/600x400.png',
-            headerImage: eventData.headerImage,
-            eventLogo: eventData.eventLogo,
-            attendees: 0,
-            capacity: 100,
-            registrationLink: eventData.registrationLink || '#',
-            status: 'upcoming',
-            gallery: [],
-            tags: [...(eventData.tags || []), eventData.category].filter((value:any, index:any, self:any) => self.indexOf(value) === index),
-            targetAudience: eventData.targetAudience,
-            keySpeakers: eventData.keySpeakers,
-            equipmentNeeds: eventData.equipmentNeeds,
-            budgetDetails: eventData.budgetDetails,
-            whatYouWillLearn: eventData.whatYouWillLearn,
-            googleDriveFolderId: eventData.googleDriveFolderId,
-            createdBy: eventData.createdBy,
-        };
-
-        await addDoc(collection(db, "events"), newEvent);
-
-        if (eventData.location === 'seminar') {
-            const newBooking = {
-                title: eventData.title,
-                organizer: eventData.clubName,
-                date: eventData.date,
-                startTime: startTime,
-                endTime: endTime,
-            };
-
-            await addDoc(collection(db, "seminarBookings"), {
-                ...newBooking,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            });
-        }
-        
-        // Revalidate all relevant paths
-        revalidatePath("/admin");
-        revalidatePath("/admin/calendar");
-        revalidatePath("/admin/seminar-hall");
-        revalidatePath("/dashboard");
-        revalidatePath("/dashboard/calendar");
-        revalidatePath("/dashboard/events");
-        revalidatePath("/");
-
-        return { success: true };
-
-    } catch (error) {
-        console.error("Error creating faculty event:", error);
         return { success: false, error: (error as Error).message };
     }
 }
