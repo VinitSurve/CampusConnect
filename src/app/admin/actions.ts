@@ -62,6 +62,7 @@ export async function approveRequest(proposal: EventProposal) {
             budgetDetails: proposal.budgetDetails,
             whatYouWillLearn: proposal.whatYouWillLearn,
             googleDriveFolderId: proposal.googleDriveFolderId,
+            createdBy: proposal.createdBy,
         };
 
         await addDoc(collection(db, "events"), newEvent);

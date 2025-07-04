@@ -45,6 +45,7 @@ export type Event = {
   budgetDetails?: string;
   whatYouWillLearn?: string;
   googleDriveFolderId?: string;
+  createdBy?: string;
 };
 
 export type Club = {

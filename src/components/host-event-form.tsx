@@ -14,7 +14,7 @@ import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, 
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
-import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
+import { handleEventMediaUpload, createFacultyEvent } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserProposals } from '@/lib/data';
 import { format } from 'date-fns';
@@ -322,25 +322,42 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         
         formData.set('equipmentNeeds', JSON.stringify(equipment));
 
-        const result = await handleEventMediaUpload(formData, form.googleDriveFolderId);
+        const uploadResult = await handleEventMediaUpload(formData, form.googleDriveFolderId);
 
-        if (!result.success || !result.data) {
-          toast({ title: "Upload Failed", description: result.error || "Could not process file uploads.", variant: "destructive" });
+        if (!uploadResult.success || !uploadResult.data) {
+          toast({ title: "Upload Failed", description: uploadResult.error || "Could not process file uploads.", variant: "destructive" });
           return;
         }
 
         const dataToSave = {
-          ...result.data,
-          status,
+          ...uploadResult.data,
           createdBy: currentUser.uid,
           creatorEmail: currentUser.email ?? '',
         };
 
+        // NEW LOGIC: Faculty events are auto-approved
+        if (user.role === 'faculty' && status === 'pending') {
+            const result = await createFacultyEvent(dataToSave);
+            if (result.success) {
+                toast({ title: "Event Published!", description: "Your event has been created and is now live." });
+                setView('list');
+            } else {
+                toast({ title: "Error Publishing Event", description: result.error, variant: "destructive" });
+            }
+            return; // End execution here for faculty
+        }
+
+        // Existing logic for student proposals and drafts
+        const finalDataToSave = {
+            ...dataToSave,
+            status,
+        };
+
         if (currentProposalId) {
           const docRef = doc(db, "eventRequests", currentProposalId);
-          await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
+          await updateDoc(docRef, { ...finalDataToSave, updatedAt: serverTimestamp() });
         } else {
-          const newDoc = await addDoc(collection(db, "eventRequests"), { ...dataToSave, createdAt: serverTimestamp() });
+          const newDoc = await addDoc(collection(db, "eventRequests"), { ...finalDataToSave, createdAt: serverTimestamp() });
           setCurrentProposalId(newDoc.id);
         }
         
@@ -352,6 +369,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             eventLogo: null,
             headerImageUrl: dataToSave.headerImage,
             eventLogoUrl: dataToSave.eventLogo,
+            googleDriveFolderId: uploadResult.data.googleDriveFolderId
         };
 
         setForm(finalFormState);
@@ -640,7 +658,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                     {step < 3 && <Button type="button" onClick={handleNext}>Next</Button>}
                     {step === 3 && 
                         <Button type="button" onClick={() => handleFormSubmit('pending')} disabled={isSubmitting}>
-                            {isSubmitting ? 'Submitting...' : 'Submit Event Request'}
+                            {isSubmitting ? 'Submitting...' : (user.role === 'faculty' ? 'Publish Event' : 'Submit Event Request')}
                         </Button>
                     }
                 </div>
