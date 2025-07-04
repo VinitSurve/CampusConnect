@@ -17,7 +17,7 @@ import { Button } from "./ui/button";
 import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserProposals } from '@/lib/data';
-import { format } from 'date-fns';
+import { format, toDate } from 'date-fns';
 import { 
     TimeSlotSelectionModal,
     FileInput, 
@@ -89,6 +89,18 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     checkPermissions();
   }, [user, toast]);
 
+  useEffect(() => {
+    // When user clubs load, if no club is selected in the form yet, default to the first one.
+    // This ensures the correct club name appears in previews and submissions.
+    if (userClubs.length > 0 && !form.clubId) {
+      setForm((prev: any) => ({
+        ...prev,
+        clubId: userClubs[0].id,
+        clubName: userClubs[0].name,
+      }));
+    }
+  }, [userClubs, form.clubId]);
+
   const getOrganizerName = () => {
     if (form.clubId) {
         const selectedClub = userClubs.find(c => c.id === form.clubId);
@@ -100,8 +112,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const { liveProposals, completedProposals, draftProposals, rejectedProposals } = useMemo(() => {
     const now = new Date();
     return {
-      liveProposals: proposals.filter(p => p.status === 'approved' && new Date(p.date) >= now),
-      completedProposals: proposals.filter(p => p.status === 'approved' && new Date(p.date) < now),
+      liveProposals: proposals.filter(p => p.status === 'approved' && toDate(p.date) >= now),
+      completedProposals: proposals.filter(p => p.status === 'approved' && toDate(p.date) < now),
       draftProposals: proposals.filter(p => p.status === 'pending' || p.status === 'draft'),
       rejectedProposals: proposals.filter(p => p.status === 'rejected'),
     };
@@ -231,7 +243,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         eventLogo: proposal.eventLogo || null,
     });
     if (proposal.date) {
-        setSelectedDate(new Date(proposal.date + 'T00:00:00'));
+        setSelectedDate(toDate(proposal.date));
     }
     
     let parsedEquipment = EMPTY_EQUIPMENT_STATE;
@@ -579,11 +591,11 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                                         <div className="flex gap-4 items-center">
                                             <Calendar className="w-8 h-8 text-blue-300"/>
                                             <div>
-                                                <p className="font-semibold text-white">{format(new Date(form.date+'T00:00:00'), 'EEEE, MMMM d, yyyy')}</p>
+                                                <p className="font-semibold text-white">{format(toDate(form.date), 'EEEE, MMMM d, yyyy')}</p>
                                                 <p className="text-white/70">{form.time} - {form.endTime}</p>
                                             </div>
                                         </div>
-                                        <Button variant="outline" onClick={() => handleDateClick({start: new Date(form.date+'T00:00:00')} as DateSelectArg)}>
+                                        <Button variant="outline" onClick={() => handleDateClick({start: toDate(form.date)} as DateSelectArg)}>
                                             <Edit className="w-4 h-4 mr-2"/>
                                             Change
                                         </Button>
