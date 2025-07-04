@@ -70,7 +70,7 @@ export type EventProposal = {
   description: string;
   location: string;
   category: string;
-  registrationLink?: string;
+  registrationLink: string;
   clubId?: string;
   clubName: string;
   date: string;

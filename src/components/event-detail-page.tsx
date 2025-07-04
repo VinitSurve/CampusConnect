@@ -94,7 +94,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                         </div>
                     </div>
                     <div className="w-full md:w-auto flex-shrink-0">
-                        {registrationLink && registrationLink !== '#' && (
+                        {registrationLink && (
                         <Button asChild size="lg" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
                             <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
                         </Button>

@@ -299,7 +299,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       return;
     }
 
-    if (status === 'pending' && (!form.location || !form.category || !form.description || !form.date || !form.time)) {
+    if (status === 'pending' && (!form.location || !form.category || !form.description || !form.date || !form.time || !form.registrationLink)) {
         toast({ title: "Missing Information", description: "Please fill all required fields before submitting.", variant: "destructive"});
         return;
     }
@@ -409,9 +409,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           if (form.targetAudience.length === 0 || !form.whatYouWillLearn) isValid = false;
       }
       if (targetStep === 3) {
-          if (!form.date || !form.time || !form.location) {
+          if (!form.date || !form.time || !form.location || !form.registrationLink) {
               isValid = false;
-              message = "Please select a date, time, and location from the calendar view.";
+              message = "Please select a date, time, and location, and provide a registration link.";
           }
       }
       if (!isValid) {
@@ -638,8 +638,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                             <Textarea name="budgetDetails" value={form.budgetDetails || ''} onChange={(e) => setForm({ ...form, budgetDetails: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50" placeholder="e.g., Total budget: $500. Requesting $200 from college." />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-white text-sm">Registration Link (Optional)</label>
-                            <input name="registrationLink" type="url" value={form.registrationLink || ''} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." />
+                            <label className="text-white text-sm" htmlFor="registration-link">Registration Link*</label>
+                            <input id="registration-link" name="registrationLink" type="url" value={form.registrationLink || ''} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." required />
                         </div>
                         {userClubs.length > 0 && (
                             <div>

@@ -147,7 +147,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 image: proposal.headerImage || 'https://placehold.co/600x400.png',
                 headerImage: proposal.headerImage,
                 eventLogo: proposal.eventLogo,
-                registrationLink: proposal.registrationLink || '#',
+                registrationLink: proposal.registrationLink,
                 tags: [...(proposal.tags || []), proposal.category].filter(Boolean).filter((value, index, self) => self.indexOf(value) === index),
                 targetAudience: proposal.targetAudience,
                 budgetDetails: proposal.budgetDetails,
