@@ -183,13 +183,13 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
     if (handleDbError('getDayScheduleForLocation')) return [];
     
     const dateStr = format(date, 'yyyy-MM-dd');
-    const jsDayOfWeek = date.getDay(); // JS: Sun=0, Mon=1..Sat=6.
+    const jsDayOfWeek = date.getDay();
     const locationName = locationIdToNameMap[locationId] || locationId;
 
     try {
         const eventPromise = getDocs(query(collection(db, "events"), where("date", "==", dateStr)));
         
-        const timetablePromise = jsDayOfWeek > 0 
+        const timetablePromise = jsDayOfWeek > 0 && jsDayOfWeek < 7 
             ? getDocs(query(collection(db, "timetables"), where("dayOfWeek", "==", jsDayOfWeek)))
             : Promise.resolve({ docs: [] });
             
@@ -201,40 +201,47 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
             seminarPromise,
         ]);
         
-        const allBookings: any[] = [];
+        const allPotentialBookings: any[] = [];
 
         // Process events
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
-            // Handle both timed and all-day events
+            // Handle all three cases: all-day, timed with end, timed without end
             if (!data.time) { // All-day event
-                 allBookings.push({ title: data.title, startTime: '08:00', endTime: '18:00', organizer: data.organizer, type: 'All-Day Event', location: data.location });
+                 allPotentialBookings.push({ ...data, startTime: '08:00', endTime: '18:00', type: 'All-Day Event' });
             } else if (data.time && data.endTime) {
-                 allBookings.push({ title: data.title, startTime: data.time, endTime: data.endTime, organizer: data.organizer, type: 'Event', location: data.location });
+                 allPotentialBookings.push({ ...data, type: 'Event' });
             } else if (data.time) { // Has start time but no end time, assume 1 hour
                 const startTime = data.time;
                 const [hour, minute] = startTime.split(':').map(Number);
                 const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-                allBookings.push({ title: data.title, startTime, endTime, organizer: data.organizer, type: 'Event', location: data.location });
+                allPotentialBookings.push({ ...data, endTime: endTime, type: 'Event' });
             }
         });
 
         // Process timetables
         timetablesSnapshot.forEach(doc => {
-            const data = doc.data();
-            allBookings.push({ title: `${data.subject} (${data.course} ${data.year}-${data.division})`, startTime: data.startTime, endTime: data.endTime, organizer: data.facultyName, type: 'Lecture', location: data.location });
+            const data = doc.data() as TimetableEntry;
+            allPotentialBookings.push({ 
+                title: `${data.subject} (${data.course} ${data.year}-${data.division})`, 
+                startTime: data.startTime, 
+                endTime: data.endTime, 
+                organizer: data.facultyName, 
+                type: 'Lecture', 
+                location: data.location 
+            });
         });
 
         // Process seminar bookings
         seminarSnapshot.forEach(doc => {
-            const data = doc.data();
-            allBookings.push({ title: data.title, startTime: data.startTime, endTime: data.endTime, organizer: data.organizer, type: 'Booking', location: 'Seminar Hall' });
+            const data = doc.data() as SeminarBooking;
+            allPotentialBookings.push({ ...data, type: 'Booking', location: 'Seminar Hall' });
         });
 
         // Final robust filter
-        return allBookings.filter(booking => {
-            // A booking matches if its location is either the display name (e.g., "Seminar Hall") or the ID (e.g., "seminar").
-            return booking.location === locationName || booking.location === locationId;
+        return allPotentialBookings.filter(booking => {
+            const eventLocation = booking.location;
+            return eventLocation === locationName || eventLocation === locationId;
         });
 
     } catch (error) {
