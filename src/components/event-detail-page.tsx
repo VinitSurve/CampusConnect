@@ -3,8 +3,10 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { format } from 'date-fns';
 
 interface EventDetailPageProps {
   event: Event;
@@ -28,7 +30,7 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
       title, longDescription, organizer, category, image, headerImage, eventLogo,
-      whatYouWillLearn, targetAudience, keySpeakers, tags
+      whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink
   } = event;
 
   const parseSpeakers = (speakers?: string) => {
@@ -40,6 +42,9 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   };
   
   const speakersList = parseSpeakers(keySpeakers);
+
+  // Safely create date object to avoid timezone issues during formatting
+  const eventDate = new Date(`${date}T00:00:00`);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -63,6 +68,30 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
             </div>
 
             <div className="p-6 md:p-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 bg-white/5 p-6 rounded-xl border border-white/10 items-center">
+                    <div className="flex items-center gap-4 col-span-1">
+                        <Calendar className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-white">{format(eventDate, 'MMMM d, yyyy')}</p>
+                            <p className="text-white/70 text-sm">{format(eventDate, 'EEEE')}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 col-span-1">
+                        <Clock className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-white">{time}{endTime && ` - ${endTime}`}</p>
+                            <p className="text-white/70 text-sm">Event Time</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-center md:justify-end col-span-1">
+                         {registrationLink && registrationLink !== '#' && (
+                            <Button asChild size="lg" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
+                                <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
                 <div className="space-y-8">
                     <DetailSection title="About this event" icon={<Info className="h-6 w-6 text-blue-400" />}>
                         <p>{longDescription}</p>
