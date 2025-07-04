@@ -3,8 +3,10 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import type { Event } from "@/types"
 import { Calendar } from "lucide-react"
+import { format } from 'date-fns'
 
 interface EventsDisplayProps {
   events: Event[]
@@ -24,6 +26,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
     'Social': { name: "Social", icon: "🎉" },
     'Arts': { name: "Arts & Culture", icon: "🎭" },
     'Sports': { name: "Sports & Recreation", icon: "⚽" },
+    'Guest Speaker': { name: "Guest Speaker", icon: "⭐" },
   };
 
   const displayCategories = allCategories.map(cat => ({
@@ -66,16 +69,26 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
           {filteredEvents.map(event => (
             <div
               key={event.id}
-              className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
+              className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col group"
             >
-              <div className="p-4 flex-grow">
+              <div className="relative h-40 w-full overflow-hidden">
+                <Image
+                  src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
+                  alt={event.title}
+                  layout="fill"
+                  objectFit="cover"
+                  className="transition-transform duration-300 group-hover:scale-105"
+                  data-ai-hint="event photo"
+                />
+              </div>
+              <div className="p-4 flex-grow flex flex-col">
                 <h3 className="text-xl font-semibold text-white mb-2">{event.title}</h3>
-                <p className="text-white/80 mb-4 text-sm">{event.description}</p>
+                <p className="text-white/80 mb-4 text-sm flex-grow">{event.description}</p>
                 
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {event.tags?.slice(0, 3).map((tag, index) => (
+                  {event.tags?.slice(0, 3).map((tag) => (
                     <span
-                      key={index}
+                      key={tag}
                       className="px-2 py-1 text-xs bg-white/20 text-white rounded-full"
                     >
                       {tag}
@@ -83,10 +96,10 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                   ))}
                 </div>
                 
-                <div className="flex items-center text-white/80 text-sm mt-auto pt-3">
+                <div className="flex items-center text-white/80 text-sm mt-auto pt-3 border-t border-white/10">
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>
-                    {new Date(event.date).toDateString()}
+                    {format(new Date(`${event.date}T00:00:00`), 'EEE MMM d yyyy')}
                   </span>
                 </div>
               </div>

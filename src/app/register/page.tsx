@@ -1,15 +1,9 @@
-import PublicHeader from '@/components/public-header';
-import { EventsDisplay } from '@/components/events-display';
-import { getEvents } from '@/lib/data';
+import { redirect } from 'next/navigation';
 
-export default async function HomePage() {
-  const allEvents = await getEvents();
-  const upcomingEvents = allEvents.filter(e => e.status === 'upcoming');
-  
-  return (
-    <>
-      <PublicHeader />
-      <EventsDisplay events={upcomingEvents} />
-    </>
-  );
+// This page was incorrectly showing the home page.
+// The correct user flow is to go to the /login page where the authentication
+// form (which includes a registration flip-card) is displayed.
+// This page now correctly redirects users there.
+export default function RegisterPage() {
+  redirect('/login');
 }
