@@ -5,8 +5,6 @@
 import type { Club, Event, EventProposal, User, TimetableEntry, SeminarBooking } from '@/types';
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { format } from 'date-fns';
-
 
 const handleDbError = (operation: string) => {
   if (!db) {
@@ -144,12 +142,10 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
     const q = query(
       collection(db, "eventRequests"),
       where("createdBy", "==", userId)
-      // Removed orderBy to prevent needing a composite index
     );
     const querySnapshot = await getDocs(q);
     const proposals = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      // Important: Ensure all date fields are serializable to plain strings
       const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString();
       const approvedAt = data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : null;
       const rejectedAt = data.rejectedAt?.toDate ? data.rejectedAt.toDate().toISOString() : null;
@@ -165,7 +161,6 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
       } as EventProposal;
     });
 
-    // Sort proposals manually by date since we removed it from the query
     proposals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return proposals;
@@ -182,87 +177,110 @@ const locationIdToNameMap: { [key: string]: string } = {
   'seminar': 'Seminar Hall'
 };
 
+const createBookingObject = (
+  title: string,
+  organizer: string,
+  location: string,
+  type: string,
+  startTime: string,
+  endTime: string
+) => ({
+  title,
+  organizer,
+  location,
+  type,
+  startTime,
+  endTime,
+});
+
 export async function getDayScheduleForLocation(date: Date, locationId: string): Promise<any[]> {
     if (handleDbError('getDayScheduleForLocation')) return [];
+
+    const tzoffset = date.getTimezoneOffset() * 60000; //offset in milliseconds
+    const localDate = new Date(date.getTime() - tzoffset);
+    const dateStr = localDate.toISOString().slice(0, 10);
     
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const jsDayOfWeek = date.getDay();
+    const timetableDayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    
     const targetLocationName = locationIdToNameMap[locationId] || locationId;
-    
     const allBookingsForDay: any[] = [];
 
     try {
-        // Fetch events on that date.
+        // --- 1. Fetch all documents relevant for the day in parallel ---
         const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
-        const eventsSnapshot = await getDocs(eventsQuery);
+        const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
+        const timetableQuery = (timetableDayOfWeek > 0 && timetableDayOfWeek < 7) 
+            ? query(collection(db, "timetables"), where("dayOfWeek", "==", timetableDayOfWeek))
+            : null;
+
+        const [eventsSnapshot, seminarSnapshot, timetablesSnapshot] = await Promise.all([
+            getDocs(eventsQuery),
+            getDocs(seminarQuery),
+            timetableQuery ? getDocs(timetableQuery) : Promise.resolve(null),
+        ]);
+
+        // --- 2. Process and normalize all fetched data ---
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
-            // If it's an all-day event (no specific time)
-            if (!data.time) {
-                allBookingsForDay.push({
-                    title: data.title,
-                    organizer: data.organizer,
-                    location: data.location,
-                    type: 'Event (All Day)',
-                    startTime: '08:00',
-                    endTime: '18:00', // Book out the whole working day
-                });
-            } else {
-                // It's a timed event
-                allBookingsForDay.push({
-                    title: data.title,
-                    organizer: data.organizer,
-                    location: data.location,
-                    type: 'Event',
-                    startTime: data.time,
-                    endTime: data.endTime || `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00`, // Default to 1 hour if no end time
-                });
+            if (!data.location) return;
+
+            if (data.time) { // Timed event
+                 allBookingsForDay.push(createBookingObject(
+                    data.title,
+                    data.organizer,
+                    data.location,
+                    'Event',
+                    data.time,
+                    data.endTime || `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00`
+                ));
+            } else { // All-day event
+                allBookingsForDay.push(createBookingObject(
+                    data.title,
+                    data.organizer,
+                    data.location,
+                    'Event (All Day)',
+                    '08:00',
+                    '18:00'
+                ));
             }
         });
 
-        // Fetch seminar bookings on that date.
-        const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
-        const seminarSnapshot = await getDocs(seminarQuery);
         seminarSnapshot.forEach(doc => {
-            allBookingsForDay.push({
-                ...doc.data(),
-                location: 'Seminar Hall',
-                type: 'Booking'
-            });
+            const data = doc.data() as SeminarBooking;
+            allBookingsForDay.push(createBookingObject(
+                data.title,
+                data.organizer,
+                'Seminar Hall',
+                'Booking',
+                data.startTime,
+                data.endTime
+            ));
         });
 
-        // Fetch recurring timetable lectures for that day of the week.
-        if (jsDayOfWeek > 0 && jsDayOfWeek < 7) { // Mon-Sat
-            const timetableQuery = query(collection(db, "timetables"), where("dayOfWeek", "==", jsDayOfWeek));
-            const timetablesSnapshot = await getDocs(timetableQuery);
+        if (timetablesSnapshot) {
             timetablesSnapshot.forEach(doc => {
                 const data = doc.data() as TimetableEntry;
-                allBookingsForDay.push({
-                    title: `${data.subject} (${data.course} ${data.year}-${data.division})`,
-                    organizer: data.facultyName,
-                    location: data.location,
-                    type: 'Lecture',
-                    startTime: data.startTime,
-                    endTime: data.endTime
-                });
+                if (!data.location) return;
+                allBookingsForDay.push(createBookingObject(
+                    `${data.subject} (${data.course} ${data.year}-${data.division})`,
+                    data.facultyName,
+                    data.location,
+                    'Lecture',
+                    data.startTime,
+                    data.endTime
+                ));
             });
         }
         
-        // Filter the combined list by the target location.
+        // --- 3. Filter the combined list by the target location ---
         const finalSchedule = allBookingsForDay.filter(booking => {
-            const eventLocation = booking.location;
-            return eventLocation === targetLocationName || eventLocation === locationId;
+            return booking.location === targetLocationName || booking.location === locationId;
         });
 
         return finalSchedule;
 
     } catch (error) {
         console.error("Error fetching day schedule:", error);
-        if ((error as any).code === 'failed-precondition') {
-            console.error(
-                `Firestore composite index required. Please check the browser console for a link to create the necessary index.`
-            );
-        }
         return [];
     }
 }

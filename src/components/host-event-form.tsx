@@ -413,19 +413,15 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setIsTimeModalOpen(true);
   };
   
-  const handleConfirmTime = (selection: { start: string, end: string }) => {
-      if (!selection.start || !selection.end || !selectedDate) return;
-  
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      
+  const handleConfirmTime = (selection: { start: string, end: string, date: string }) => {
       setForm((prev:any) => ({
         ...prev,
-        date: dateStr,
+        date: selection.date,
         time: selection.start,
         endTime: selection.end,
       }));
       
-      toast({ title: "Time Slot Confirmed", description: `Set to ${dateStr} from ${selection.start} to ${selection.end}` });
+      toast({ title: "Time Slot Confirmed", description: `Set to ${selection.date} from ${selection.start} to ${selection.end}` });
       setIsTimeModalOpen(false);
   };
 

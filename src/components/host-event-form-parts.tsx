@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import type { EventProposal } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -369,8 +369,24 @@ export const TimeSlotSelectionModal = ({ isOpen, onClose, onConfirm, selectedDat
             toast({ title: "No Selection", description: "Please select a time slot.", variant: "destructive"});
             return;
         }
+        if (!selectedDate) {
+             toast({ title: "No Date", description: "An unknown error occurred where the date was lost.", variant: "destructive"});
+             return;
+        }
+
+        // Timezone-safe date string creation
+        const tzoffset = selectedDate.getTimezoneOffset() * 60000; //offset in milliseconds
+        const localISOTime = new Date(selectedDate.getTime() - tzoffset).toISOString().split('T')[0];
+        const dateStr = localISOTime;
+
         const finalEndTime = selection.end ? `${String(parseInt(selection.end.split(':')[0]) + 1).padStart(2, '0')}:00` : `${String(parseInt(selection.start.split(':')[0]) + 1).padStart(2, '0')}:00`;
-        onConfirm({ start: selection.start, end: finalEndTime });
+        
+        onConfirm({ 
+            start: selection.start, 
+            end: finalEndTime,
+            date: dateStr // Pass the corrected date string back
+        });
+
         onClose();
     };
 
