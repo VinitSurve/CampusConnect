@@ -44,8 +44,10 @@ service cloud.firestore {
     match /events/{eventId} {
       // Events are public for the home page.
       allow read: if true;
-      allow create, update: if isFaculty();
-      allow delete: if isFaculty();
+      // Allow create if the 'approvedBy' field contains a valid faculty UID
+      allow create: if request.resource.data.approvedBy != null && 
+                     get(/databases/$(database)/documents/users/$(request.resource.data.approvedBy)).data.role == 'faculty';
+      allow update, delete: if isFaculty();
     }
 
     // Clubs Collection
@@ -61,7 +63,9 @@ service cloud.firestore {
       allow read: if true;
       // Allow any authenticated user to create a request. UI logic restricts this further.
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (resource.data.createdBy == request.auth.uid || isFaculty());
+      // Allow update by the original creator OR by a faculty member approving it
+      allow update: if (isAuthenticated() && resource.data.createdBy == request.auth.uid) || 
+                     (request.resource.data.approvedBy != null && get(/databases/$(database)/documents/users/$(request.resource.data.approvedBy)).data.role == 'faculty');
       allow delete: if false;
     }
     
@@ -74,7 +78,10 @@ service cloud.firestore {
     // Seminar Bookings collection
     match /seminarBookings/{bookingId} {
       allow read: if isAuthenticated();
-      allow write: if isFaculty();
+      // Allow write if the 'approvedBy' field contains a valid faculty UID
+      allow create: if request.resource.data.approvedBy != null &&
+                     get(/databases/$(database)/documents/users/$(request.resource.data.approvedBy)).data.role == 'faculty';
+      allow update, delete: if isFaculty();
     }
 
     // Other collections
