@@ -181,17 +181,16 @@ const locationIdToNameMap: { [key: string]: string } = {
 export async function getDayScheduleForLocation(date: Date, locationId: string): Promise<any[]> {
     if (handleDbError('getDayScheduleForLocation')) return [];
     
-    const locationName = locationIdToNameMap[locationId] || locationId;
     const dateStr = format(date, 'yyyy-MM-dd');
-    const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-
-    // Timetable uses 1=Mon, ..., 6=Sat. JS getDay() is 0-6.
+    const dayOfWeek = date.getDay();
     const firestoreDayOfWeek = dayOfWeek; 
 
     let allBookings: any[] = [];
 
     try {
-        // Fetch Events
+        const locationName = locationIdToNameMap[locationId] || locationId;
+
+        // Fetch Events for the selected location
         const eventsQuery = query(
             collection(db, "events"),
             where("date", "==", dateStr),
@@ -209,28 +208,28 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
             });
         });
 
-        // Fetch Timetables
-        if (firestoreDayOfWeek > 0) { // No lectures on Sunday
-            const timetablesQuery = query(
-                collection(db, "timetables"),
-                where("dayOfWeek", "==", firestoreDayOfWeek),
-                where("location", "==", locationName)
-            );
-            const timetablesSnapshot = await getDocs(timetablesQuery);
-            timetablesSnapshot.docs.forEach(doc => {
-                const data = doc.data();
-                allBookings.push({
-                    title: `${data.subject} (${data.course} ${data.year}-${data.division})`,
-                    startTime: data.startTime,
-                    endTime: data.endTime,
-                    organizer: data.facultyName,
-                    type: 'Lecture'
+        // If it's a lab, fetch timetable entries.
+        // If it's the seminar hall, fetch seminar bookings.
+        if (locationId.startsWith('lab')) {
+            if (firestoreDayOfWeek > 0) { // No lectures on Sunday
+                const timetablesQuery = query(
+                    collection(db, "timetables"),
+                    where("dayOfWeek", "==", firestoreDayOfWeek),
+                    where("location", "==", locationName)
+                );
+                const timetablesSnapshot = await getDocs(timetablesQuery);
+                timetablesSnapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    allBookings.push({
+                        title: `${data.subject} (${data.course} ${data.year}-${data.division})`,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        organizer: data.facultyName,
+                        type: 'Lecture'
+                    });
                 });
-            });
-        }
-
-        // Fetch Seminar Bookings (only if location is seminar hall)
-        if (locationId === 'seminar') {
+            }
+        } else if (locationId === 'seminar') {
             const seminarQuery = query(
                 collection(db, "seminarBookings"),
                 where("date", "==", dateStr)
