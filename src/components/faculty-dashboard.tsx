@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Tool, Link as LinkIcon, Image as ImageIcon, FileText, Target, Mic } from 'lucide-react';
+import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wrench, Link as LinkIcon, Image as ImageIcon, FileText, Target, Mic } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -145,7 +145,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <DetailItem icon={<Target />} label="What You'll Learn" value={selectedRequest.whatYouWillLearn} isPreformatted />
                 <DetailItem icon={<Users />} label="Target Audience" value={selectedRequest.targetAudience} />
                 <DetailItem icon={<Mic />} label="Key Speakers / Guests" value={selectedRequest.keySpeakers} isPreformatted />
-                <DetailItem icon={<Tool />} label="Equipment Needs" value={selectedRequest.equipmentNeeds} isPreformatted />
+                <DetailItem icon={<Wrench />} label="Equipment Needs" value={selectedRequest.equipmentNeeds} isPreformatted />
                 <DetailItem icon={<DollarSign />} label="Budget & Funding" value={selectedRequest.budgetDetails} isPreformatted />
                 <DetailItem icon={<LinkIcon />} label="Registration Link" value={selectedRequest.registrationLink} isLink />
                 <DetailItem icon={<FileText />} label="Tags" value={Array.isArray(selectedRequest.tags) ? selectedRequest.tags.join(', ') : selectedRequest.tags} />
