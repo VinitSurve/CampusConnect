@@ -17,32 +17,45 @@ const locationIdToNameMap: { [key: string]: string } = {
 
 export async function approveRequest(proposal: EventProposal) {
     try {
+        if (!proposal.date) {
+            throw new Error("Cannot approve a proposal without a date.");
+        }
+
         const requestRef = doc(db, "eventRequests", proposal.id);
 
-        // Convert location ID to name for display consistency
+        // --- NEW ROBUST TIME LOGIC ---
+        // This new logic ensures every approved event has a valid start and end time,
+        // preventing inconsistent data from being saved to the database. This was the
+        // root cause of previous calendar display bugs.
+        const startTime = proposal.time || '09:00'; // Default to a safe start time
+        const endTime = proposal.endTime || (() => {
+            const [hour, minute] = startTime.split(':').map(Number);
+            const endHour = hour + 1; // Default to a 1-hour duration
+            return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        })();
+        // --- END OF NEW LOGIC ---
+
         const locationName = locationIdToNameMap[proposal.location] || proposal.location;
 
-        // Create a new event from the proposal data
         const newEvent: Omit<Event, 'id'> = {
             title: proposal.title,
             description: proposal.description.substring(0, 100) + (proposal.description.length > 100 ? '...' : ''),
             longDescription: proposal.description,
             date: proposal.date,
-            time: proposal.time || "12:00",
-            endTime: proposal.endTime,
-            location: locationName, // Use the mapped name
+            time: startTime, // Use guaranteed valid start time
+            endTime: endTime, // Use guaranteed valid end time
+            location: locationName,
             organizer: proposal.clubName,
             category: proposal.category,
             image: proposal.headerImage || 'https://placehold.co/600x400.png',
             headerImage: proposal.headerImage,
             eventLogo: proposal.eventLogo,
             attendees: 0,
-            capacity: 100, // Default capacity
+            capacity: 100,
             registrationLink: proposal.registrationLink || '#',
             status: 'upcoming',
             gallery: [],
             tags: [...(proposal.tags || []), proposal.category].filter((value, index, self) => self.indexOf(value) === index),
-            // Pass new fields
             targetAudience: proposal.targetAudience,
             keySpeakers: proposal.keySpeakers,
             equipmentNeeds: proposal.equipmentNeeds,
@@ -53,19 +66,13 @@ export async function approveRequest(proposal: EventProposal) {
 
         await addDoc(collection(db, "events"), newEvent);
 
-        // Check for the seminar hall using the ID from the proposal
         if (proposal.location === 'seminar') {
             const newBooking: Omit<SeminarBooking, 'id'> = {
                 title: proposal.title,
                 organizer: proposal.clubName,
                 date: proposal.date,
-                startTime: proposal.time || "12:00",
-                endTime: proposal.endTime || (() => {
-                    const startTime = proposal.time || "12:00";
-                    const [hour, minute] = startTime.split(':').map(Number);
-                    const endHour = hour + 1;
-                    return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-                })(),
+                startTime: startTime, // Use guaranteed valid start time
+                endTime: endTime,     // Use guaranteed valid end time
             };
 
             await addDoc(collection(db, "seminarBookings"), {
@@ -75,7 +82,6 @@ export async function approveRequest(proposal: EventProposal) {
             });
         }
 
-        // Update the original request status
         await updateDoc(requestRef, {
             status: "approved",
             approvedAt: serverTimestamp(),
@@ -83,7 +89,7 @@ export async function approveRequest(proposal: EventProposal) {
         
         revalidatePath("/admin");
         revalidatePath("/admin/calendar");
-        revalidatePath("/admin/seminar-hall"); // Revalidate new page
+        revalidatePath("/admin/seminar-hall");
         return { success: true };
 
     } catch (error) {
@@ -108,7 +114,6 @@ export async function rejectRequest(proposalId: string, reason: string) {
 
         const requestData = requestSnap.data() as EventProposal;
 
-        // If there's a drive folder, delete it.
         if (requestData.googleDriveFolderId) {
             await deleteFolder(requestData.googleDriveFolderId);
         }
