@@ -184,67 +184,48 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
     const dateStr = format(date, 'yyyy-MM-dd');
     const firestoreDayOfWeek = date.getDay(); // Sunday is 0, Monday is 1, etc.
     const locationName = locationIdToNameMap[locationId] || locationId;
-    let allBookings: any[] = [];
+    let potentialBookings: any[] = [];
 
     try {
-        // --- Fetch all possible bookings for the day/day-of-week AND location ---
-        
-        // Query for one-off events at this location on this date
-        const eventsQuery = query(
-            collection(db, "events"), 
-            where("date", "==", dateStr), 
-            where("location", "==", locationName)
-        );
+        // --- Fetch ALL possible bookings for the day/day-of-week ---
+        const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
+        const timetablesQuery = query(collection(db, "timetables"), where("dayOfWeek", "==", firestoreDayOfWeek));
+        const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
 
-        // Query for recurring timetable lectures at this location on this day of the week
-        const timetablesQuery = query(
-            collection(db, "timetables"), 
-            where("dayOfWeek", "==", firestoreDayOfWeek), 
-            where("location", "==", locationName)
-        );
+        const [eventsSnapshot, timetablesSnapshot, seminarSnapshot] = await Promise.all([
+            getDocs(eventsQuery),
+            getDocs(timetablesQuery),
+            getDocs(seminarQuery),
+        ]);
 
-        // Seminar bookings are only for the seminar hall and don't have a location field.
-        const seminarQuery = (locationId === 'seminar') 
-            ? query(collection(db, "seminarBookings"), where("date", "==", dateStr))
-            : null;
-
-        const queries = [getDocs(eventsQuery), getDocs(timetablesQuery)];
-        if (seminarQuery) {
-            queries.push(getDocs(seminarQuery));
-        }
-
-        const snapshots = await Promise.all(queries);
-
-        const [eventsSnapshot, timetablesSnapshot] = snapshots;
-        const seminarSnapshot = (locationId === 'seminar' && snapshots.length > 2) ? snapshots[2] : null;
-
-        // Process events
+        // Process events, adding their location
         eventsSnapshot.forEach(doc => {
             const data = doc.data();
-            allBookings.push({ title: data.title, startTime: data.time, endTime: data.endTime, organizer: data.organizer, type: 'Event' });
+            potentialBookings.push({ title: data.title, startTime: data.time, endTime: data.endTime, organizer: data.organizer, type: 'Event', location: data.location });
         });
 
-        // Process timetable entries
+        // Process timetable entries, adding their location
         timetablesSnapshot.forEach(doc => {
             const data = doc.data();
-            allBookings.push({ title: `${data.subject} (${data.course} ${data.year}-${data.division})`, startTime: data.startTime, endTime: data.endTime, organizer: data.facultyName, type: 'Lecture' });
+            potentialBookings.push({ title: `${data.subject} (${data.course} ${data.year}-${data.division})`, startTime: data.startTime, endTime: data.endTime, organizer: data.facultyName, type: 'Lecture', location: data.location });
         });
         
-        // Process seminar bookings
-        if (seminarSnapshot) {
-            seminarSnapshot.forEach(doc => {
-                const data = doc.data();
-                allBookings.push({ title: data.title, startTime: data.startTime, endTime: data.endTime, organizer: data.organizer, type: 'Booking' });
-            });
-        }
+        // Process seminar bookings, manually adding 'Seminar Hall' as their location
+        seminarSnapshot.forEach(doc => {
+            const data = doc.data();
+            potentialBookings.push({ title: data.title, startTime: data.startTime, endTime: data.endTime, organizer: data.organizer, type: 'Booking', location: 'Seminar Hall' });
+        });
         
-        return allBookings;
+        // --- Now, apply the location filter robustly in code ---
+        const filteredBookings = potentialBookings.filter(booking => booking.location === locationName);
+        
+        return filteredBookings;
+
     } catch (error) {
         console.error("Error fetching day schedule:", error);
         if ((error as any).code === 'failed-precondition') {
             console.error(
-                `Firestore composite index required. Please check the browser console for a link to create the index. 
-                This usually happens when you query on multiple fields.`
+                `Firestore composite index required. Please check the browser console for a link to create the index.`
             );
         }
         return [];
