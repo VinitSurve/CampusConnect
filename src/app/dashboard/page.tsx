@@ -1,12 +1,9 @@
 
-import { EventsDisplay } from '@/components/events-display';
-import { getEvents } from '@/lib/data';
+import { redirect } from 'next/navigation';
 
-export default async function DashboardPage() {
-  const allEvents = await getEvents();
-  const upcomingEvents = allEvents.filter(e => e.status === 'upcoming');
-  
-  return (
-      <EventsDisplay events={upcomingEvents} />
-  );
+// The /dashboard page was identical to /dashboard/events, which can cause
+// instability with the development server. To resolve this and create a
+// canonical URL, we now redirect from /dashboard to /dashboard/events.
+export default function DashboardPage() {
+  redirect('/dashboard/events');
 }
