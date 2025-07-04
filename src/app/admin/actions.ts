@@ -1,4 +1,3 @@
-
 'use server'
 
 import { revalidatePath } from 'next/cache';
@@ -15,62 +14,62 @@ const locationIdToNameMap: { [key: string]: string } = {
   'seminar': 'Seminar Hall'
 };
 
-export async function approveRequest(proposal: EventProposal) {
+export async function approveRequest(proposal: EventProposal, finalEventData: Partial<EventProposal>) {
     try {
-        if (!proposal.date) {
+        const finalDate = finalEventData.date || proposal.date;
+        if (!finalDate) {
             throw new Error("Cannot approve a proposal without a date.");
         }
 
         const requestRef = doc(db, "eventRequests", proposal.id);
 
-        // --- NEW ROBUST TIME LOGIC ---
-        const startTime = proposal.time || '09:00'; 
-        const endTime = proposal.endTime || (() => {
+        const startTime = finalEventData.time || proposal.time || '09:00'; 
+        const endTime = finalEventData.endTime || proposal.endTime || (() => {
             const [hour, minute] = startTime.split(':').map(Number);
             const endHour = hour + 1; 
             return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         })();
-        // --- END OF NEW LOGIC ---
-
-        const locationName = locationIdToNameMap[proposal.location] || proposal.location;
+        
+        const finalLocation = finalEventData.location || proposal.location;
+        const locationName = locationIdToNameMap[finalLocation] || finalLocation;
 
         const newEvent: Omit<Event, 'id'> = {
-            title: proposal.title,
-            description: proposal.description.substring(0, 100) + (proposal.description.length > 100 ? '...' : ''),
-            longDescription: proposal.description,
-            date: proposal.date,
+            title: finalEventData.title || proposal.title,
+            description: (finalEventData.description || proposal.description).substring(0, 100) + ((finalEventData.description || proposal.description).length > 100 ? '...' : ''),
+            longDescription: finalEventData.description || proposal.description,
+            date: finalDate,
             time: startTime,
             endTime: endTime,
             location: locationName,
             organizer: proposal.clubName,
-            category: proposal.category,
-            image: proposal.headerImage || 'https://placehold.co/600x400.png',
-            headerImage: proposal.headerImage,
-            eventLogo: proposal.eventLogo,
+            category: finalEventData.category || proposal.category,
+            image: finalEventData.headerImage || proposal.headerImage || 'https://placehold.co/600x400.png',
+            headerImage: finalEventData.headerImage || proposal.headerImage,
+            eventLogo: finalEventData.eventLogo || proposal.eventLogo,
             attendees: 0,
             capacity: 100,
-            registrationLink: proposal.registrationLink || '#',
+            registrationLink: finalEventData.registrationLink || proposal.registrationLink || '#',
             status: 'upcoming',
             gallery: [],
-            tags: [...(proposal.tags || []), proposal.category].filter((value, index, self) => self.indexOf(value) === index),
-            targetAudience: proposal.targetAudience,
-            keySpeakers: proposal.keySpeakers,
-            equipmentNeeds: proposal.equipmentNeeds,
-            budgetDetails: proposal.budgetDetails,
-            whatYouWillLearn: proposal.whatYouWillLearn,
+            tags: [...(finalEventData.tags || proposal.tags || []), finalEventData.category || proposal.category].filter((value, index, self) => self.indexOf(value) === index),
+            targetAudience: finalEventData.targetAudience || proposal.targetAudience,
+            keySpeakers: finalEventData.keySpeakers || proposal.keySpeakers,
+            equipmentNeeds: finalEventData.equipmentNeeds || proposal.equipmentNeeds,
+            budgetDetails: finalEventData.budgetDetails || proposal.budgetDetails,
+            whatYouWillLearn: finalEventData.whatYouWillLearn || proposal.whatYouWillLearn,
             googleDriveFolderId: proposal.googleDriveFolderId,
             createdBy: proposal.createdBy,
         };
 
         const newEventRef = await addDoc(collection(db, "events"), newEvent);
 
-        if (proposal.location === 'seminar') {
+        if (finalLocation === 'seminar') {
             const newBooking: Omit<SeminarBooking, 'id'> = {
-                title: proposal.title,
-                organizer: proposal.clubName,
-                date: proposal.date,
-                startTime: startTime,
-                endTime: endTime,
+                title: newEvent.title,
+                organizer: newEvent.organizer,
+                date: newEvent.date,
+                startTime: newEvent.time,
+                endTime: newEvent.endTime,
             };
 
             await addDoc(collection(db, "seminarBookings"), {

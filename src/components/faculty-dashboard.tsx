@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -20,6 +19,10 @@ import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wre
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { EquipmentSelector, EMPTY_EQUIPMENT_STATE } from './host-event-form-parts';
+
 
 interface FacultyDashboardClientProps {
   initialRequests: EventProposal[];
@@ -93,8 +96,14 @@ const EquipmentDetails = ({ jsonString }: { jsonString?: string }) => {
 export default function FacultyDashboardClient({ initialRequests }: FacultyDashboardClientProps) {
   const [requests, setRequests] = useState(initialRequests);
   const [selectedRequest, setSelectedRequest] = useState<EventProposal | null>(null);
+  
   const [requestForRejection, setRequestForRejection] = useState<EventProposal | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  
+  const [requestForApproval, setRequestForApproval] = useState<EventProposal | null>(null);
+  const [editedData, setEditedData] = useState<Partial<EventProposal>>({});
+  const [editedEquipment, setEditedEquipment] = useState(EMPTY_EQUIPMENT_STATE);
+
   const [isTransitioning, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -109,12 +118,32 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
     setIsLoading(false);
   }, [initialRequests]);
 
-  const handleApprove = (request: EventProposal) => {
+  const handleOpenApprovalModal = (proposal: EventProposal) => {
+    setEditedData(proposal);
+    try {
+        const parsedEquipment = proposal.equipmentNeeds ? JSON.parse(proposal.equipmentNeeds) : EMPTY_EQUIPMENT_STATE;
+        setEditedEquipment(parsedEquipment);
+    } catch {
+        setEditedEquipment(EMPTY_EQUIPMENT_STATE);
+    }
+    setRequestForApproval(proposal);
+  };
+
+  const handleApprove = () => {
+    if (!requestForApproval) return;
+    
     startTransition(async () => {
-      const result = await approveRequest(request);
+      const finalData = {
+        ...editedData,
+        equipmentNeeds: JSON.stringify(editedEquipment),
+      };
+      
+      const result = await approveRequest(requestForApproval, finalData);
+      
       if (result.success) {
-        setRequests(prev => prev.filter(req => req.id !== request.id));
-        toast({ title: "Success", description: "Event approved successfully!" });
+        setRequests(prev => prev.filter(req => req.id !== requestForApproval.id));
+        setRequestForApproval(null);
+        toast({ title: "Success", description: "Event approved and published successfully!" });
       } else {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       }
@@ -127,13 +156,18 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
       const result = await rejectRequest(requestForRejection.id, rejectionReason);
        if (result.success) {
         setRequests(prev => prev.filter(req => req.id !== requestForRejection.id));
-        toast({ title: "Success", description: "Event has been rejected." });
         setRequestForRejection(null);
         setRejectionReason("");
+        toast({ title: "Success", description: "Event has been rejected." });
       } else {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       }
     });
+  };
+
+  const handleEditedDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditedData(prev => ({ ...prev, [name]: value }));
   };
 
   if (isLoading) {
@@ -217,8 +251,8 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <Button onClick={() => setRequestForRejection(selectedRequest)} disabled={isTransitioning} variant="destructive">
                   Reject
                 </Button>
-                <Button onClick={() => handleApprove(selectedRequest)} disabled={isTransitioning} variant="secondary" className="bg-green-600 hover:bg-green-700 text-white">
-                  Approve
+                <Button onClick={() => handleOpenApprovalModal(selectedRequest)} disabled={isTransitioning} variant="secondary" className="bg-green-600 hover:bg-green-700 text-white">
+                  Approve &amp; Edit
                 </Button>
               </div>
             </div>
@@ -250,6 +284,43 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             </DialogClose>
             <Button variant="destructive" onClick={handleRejectConfirm} disabled={isTransitioning || !rejectionReason.trim()}>
               {isTransitioning ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Approval Dialog */}
+      <Dialog open={!!requestForApproval} onOpenChange={(isOpen) => !isOpen && setRequestForApproval(null)}>
+        <DialogContent className="max-w-2xl bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Final Review: {requestForApproval?.title}</DialogTitle>
+            <DialogDescription>Make any final edits before publishing this event. Your changes will be final.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-4 my-4">
+              <div className="space-y-2">
+                  <Label htmlFor="edit-title">Event Title</Label>
+                  <Input id="edit-title" name="title" value={editedData.title || ''} onChange={handleEditedDataChange} />
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea id="edit-description" name="description" value={editedData.description || ''} onChange={handleEditedDataChange} rows={6}/>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="edit-learn">What You'll Learn</Label>
+                  <Textarea id="edit-learn" name="whatYouWillLearn" value={editedData.whatYouWillLearn || ''} onChange={handleEditedDataChange} rows={4}/>
+              </div>
+               <div className="space-y-2">
+                  <Label htmlFor="edit-speakers">Key Speakers</Label>
+                  <Textarea id="edit-speakers" name="keySpeakers" value={editedData.keySpeakers || ''} onChange={handleEditedDataChange} rows={3}/>
+              </div>
+              <EquipmentSelector equipment={editedEquipment} setEquipment={setEditedEquipment} />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleApprove} disabled={isTransitioning} className="bg-green-600 hover:bg-green-700">
+              {isTransitioning ? "Publishing..." : "Publish Event"}
             </Button>
           </DialogFooter>
         </DialogContent>
