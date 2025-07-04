@@ -314,7 +314,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <h1 className="text-2xl font-bold text-white">{selectedRequest.title}</h1>
                 <div className="mt-2 flex flex-wrap items-center text-sm text-white/60 gap-x-4 gap-y-2">
                   <div className="flex items-center gap-1.5"><Users /> {selectedRequest.clubName}</div>
-                  <div className="flex items-center gap-1.5"><Calendar /> {new Date(selectedRequest.date).toLocaleDateString()} at {selectedRequest.time}</div>
+                  <div className="flex items-center gap-1.5"><Calendar /> {new Date(selectedRequest.date).toLocaleDateString()} at {selectedRequest.time}{selectedRequest.endTime && ` - ${selectedRequest.endTime}`}</div>
                   <div className="flex items-center gap-1.5"><Building /> {selectedRequest.location}</div>
                   <div className="flex items-center gap-1.5"><Tag /> {selectedRequest.category}</div>
                 </div>
