@@ -6,7 +6,6 @@ import type { EventProposal, Event, SeminarBooking } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { db, auth } from '@/lib/firebase';
 import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { deleteFolder } from '@/lib/drive';
 import {
   Dialog,
   DialogContent,
@@ -246,7 +245,6 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
     if (!requestForRejection) return;
     startTransition(async () => {
         const proposalId = requestForRejection.id;
-        const proposal = requestForRejection;
 
         if (!rejectionReason.trim()) {
             toast({ title: "Reason Required", description: "Rejection reason cannot be empty.", variant: "destructive" });
@@ -256,9 +254,8 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
         try {
             const requestRef = doc(db, "eventRequests", proposalId);
 
-            if (proposal.googleDriveFolderId) {
-                await deleteFolder(proposal.googleDriveFolderId);
-            }
+            // The Google Drive folder is intentionally not deleted to simplify the logic
+            // and ensure application stability. This can be addressed with a separate cleanup process if needed.
 
             await updateDoc(requestRef, {
                 status: "rejected",
