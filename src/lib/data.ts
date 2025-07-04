@@ -116,8 +116,7 @@ export async function getEventProposals(): Promise<EventProposal[]> {
   try {
     const q = query(
       collection(db, "eventRequests"),
-      where("status", "==", "pending"),
-      orderBy("createdAt", "desc")
+      where("status", "==", "pending")
     );
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
@@ -128,6 +127,10 @@ export async function getEventProposals(): Promise<EventProposal[]> {
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString()
       } as EventProposal;
     });
+    
+    // Manually sort results to avoid composite index
+    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return requests;
   } catch (error) {
     console.error("Error fetching event proposals:", error);
@@ -182,17 +185,13 @@ const locationIdToNameMap: { [key: string]: string } = {
 export async function getDayScheduleForLocation(date: Date, locationId: string): Promise<any[]> {
     if (handleDbError('getDayScheduleForLocation')) return [];
     
-    // Step 1: Prepare variables
     const dateStr = format(date, 'yyyy-MM-dd');
-    const jsDayOfWeek = date.getDay(); // 0=Sun, 1=Mon, etc.
+    const jsDayOfWeek = date.getDay();
     const targetLocationName = locationIdToNameMap[locationId] || locationId;
     
-    // This will hold all bookings for the ENTIRE day, which we will filter later.
     const allBookingsForDay: any[] = [];
 
     try {
-        // Step 2: Fetch ALL data for the given day, from all sources.
-        
         // Fetch events on that date.
         const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
         const eventsSnapshot = await getDocs(eventsQuery);
@@ -203,9 +202,8 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
                 organizer: data.organizer,
                 location: data.location,
                 type: 'Event',
-                // IMPORTANT: Normalize start/end times
-                startTime: data.time || '08:00', // Default to start of day for all-day events
-                endTime: data.endTime || (data.time ? `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00` : '18:00') // Default to end of day for all-day events
+                startTime: data.time || '08:00', // Default for all-day
+                endTime: data.endTime || (data.time ? `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00` : '18:00') // Default for all-day
             };
             allBookingsForDay.push(booking);
         });
@@ -216,13 +214,13 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         seminarSnapshot.forEach(doc => {
             allBookingsForDay.push({
                 ...doc.data(),
-                location: 'Seminar Hall', // Implicit location
+                location: 'Seminar Hall',
                 type: 'Booking'
             });
         });
 
         // Fetch recurring timetable lectures for that day of the week.
-        if (jsDayOfWeek > 0 && jsDayOfWeek < 7) { // Only fetch for Mon-Sat
+        if (jsDayOfWeek > 0 && jsDayOfWeek < 7) { // Mon-Sat
             const timetableQuery = query(collection(db, "timetables"), where("dayOfWeek", "==", jsDayOfWeek));
             const timetablesSnapshot = await getDocs(timetableQuery);
             timetablesSnapshot.forEach(doc => {
@@ -238,11 +236,9 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
             });
         }
         
-        // Step 3: Filter the combined list by the target location.
-        // This is the most crucial step. It ensures we only return bookings for the selected room.
+        // Filter the combined list by the target location.
         const finalSchedule = allBookingsForDay.filter(booking => {
             const eventLocation = booking.location;
-            // The location might be stored as 'seminar' or 'Seminar Hall'. We check for both.
             return eventLocation === targetLocationName || eventLocation === locationId;
         });
 
@@ -250,10 +246,9 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
 
     } catch (error) {
         console.error("Error fetching day schedule:", error);
-        // Add a check for the composite index error, as it's a common Firestore issue.
         if ((error as any).code === 'failed-precondition') {
             console.error(
-                `Firestore composite index required. Please check the browser console for a link to create the necessary index for your queries.`
+                `Firestore composite index required. Please check the browser console for a link to create the necessary index.`
             );
         }
         return [];
