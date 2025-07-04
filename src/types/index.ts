@@ -46,6 +46,7 @@ export type Event = {
   whatYouWillLearn?: string;
   googleDriveFolderId?: string;
   createdBy?: string;
+  approvedBy?: string;
 };
 
 export type Club = {
@@ -121,6 +122,7 @@ export type SeminarBooking = {
   date: string;
   startTime: string; // HH:mm
   endTime: string; // HH:mm
+  approvedBy?: string;
   createdAt?: any;
   updatedAt?: any;
 };

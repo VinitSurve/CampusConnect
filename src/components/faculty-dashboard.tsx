@@ -4,7 +4,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import type { EventProposal, Event, SeminarBooking } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { deleteFolder } from '@/lib/drive';
 import {
@@ -150,6 +150,12 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
         };
 
         try {
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                toast({ title: "Authentication Error", description: "You appear to be signed out. Please refresh and try again.", variant: "destructive" });
+                return;
+            }
+
             const finalDate = finalEventData.date || proposal.date;
             if (!finalDate) {
                 throw new Error("Cannot approve a proposal without a date.");
@@ -193,6 +199,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 whatYouWillLearn: finalEventData.whatYouWillLearn || proposal.whatYouWillLearn,
                 googleDriveFolderId: proposal.googleDriveFolderId,
                 createdBy: proposal.createdBy,
+                approvedBy: currentUser.uid,
             };
 
             const newEventRef = await addDoc(collection(db, "events"), newEvent);
@@ -204,6 +211,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                     date: newEvent.date,
                     startTime: newEvent.time,
                     endTime: newEvent.endTime,
+                    approvedBy: currentUser.uid,
                 };
 
                 await addDoc(collection(db, "seminarBookings"), {
@@ -217,6 +225,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 status: "approved",
                 approvedAt: serverTimestamp(),
                 publishedEventId: newEventRef.id,
+                approvedBy: currentUser.uid,
             });
 
             // UI update
