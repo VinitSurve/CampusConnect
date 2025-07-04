@@ -464,7 +464,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           <Button onClick={handleNewRequest} className="mt-4 sm:mt-0"><Plus className="mr-2"/> New Event Proposal</Button>
         </div>
         <Tabs defaultValue="drafts" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-4">
             <TabsTrigger value="live">Live</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
             <TabsTrigger value="drafts">Drafts & Pending</TabsTrigger>
