@@ -40,7 +40,8 @@ export const EMPTY_FORM = {
     eventLogo: null as File | null,
     headerImageUrl: "",
     eventLogoUrl: "",
-    googleDriveFolderId: ""
+    googleDriveFolderId: "",
+    allowExternals: false,
 };
 
 export const EMPTY_EQUIPMENT_STATE = {

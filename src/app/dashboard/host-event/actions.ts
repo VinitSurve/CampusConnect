@@ -64,6 +64,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                 eventLogo: eventLogoUrl,
                 googleDriveFolderId: googleDriveFolderId,
                 tags: tags,
+                allowExternals: formData.get('allowExternals') === 'true',
             }
         };
 

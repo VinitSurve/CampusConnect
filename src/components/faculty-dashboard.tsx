@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wrench, Link as LinkIcon, Image as ImageIcon, FileText, Target, Mic } from 'lucide-react';
+import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wrench, Link as LinkIcon, Image as ImageIcon, FileText, Target, Mic, Globe } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -30,11 +30,17 @@ interface FacultyDashboardClientProps {
   initialRequests: EventProposal[];
 }
 
-const DetailItem = ({ icon, label, value, isPreformatted = false, isLink = false }: { icon: React.ReactNode, label: string; value?: string | string[]; isPreformatted?: boolean, isLink?: boolean }) => {
-  if (!value || (Array.isArray(value) && value.length === 0)) return null;
-  const displayValue = Array.isArray(value) ? value.join(', ') : value;
+const DetailItem = ({ icon, label, value, isPreformatted = false, isLink = false }: { icon: React.ReactNode, label: string; value?: string | string[] | boolean; isPreformatted?: boolean, isLink?: boolean }) => {
+  if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) return null;
+
+  let displayValue: any = value;
+  if (typeof value === 'boolean') {
+    displayValue = value ? 'Yes' : 'No';
+  } else if (Array.isArray(value)) {
+    displayValue = value.join(', ');
+  }
   
-  const content = isLink ? (
+  const content = isLink && typeof displayValue === 'string' ? (
     <a href={displayValue} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline break-all">{displayValue}</a>
   ) : isPreformatted ? (
     <pre className="text-base text-white whitespace-pre-wrap font-sans bg-black/20 p-3 rounded-md">{displayValue}</pre>
@@ -143,11 +149,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
 
     startTransition(async () => {
         const proposal = requestForApproval;
-        const finalEventData = {
-            ...editedData,
-            equipmentNeeds: JSON.stringify(editedEquipment),
-        };
-
+        
         try {
             const currentUser = auth.currentUser;
             if (!currentUser) {
@@ -173,17 +175,12 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             const locationName = locationIdToNameMap[finalLocation] || finalLocation;
             
             const newEvent: Omit<Event, 'id'> = {
-                // Editable fields - Use finalEventData directly.
-                title: finalEventData.title,
-                longDescription: finalEventData.description,
-                whatYouWillLearn: finalEventData.whatYouWillLearn,
-                keySpeakers: finalEventData.keySpeakers,
-                equipmentNeeds: finalEventData.equipmentNeeds,
-                
-                // Derived from editable fields
-                description: (finalEventData.description || '').substring(0, 100) + ((finalEventData.description || '').length > 100 ? '...' : ''),
-                
-                // Fields from original proposal (not editable in modal)
+                title: editedData.title,
+                longDescription: editedData.description,
+                whatYouWillLearn: editedData.whatYouWillLearn,
+                keySpeakers: editedData.keySpeakers,
+                equipmentNeeds: JSON.stringify(editedEquipment),
+                description: (editedData.description || '').substring(0, 100) + ((editedData.description || '').length > 100 ? '...' : ''),
                 date: finalDate,
                 time: startTime,
                 endTime: endTime,
@@ -199,8 +196,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 budgetDetails: proposal.budgetDetails,
                 googleDriveFolderId: proposal.googleDriveFolderId,
                 createdBy: proposal.createdBy,
-                
-                // New/System-set fields
+                allowExternals: proposal.allowExternals,
                 attendees: 0,
                 capacity: 100,
                 status: 'upcoming',
@@ -260,17 +256,11 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
 
         try {
             const requestRef = doc(db, "eventRequests", proposalId);
-
-            // The Google Drive folder is intentionally not deleted to simplify the logic
-            // and ensure application stability. This can be addressed with a separate cleanup process if needed.
-
             await updateDoc(requestRef, {
                 status: "rejected",
                 rejectionReason: rejectionReason,
                 rejectedAt: serverTimestamp(),
             });
-
-            // UI update
             const updatedRequests = requests.filter(req => req.id !== proposalId);
             setRequests(updatedRequests);
             setSelectedRequest(updatedRequests[0] || null);
@@ -343,6 +333,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <DetailItem icon={<Target />} label="What You'll Learn" value={selectedRequest.whatYouWillLearn} isPreformatted />
                 <DetailItem icon={<Users />} label="Target Audience" value={selectedRequest.targetAudience} />
                 <DetailItem icon={<Mic />} label="Key Speakers / Guests" value={selectedRequest.keySpeakers} isPreformatted />
+                <DetailItem icon={<Globe />} label="Externals Allowed" value={selectedRequest.allowExternals} />
                 
                 <div>
                   <p className="text-sm font-medium text-white/70 flex items-center gap-2 mb-1"><Wrench /> Equipment Needs</p>

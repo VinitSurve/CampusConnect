@@ -3,7 +3,7 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
@@ -30,7 +30,8 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
       title, longDescription, organizer, category, image, headerImage, eventLogo,
-      whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location
+      whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
+      allowExternals
   } = event;
 
   const parseSpeakers = (speakers?: string) => {
@@ -103,6 +104,24 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                     <DetailSection title="About this event" icon={<Info className="h-6 w-6 text-blue-400" />}>
                         <p>{longDescription}</p>
                     </DetailSection>
+
+                    {allowExternals && (
+                      <DetailSection title="Location" icon={<Globe className="h-6 w-6 text-blue-400" />}>
+                        <div className="aspect-video w-full overflow-hidden rounded-lg border border-white/10">
+                          <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3168.483935290437!2d-122.17222638469248!3d37.42747447982424!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fbb2a69466373%3A0x1b721e78d1f2b936!2sStanford%20University!5e0!3m2!1sen!2sus!4v1684444555444!5m2!1sen!2sus"
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen={true}
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            title="Google Map of the event location"
+                          ></iframe>
+                        </div>
+                        <p className="text-xs text-white/50 mt-2">Interactive map for directions.</p>
+                      </DetailSection>
+                    )}
                     
                     <DetailSection title="Tags" icon={<Tag className="h-6 w-6 text-blue-400" />}>
                         <div className="flex flex-wrap gap-2">

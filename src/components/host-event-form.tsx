@@ -10,7 +10,7 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit } from "lucide-react";
+import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe } from "lucide-react";
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
@@ -18,6 +18,8 @@ import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserProposals } from '@/lib/data';
 import { format, toDate } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { 
     TimeSlotSelectionModal,
     FileInput, 
@@ -150,7 +152,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         targetAudience: form.targetAudience,
         keySpeakers: form.keySpeakers,
         whatYouWillLearn: form.whatYouWillLearn,
-        googleDriveFolderId: form.googleDriveFolderId
+        googleDriveFolderId: form.googleDriveFolderId,
+        allowExternals: form.allowExternals
     };
   }
 
@@ -610,6 +613,25 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         <FileInput name="eventLogo" label="Event Logo (Optional)" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
                         
                         <EquipmentSelector equipment={equipment} setEquipment={setEquipment} />
+                        
+                        <div className="space-y-2">
+                            <label className="text-white text-sm">Are external attendees allowed?</label>
+                            <RadioGroup
+                                value={String(form.allowExternals || 'false')}
+                                onValueChange={(value) => setForm({ ...form, allowExternals: value === 'true' })}
+                                className="flex gap-4 pt-2"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="true" id="externals-yes" />
+                                    <Label htmlFor="externals-yes">Yes</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="false" id="externals-no" />
+                                    <Label htmlFor="externals-no">No</Label>
+                                </div>
+                            </RadioGroup>
+                            <p className="text-xs text-white/60">If yes, a public map will be shown on the event page.</p>
+                        </div>
                         
                         <div className="space-y-2">
                             <label className="text-white text-sm">Budget & Funding (Optional)</label>

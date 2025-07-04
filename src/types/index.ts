@@ -47,6 +47,7 @@ export type Event = {
   googleDriveFolderId?: string;
   createdBy?: string;
   approvedBy?: string;
+  allowExternals?: boolean;
 };
 
 export type Club = {
@@ -98,6 +99,7 @@ export type EventProposal = {
   googleDriveFolderId?: string;
   tags?: string[];
   publishedEventId?: string;
+  allowExternals?: boolean;
 };
 
 export type TimetableEntry = {
