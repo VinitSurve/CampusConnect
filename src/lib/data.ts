@@ -182,79 +182,78 @@ const locationIdToNameMap: { [key: string]: string } = {
 export async function getDayScheduleForLocation(date: Date, locationId: string): Promise<any[]> {
     if (handleDbError('getDayScheduleForLocation')) return [];
     
+    // Step 1: Prepare variables
     const dateStr = format(date, 'yyyy-MM-dd');
-    const jsDayOfWeek = date.getDay();
-    const locationName = locationIdToNameMap[locationId] || locationId;
+    const jsDayOfWeek = date.getDay(); // 0=Sun, 1=Mon, etc.
+    const targetLocationName = locationIdToNameMap[locationId] || locationId;
+    
+    // This will hold all bookings for the ENTIRE day, which we will filter later.
+    const allBookingsForDay: any[] = [];
 
     try {
-        const eventPromise = getDocs(query(collection(db, "events"), where("date", "==", dateStr)));
+        // Step 2: Fetch ALL data for the given day, from all sources.
         
-        const timetablePromise = jsDayOfWeek > 0 && jsDayOfWeek < 7 
-            ? getDocs(query(collection(db, "timetables"), where("dayOfWeek", "==", jsDayOfWeek)))
-            : Promise.resolve({ docs: [] });
-            
-        const seminarPromise = getDocs(query(collection(db, "seminarBookings"), where("date", "==", dateStr)));
-
-        const [eventsSnapshot, timetablesSnapshot, seminarSnapshot] = await Promise.all([
-            eventPromise,
-            timetablePromise,
-            seminarPromise,
-        ]);
-        
-        const allPotentialBookings: any[] = [];
-
-        // Process events
+        // Fetch events on that date.
+        const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
+        const eventsSnapshot = await getDocs(eventsQuery);
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
-            if (!data.date) return;
-
-            const bookingToAdd: any = { ...data, type: 'Event' };
-
-            if (!data.time) { // All-day event
-                bookingToAdd.startTime = '08:00';
-                bookingToAdd.endTime = '18:00';
-            } else {
-                bookingToAdd.startTime = data.time;
-                // If no endTime, default to one hour after startTime
-                bookingToAdd.endTime = data.endTime || (() => {
-                    const [hour, minute] = data.time.split(':').map(Number);
-                    const endHour = hour + 1;
-                    return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-                })();
-            }
-            allPotentialBookings.push(bookingToAdd);
+            const booking = {
+                title: data.title,
+                organizer: data.organizer,
+                location: data.location,
+                type: 'Event',
+                // IMPORTANT: Normalize start/end times
+                startTime: data.time || '08:00', // Default to start of day for all-day events
+                endTime: data.endTime || (data.time ? `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00` : '18:00') // Default to end of day for all-day events
+            };
+            allBookingsForDay.push(booking);
         });
 
-        // Process timetables
-        timetablesSnapshot.forEach(doc => {
-            const data = doc.data() as TimetableEntry;
-            allPotentialBookings.push({ 
-                title: `${data.subject} (${data.course} ${data.year}-${data.division})`, 
-                startTime: data.startTime, 
-                endTime: data.endTime, 
-                organizer: data.facultyName, 
-                type: 'Lecture', 
-                location: data.location 
+        // Fetch seminar bookings on that date.
+        const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
+        const seminarSnapshot = await getDocs(seminarQuery);
+        seminarSnapshot.forEach(doc => {
+            allBookingsForDay.push({
+                ...doc.data(),
+                location: 'Seminar Hall', // Implicit location
+                type: 'Booking'
             });
         });
 
-        // Process seminar bookings
-        seminarSnapshot.forEach(doc => {
-            const data = doc.data() as SeminarBooking;
-            allPotentialBookings.push({ ...data, type: 'Booking', location: 'Seminar Hall' });
+        // Fetch recurring timetable lectures for that day of the week.
+        if (jsDayOfWeek > 0 && jsDayOfWeek < 7) { // Only fetch for Mon-Sat
+            const timetableQuery = query(collection(db, "timetables"), where("dayOfWeek", "==", jsDayOfWeek));
+            const timetablesSnapshot = await getDocs(timetableQuery);
+            timetablesSnapshot.forEach(doc => {
+                const data = doc.data() as TimetableEntry;
+                allBookingsForDay.push({
+                    title: `${data.subject} (${data.course} ${data.year}-${data.division})`,
+                    organizer: data.facultyName,
+                    location: data.location,
+                    type: 'Lecture',
+                    startTime: data.startTime,
+                    endTime: data.endTime
+                });
+            });
+        }
+        
+        // Step 3: Filter the combined list by the target location.
+        // This is the most crucial step. It ensures we only return bookings for the selected room.
+        const finalSchedule = allBookingsForDay.filter(booking => {
+            const eventLocation = booking.location;
+            // The location might be stored as 'seminar' or 'Seminar Hall'. We check for both.
+            return eventLocation === targetLocationName || eventLocation === locationId;
         });
 
-        // Final robust filter
-        return allPotentialBookings.filter(booking => {
-            const eventLocation = booking.location;
-            return eventLocation === locationName || eventLocation === locationId;
-        });
+        return finalSchedule;
 
     } catch (error) {
         console.error("Error fetching day schedule:", error);
+        // Add a check for the composite index error, as it's a common Firestore issue.
         if ((error as any).code === 'failed-precondition') {
             console.error(
-                `Firestore composite index required. Please check the browser console for a link to create the index.`
+                `Firestore composite index required. Please check the browser console for a link to create the necessary index for your queries.`
             );
         }
         return [];
