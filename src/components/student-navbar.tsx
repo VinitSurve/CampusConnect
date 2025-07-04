@@ -20,6 +20,8 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
   const router = useRouter();
   
   useEffect(() => {
+    // This effect runs on the client after hydration
+    // It closes menus on navigation
     setIsMobileMenuOpen(false);
     setIsProfileDropdownOpen(false);
   }, [pathname]);
