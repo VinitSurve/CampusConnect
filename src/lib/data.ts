@@ -4,6 +4,8 @@
 import type { Club, Event, EventProposal, User } from '@/types';
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { format } from 'date-fns';
+
 
 const handleDbError = (operation: string) => {
   if (!db) {
@@ -167,4 +169,88 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
     console.error("Error fetching user event proposals:", error);
     return [];
   }
+}
+
+const locationIdToNameMap: { [key: string]: string } = {
+  'lab401': 'Lab 401',
+  'lab402': 'Lab 402',
+  'lab503': 'Lab 503',
+  'seminar': 'Seminar Hall'
+};
+
+export async function getDayScheduleForLocation(date: Date, locationId: string): Promise<any[]> {
+    if (handleDbError('getDayScheduleForLocation')) return [];
+    
+    const locationName = locationIdToNameMap[locationId] || locationId;
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+    // Timetable uses 1=Mon, ..., 6=Sat. JS getDay() is 0-6.
+    const firestoreDayOfWeek = dayOfWeek; 
+
+    let allBookings: any[] = [];
+
+    try {
+        // Fetch Events
+        const eventsQuery = query(
+            collection(db, "events"),
+            where("date", "==", dateStr),
+            where("location", "==", locationName)
+        );
+        const eventsSnapshot = await getDocs(eventsQuery);
+        eventsSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            allBookings.push({
+                title: data.title,
+                startTime: data.time,
+                endTime: data.endTime,
+                organizer: data.organizer,
+                type: 'Event'
+            });
+        });
+
+        // Fetch Timetables
+        if (firestoreDayOfWeek > 0) { // No lectures on Sunday
+            const timetablesQuery = query(
+                collection(db, "timetables"),
+                where("dayOfWeek", "==", firestoreDayOfWeek),
+                where("location", "==", locationName)
+            );
+            const timetablesSnapshot = await getDocs(timetablesQuery);
+            timetablesSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                allBookings.push({
+                    title: `${data.subject} (${data.course} ${data.year}-${data.division})`,
+                    startTime: data.startTime,
+                    endTime: data.endTime,
+                    organizer: data.facultyName,
+                    type: 'Lecture'
+                });
+            });
+        }
+
+        // Fetch Seminar Bookings (only if location is seminar hall)
+        if (locationId === 'seminar') {
+            const seminarQuery = query(
+                collection(db, "seminarBookings"),
+                where("date", "==", dateStr)
+            );
+            const seminarSnapshot = await getDocs(seminarQuery);
+            seminarSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                allBookings.push({
+                    title: data.title,
+                    startTime: data.startTime,
+                    endTime: data.endTime,
+                    organizer: data.organizer,
+                    type: 'Booking'
+                });
+            });
+        }
+        
+        return allBookings;
+    } catch (error) {
+        console.error("Error fetching day schedule:", error);
+        return [];
+    }
 }

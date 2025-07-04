@@ -10,15 +10,17 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit } from "lucide-react";
+import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, CheckCircle2, XCircle, Info as InfoIcon } from "lucide-react";
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
 import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getUserProposals } from "@/lib/data";
+import { getUserProposals, getDayScheduleForLocation } from "@/lib/data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { format } from 'date-fns';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
     FileInput, 
     ProposalList,
@@ -38,6 +40,180 @@ interface HostEventFormProps {
     proposals: EventProposal[];
 }
 
+const TimeSlotSelectionModal = ({ isOpen, onClose, onConfirm, selectedDate, locationId }: { isOpen: boolean; onClose: () => void; onConfirm: (selection: { start: string; end: string }) => void; selectedDate: Date | null; locationId: string; }) => {
+    const [loading, setLoading] = useState(true);
+    const [schedule, setSchedule] = useState<Record<string, any>>({});
+    const [selection, setSelection] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
+
+    const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']; // Ends at 17:00
+
+    useEffect(() => {
+        if (!isOpen || !selectedDate || !locationId) return;
+
+        const fetchSchedule = async () => {
+            setLoading(true);
+            setSelection({ start: null, end: null }); // Reset selection on open
+            const bookings = await getDayScheduleForLocation(selectedDate, locationId);
+            
+            const newSchedule: Record<string, any> = {};
+            timeSlots.forEach(slot => {
+                const slotStartHour = parseInt(slot.split(':')[0]);
+                const slotEndHour = slotStartHour + 1;
+
+                const bookingForSlot = bookings.find(b => {
+                    if (!b.startTime || !b.endTime) return false;
+                    const bookingStartHour = parseInt(b.startTime.split(':')[0]);
+                    const bookingEndHour = parseInt(b.endTime.split(':')[0]);
+                    return slotStartHour < bookingEndHour && slotEndHour > bookingStartHour;
+                });
+
+                newSchedule[slot] = bookingForSlot ? { booked: true, ...bookingForSlot } : { booked: false };
+            });
+
+            setSchedule(newSchedule);
+            setLoading(false);
+        };
+
+        fetchSchedule();
+    }, [isOpen, selectedDate, locationId]);
+
+    const { toast } = useToast();
+
+    const handleSlotClick = (slot: string) => {
+        if (schedule[slot]?.booked) return;
+
+        const { start, end } = selection;
+
+        if (start && end) { // A range is already selected, so reset
+            setSelection({ start: slot, end: null });
+        } else if (start && !end) { // Start is selected, now select end
+            const startIndex = timeSlots.indexOf(start);
+            const clickIndex = timeSlots.indexOf(slot);
+            
+            const [minIdx, maxIdx] = [Math.min(startIndex, clickIndex), Math.max(startIndex, clickIndex)];
+
+            for (let i = minIdx; i <= maxIdx; i++) {
+                if (schedule[timeSlots[i]].booked) {
+                    toast({ title: "Conflict Detected", description: "Your selection includes a booked slot. Please choose a continuous range of available slots.", variant: "destructive"});
+                    setSelection({ start: null, end: null });
+                    return;
+                }
+            }
+            setSelection({ start: timeSlots[minIdx], end: timeSlots[maxIdx] });
+
+        } else { // No selection yet, set start
+            setSelection({ start: slot, end: null });
+        }
+    };
+    
+    const getSlotClass = (slot: string) => {
+        const isBooked = schedule[slot]?.booked;
+        if (isBooked) return "bg-red-900/40 text-white/50 cursor-not-allowed";
+
+        const { start, end } = selection;
+        const slotIndex = timeSlots.indexOf(slot);
+        
+        if (start && end) {
+            const startIndex = timeSlots.indexOf(start);
+            const endIndex = timeSlots.indexOf(end);
+            if (slotIndex >= startIndex && slotIndex <= endIndex) {
+                return "bg-blue-600/80 ring-2 ring-blue-400 text-white";
+            }
+        }
+        
+        if (start === slot) return "bg-blue-600/50 ring-2 ring-blue-500 text-white";
+        
+        return "bg-green-800/20 hover:bg-green-800/50 cursor-pointer";
+    };
+    
+    const selectedStartTime = selection.start;
+    const selectedEndTime = selection.end ? `${parseInt(selection.end.split(':')[0]) + 1}:00` : null;
+
+    const handleConfirm = () => {
+        if (!selection.start) {
+            toast({ title: "No Selection", description: "Please select a time slot.", variant: "destructive"});
+            return;
+        }
+        const finalEndTime = selection.end ? `${parseInt(selection.end.split(':')[0]) + 1}:00`.padStart(5, '0') : `${parseInt(selection.start.split(':')[0]) + 1}:00`.padStart(5, '0');
+        onConfirm({ start: selection.start, end: finalEndTime });
+        onClose();
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-2xl bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+                <DialogHeader>
+                    <DialogTitle>Select Time for {selectedDate && format(selectedDate, 'MMMM d, yyyy')}</DialogTitle>
+                    <DialogDescription>Click one available slot to select a single hour, or two to select a range.</DialogDescription>
+                </DialogHeader>
+                
+                <div className="max-h-[60vh] overflow-y-auto pr-4 my-4">
+                    {loading ? (
+                        <div className="space-y-2">
+                            {timeSlots.map(slot => <Skeleton key={slot} className="h-16 w-full bg-white/10" />)}
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                           <TooltipProvider>
+                            {timeSlots.map(slot => {
+                                const slotData = schedule[slot];
+                                const isBooked = slotData?.booked;
+                                const endTime = `${parseInt(slot.split(':')[0]) + 1}:00`.padStart(5, '0');
+                                
+                                const slotContent = (
+                                    <div key={slot} onClick={() => handleSlotClick(slot)} className={`p-3 rounded-lg flex justify-between items-center transition-all duration-200 ${getSlotClass(slot)}`}>
+                                        <div className="font-mono font-bold text-lg">{slot} - {endTime}</div>
+                                        {isBooked ? (
+                                            <div className="text-right">
+                                                <div className="font-semibold text-red-300 flex items-center gap-2"><XCircle className="w-5 h-5"/> Booked</div>
+                                                <div className="text-xs text-white/70 truncate max-w-xs">{slotData.title}</div>
+                                            </div>
+                                        ) : (
+                                            <div className="font-semibold text-green-300 flex items-center gap-2">
+                                                <CheckCircle2 className="w-5 h-5"/> Available
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+
+                                if (isBooked) {
+                                    return (
+                                        <Tooltip key={`tip-${slot}`} delayDuration={200}>
+                                            <TooltipTrigger asChild>{slotContent}</TooltipTrigger>
+                                            <TooltipContent className="bg-slate-900 text-white border-slate-700">
+                                                <p className="font-bold">{slotData.title}</p>
+                                                <p>Organized by: {slotData.organizer}</p>
+                                                <p>Type: {slotData.type}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )
+                                }
+                                return slotContent;
+                            })}
+                           </TooltipProvider>
+                        </div>
+                    )}
+                </div>
+
+                <DialogFooter className="justify-between items-center bg-black/20 p-4 -m-6 mt-0 border-t border-white/10">
+                    <div className="text-white/80">
+                        {selectedStartTime ? (
+                            <span>Selected: <span className="font-bold text-white font-mono">{selectedStartTime} - {selectedEndTime || `${parseInt(selectedStartTime.split(':')[0]) + 1}:00`.padStart(5, '0')}</span></span>
+                        ) : (
+                            <span>No time selected.</span>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                         <Button variant="ghost" onClick={() => setSelection({ start: null, end: null })}>Clear</Button>
+                         <Button onClick={handleConfirm} disabled={!selection.start}>Confirm Selection</Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function HostEventForm({ user, proposals: initialProposals }: HostEventFormProps) {
   const [view, setView] = useState<'list' | 'templates' | 'form'>('list');
   const [step, setStep] = useState(1);
@@ -48,7 +224,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [previews, setPreviews] = useState({ headerImage: null as string | null, eventLogo: null as string | null });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
-  const [tempTime, setTempTime] = useState<{ start: string; end: string } | null>(null);
   const [isAllowed, setIsAllowed] = useState(false);
   const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
@@ -98,12 +273,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         const selectedClub = userClubs.find(c => c.id === form.clubId);
         if (selectedClub) return selectedClub.name;
     }
-
-    // Fallback logic
-    if (user.role === 'faculty') return user.name || 'Faculty Event';
-    if (userClubs.length > 0) return userClubs[0].name;
     
-    return 'CampusConnect';
+    // Fallback logic for faculty or pre-selected club lead
+    return form.clubName || 'CampusConnect';
   };
 
   const { liveProposals, completedProposals, draftProposals, rejectedProposals } = useMemo(() => {
@@ -226,10 +398,14 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleEditProposal = (proposal: EventProposal) => {
     setCurrentProposalId(proposal.id);
     setSelectedTemplate(null);
+    
+    // Ensure `location` defaults to "seminar" if it's missing or null in the draft
+    const draftLocation = proposal.location || 'seminar';
+
     setForm({
         ...EMPTY_FORM,
         ...proposal,
-        location: proposal.location || 'seminar',
+        location: draftLocation,
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
@@ -417,72 +593,23 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   
   const handleDateClick = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo.start);
-    setTempTime(null); // Reset previous temporary selection
     setIsTimeModalOpen(true);
   };
   
-  const handleTimeSelect = (selectInfo: DateSelectArg) => {
-    const { start, end, view } = selectInfo;
-    const isSameDay = start.getDate() === end.getDate();
-    const isEndOfDaySelection = !isSameDay && end.getHours() === 0 && end.getMinutes() === 0 && (end.getTime() - start.getTime() === 86400000 || start.getHours() !== 0);
-
-    if (!isSameDay && !isEndOfDaySelection) {
-      view.calendar.unselect();
-      toast({
-        title: "Invalid Selection",
-        description: "Please select a time range within a single day.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (start.getTime() === end.getTime()) {
-      view.calendar.unselect();
-      setTempTime(null);
-      return;
-    }
-    
-    // Conflict detection
-    const events = view.calendar.getEvents();
-    const selectionStart = start.getTime();
-    const selectionEnd = end.getTime();
-    const hasConflict = events.some(event => {
-      const eventStart = event.start!.getTime();
-      const eventEnd = event.end!.getTime();
-      return selectionStart < eventEnd && selectionEnd > eventStart;
-    });
-
-    if (hasConflict) {
-      view.calendar.unselect();
-      toast({
-        title: "Time Slot Unavailable",
-        description: "Your selection overlaps with an existing event. Please choose a different time.",
-        variant: "destructive",
-      });
-      setTempTime(null);
-      return;
-    }
-
-    setTempTime({ start: selectInfo.startStr, end: selectInfo.endStr });
-  };
+  const handleConfirmTime = (selection: { start: string, end: string }) => {
+      if (!selection.start || !selection.end || !selectedDate) return;
   
-  const handleConfirmTime = () => {
-      if (!tempTime || !selectedDate) return;
-  
-      const startTimeStr = new Date(tempTime.start).toTimeString().split(' ')[0].substring(0, 5);
-      const endTimeStr = new Date(tempTime.end).toTimeString().split(' ')[0].substring(0, 5);
       const dateStr = selectedDate.toISOString().split('T')[0];
       
       setForm((prev:any) => ({
         ...prev,
         date: dateStr,
-        time: startTimeStr,
-        endTime: endTimeStr,
+        time: selection.start,
+        endTime: selection.end,
       }));
       
-      toast({ title: "Time Slot Confirmed", description: `Set to ${dateStr} from ${startTimeStr} to ${endTimeStr}` });
+      toast({ title: "Time Slot Confirmed", description: `Set to ${dateStr} from ${selection.start} to ${selection.end}` });
       setIsTimeModalOpen(false);
-      setTempTime(null);
   };
 
 
@@ -700,7 +827,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         <div className="sticky top-24 self-start">
           <div className="space-y-2 mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
               <h3 className="font-semibold text-white">Select Date, Time & Location*</h3>
-              <p className="text-sm text-white/70">Click a date on the calendar. This will open a popup to select an available time slot.</p>
+              <p className="text-sm text-white/70">Click a date on the calendar to open the daily schedule and select a time slot.</p>
           </div>
           <div className="mb-4">
             <select name="location" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none" required>
@@ -708,57 +835,17 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 {locations.map(loc => (<option key={loc.id} value={loc.id} className="bg-gray-800">{loc.icon} {loc.name}</option>))}
             </select>
           </div>
-          <AcademicCalendar onDateSelect={handleDateClick} initialView="dayGridMonth" headerToolbarRight="" locationFilter={form.location} />
+          <AcademicCalendar onDateSelect={handleDateClick} initialView="dayGridMonth" headerToolbarRight="" />
         </div>
       </div>
 
-      <Dialog open={isTimeModalOpen} onOpenChange={setIsTimeModalOpen}>
-        <DialogContent className="sm:max-w-6xl p-0 bg-white/10 backdrop-blur-xl border-white/20 text-white rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-white/10 bg-black/20">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-white">Select Available Time Slot</DialogTitle>
-                    <DialogDescription className="text-white/80">
-                        For {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')} in {locations.find(l => l.id === form.location)?.name || 'selected location'}.
-                        <br />
-                        Click and drag on an empty time slot to make a selection. Already booked slots are shown.
-                    </DialogDescription>
-                </DialogHeader>
-            </div>
-            
-            <div className="flex-grow p-4 md:p-6 overflow-y-auto">
-              {selectedDate && form.location && (
-                  <AcademicCalendar
-                      key={`${form.location}-${selectedDate.toISOString()}`}
-                      initialView="timeGridDay"
-                      initialDate={selectedDate}
-                      locationFilter={form.location}
-                      onDateSelect={handleTimeSelect}
-                      showToolbar={false}
-                  />
-              )}
-            </div>
-            
-            <DialogFooter className="p-6 border-t border-white/20 flex justify-between items-center bg-black/20">
-                <div className="text-white">
-                    {tempTime ? (
-                        <div className="flex items-center gap-3">
-                            <Clock className="w-6 h-6 text-blue-300 flex-shrink-0"/>
-                            <div>
-                                <p className="font-semibold text-white">Selected Slot:</p>
-                                <p className="font-mono bg-white/10 px-2 py-1 rounded-md text-sm">{format(new Date(tempTime.start), 'p')} - {format(new Date(tempTime.end), 'p')}</p>
-                            </div>
-                        </div>
-                    ) : (
-                        <span className="text-white/60 text-sm">No time slot selected.</span>
-                    )}
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" className="bg-white/10 hover:bg-white/20 text-white" onClick={() => setIsTimeModalOpen(false)}>Cancel</Button>
-                    <Button onClick={handleConfirmTime} disabled={!tempTime}>Confirm Selection</Button>
-                </div>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
+       <TimeSlotSelectionModal
+            isOpen={isTimeModalOpen}
+            onClose={() => setIsTimeModalOpen(false)}
+            onConfirm={handleConfirmTime}
+            selectedDate={selectedDate}
+            locationId={form.location}
+        />
     </div>
   );
 }
