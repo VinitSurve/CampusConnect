@@ -23,7 +23,7 @@ try {
   const missingConfig = requiredConfig.filter(key => !firebaseConfig[key]);
 
   if (missingConfig.length > 0) {
-    throw new Error(`Firebase configuration is missing or incomplete in your .env file.
+    const error = new Error(`Firebase configuration is missing or incomplete in your .env file.
 Missing keys: ${missingConfig.join(', ')}
 
 To fix this:
@@ -34,11 +34,18 @@ To fix this:
 5. Look for the 'firebaseConfig' object and copy the values.
 6. Paste these values into the corresponding NEXT_PUBLIC_... variables in your .env file.
 7. IMPORTANT: Restart the development server after saving the .env file.`);
+    
+    firebase_error = error;
+    console.error("--- FIREBASE INIT ERROR ---");
+    console.error(error.message);
+    console.error("Firebase features will be disabled.");
+    console.error("---------------------------");
+
+  } else {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
   }
-  
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
 
 } catch (e) {
     firebase_error = e as Error;
