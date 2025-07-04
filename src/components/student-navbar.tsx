@@ -16,31 +16,13 @@ interface StudentNavbarProps {
 export default function StudentNavbar({ user }: StudentNavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  
-  useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsProfileDropdownOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isProfileDropdownOpen && !(event.target as Element).closest('.profile-dropdown-container')) {
-        setIsProfileDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isProfileDropdownOpen]);
 
   const handleSignOut = async () => {
     await logout();
@@ -65,8 +47,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
   const activeItem = getActiveItem();
   
   return (
-    <nav className={`sticky top-0 z-40 w-full transition-all duration-300 
-      ${scrolled ? 'bg-blue-900/90 backdrop-blur-md shadow-md' : 'bg-transparent'}`}>
+    <nav className="sticky top-0 z-40 w-full bg-blue-900/90 backdrop-blur-md shadow-md">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
@@ -112,7 +93,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
             
             <div className="relative profile-dropdown-container">
               <button 
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                onClick={() => setIsProfileDropdownOpen(prev => !prev)}
                 className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-800 focus:ring-white"
               >
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium overflow-hidden border-2 border-white/20">
