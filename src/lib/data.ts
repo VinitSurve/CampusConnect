@@ -206,17 +206,23 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         // Process events
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
-            // Handle all three cases: all-day, timed with end, timed without end
+            if (!data.date) return;
+
+            const bookingToAdd: any = { ...data, type: 'Event' };
+
             if (!data.time) { // All-day event
-                 allPotentialBookings.push({ ...data, startTime: '08:00', endTime: '18:00', type: 'All-Day Event' });
-            } else if (data.time && data.endTime) {
-                 allPotentialBookings.push({ ...data, type: 'Event' });
-            } else if (data.time) { // Has start time but no end time, assume 1 hour
-                const startTime = data.time;
-                const [hour, minute] = startTime.split(':').map(Number);
-                const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-                allPotentialBookings.push({ ...data, endTime: endTime, type: 'Event' });
+                bookingToAdd.startTime = '08:00';
+                bookingToAdd.endTime = '18:00';
+            } else {
+                bookingToAdd.startTime = data.time;
+                // If no endTime, default to one hour after startTime
+                bookingToAdd.endTime = data.endTime || (() => {
+                    const [hour, minute] = data.time.split(':').map(Number);
+                    const endHour = hour + 1;
+                    return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                })();
             }
+            allPotentialBookings.push(bookingToAdd);
         });
 
         // Process timetables
