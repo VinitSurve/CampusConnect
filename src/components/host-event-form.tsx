@@ -659,7 +659,12 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 {locations.map(loc => (<option key={loc.id} value={loc.id} className="bg-gray-800">{loc.icon} {loc.name}</option>))}
             </select>
           </div>
-          <AcademicCalendar onDateSelect={handleDateClick} initialView="dayGridMonth" headerToolbarRight="" />
+          <AcademicCalendar
+            onDateSelect={handleDateClick}
+            initialView="dayGridMonth"
+            headerToolbarRight=""
+            locationFilter={form.location}
+          />
         </div>
       </div>
 
