@@ -68,7 +68,7 @@ export default function AcademicCalendar({
             ) : (
                 <div className="space-y-1 text-sm">
                     <p><strong>Organizer:</strong> {props.organizer}</p>
-                    <p><strong>Time:</strong> {new Date(eventInfo.event.startStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    <p><strong>Time:</strong> {eventInfo.event.allDay ? 'All Day' : new Date(eventInfo.event.startStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                     <p><strong>Location:</strong> {props.location}</p>
                 </div>
             )}
@@ -78,7 +78,7 @@ export default function AcademicCalendar({
     const eventDisplay = (
         <div className='w-full h-full p-2 overflow-hidden text-left cursor-pointer'>
             <p className="font-semibold truncate text-lg">{eventInfo.event.title}</p>
-            {!isTimetable && <p className="text-sm truncate opacity-80">{eventInfo.timeText}</p>}
+            {!isTimetable && !eventInfo.event.allDay && <p className="text-sm truncate opacity-80">{eventInfo.timeText}</p>}
         </div>
     );
 
@@ -178,7 +178,8 @@ export default function AcademicCalendar({
           ? allCalEvents.filter(e => {
               const eventLocation = e.extendedProps.location;
               const expectedLocationName = locationIdToNameMap[locationFilter] || locationFilter;
-              return eventLocation === expectedLocationName;
+              // Robust filter: Check against both ID and Name
+              return eventLocation === expectedLocationName || eventLocation === locationFilter;
             })
           : allCalEvents;
 
@@ -221,7 +222,7 @@ export default function AcademicCalendar({
             initialDate={initialDate}
             weekends={true}
             events={events}
-            displayEventTime={false}
+            displayEventTime={true}
             editable={false}
             selectable={true}
             selectMirror={true}

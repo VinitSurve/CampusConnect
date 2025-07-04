@@ -1,7 +1,8 @@
 
+
 'use server'
 
-import type { Club, Event, EventProposal, User } from '@/types';
+import type { Club, Event, EventProposal, User, TimetableEntry, SeminarBooking } from '@/types';
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { format } from 'date-fns';
@@ -182,48 +183,59 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
     if (handleDbError('getDayScheduleForLocation')) return [];
     
     const dateStr = format(date, 'yyyy-MM-dd');
-    const firestoreDayOfWeek = date.getDay(); // JS: Sun=0, Mon=1..Sat=6.
+    const jsDayOfWeek = date.getDay(); // JS: Sun=0, Mon=1..Sat=6.
     const locationName = locationIdToNameMap[locationId] || locationId;
 
-    const allBookings: any[] = [];
-
     try {
-        // Fetch one-off events for the given date
-        const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
-        const eventsSnapshot = await getDocs(eventsQuery);
+        const eventPromise = getDocs(query(collection(db, "events"), where("date", "==", dateStr)));
+        
+        const timetablePromise = jsDayOfWeek > 0 
+            ? getDocs(query(collection(db, "timetables"), where("dayOfWeek", "==", jsDayOfWeek)))
+            : Promise.resolve({ docs: [] });
+            
+        const seminarPromise = getDocs(query(collection(db, "seminarBookings"), where("date", "==", dateStr)));
+
+        const [eventsSnapshot, timetablesSnapshot, seminarSnapshot] = await Promise.all([
+            eventPromise,
+            timetablePromise,
+            seminarPromise,
+        ]);
+        
+        const allBookings: any[] = [];
+
+        // Process events
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
             // Handle both timed and all-day events
-            if (data.time && data.endTime) {
+            if (!data.time) { // All-day event
+                 allBookings.push({ title: data.title, startTime: '08:00', endTime: '18:00', organizer: data.organizer, type: 'All-Day Event', location: data.location });
+            } else if (data.time && data.endTime) {
                  allBookings.push({ title: data.title, startTime: data.time, endTime: data.endTime, organizer: data.organizer, type: 'Event', location: data.location });
             } else if (data.time) { // Has start time but no end time, assume 1 hour
                 const startTime = data.time;
                 const [hour, minute] = startTime.split(':').map(Number);
                 const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
                 allBookings.push({ title: data.title, startTime, endTime, organizer: data.organizer, type: 'Event', location: data.location });
-            } else { // All-day event
-                allBookings.push({ title: data.title, startTime: '08:00', endTime: '18:00', organizer: data.organizer, type: 'All-Day Event', location: data.location });
             }
         });
 
-        // Fetch recurring timetable entries for that day of the week
-        const timetablesQuery = query(collection(db, "timetables"), where("dayOfWeek", "==", firestoreDayOfWeek));
-        const timetablesSnapshot = await getDocs(timetablesQuery);
+        // Process timetables
         timetablesSnapshot.forEach(doc => {
             const data = doc.data();
             allBookings.push({ title: `${data.subject} (${data.course} ${data.year}-${data.division})`, startTime: data.startTime, endTime: data.endTime, organizer: data.facultyName, type: 'Lecture', location: data.location });
         });
 
-        // Fetch dedicated seminar bookings for the given date
-        const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
-        const seminarSnapshot = await getDocs(seminarQuery);
+        // Process seminar bookings
         seminarSnapshot.forEach(doc => {
             const data = doc.data();
             allBookings.push({ title: data.title, startTime: data.startTime, endTime: data.endTime, organizer: data.organizer, type: 'Booking', location: 'Seminar Hall' });
         });
 
-        // Now, apply the location filter robustly after collecting all potential bookings
-        return allBookings.filter(booking => booking.location === locationName);
+        // Final robust filter
+        return allBookings.filter(booking => {
+            // A booking matches if its location is either the display name (e.g., "Seminar Hall") or the ID (e.g., "seminar").
+            return booking.location === locationName || booking.location === locationId;
+        });
 
     } catch (error) {
         console.error("Error fetching day schedule:", error);
