@@ -7,6 +7,7 @@ import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Glo
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
+import PhotoGallery from './photo-gallery';
 
 interface EventDetailPageProps {
   event: Event;
@@ -110,25 +111,11 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
 
                     {isEventPast && photoAlbumUrl && (
                         <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
-                            <p className="text-sm text-white/70 mb-4">A snapshot of the moments from the event. Click the button below to see the full album.</p>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                {[...Array(4)].map((_, i) => (
-                                    <div key={i} className="aspect-square relative rounded-lg overflow-hidden group">
-                                        <Image
-                                            src={`https://placehold.co/400x300.png`}
-                                            alt={`Event photo ${i + 1}`}
-                                            layout="fill"
-                                            objectFit="cover"
-                                            className="transition-transform duration-300 group-hover:scale-105"
-                                            data-ai-hint="event photograph"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="text-center">
+                            <PhotoGallery albumUrl={photoAlbumUrl} />
+                            <div className="text-center mt-6">
                                 <Button asChild size="lg">
                                     <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
-                                        View Full Album
+                                        View Full Album in Google Photos
                                         <ExternalLink className="ml-2 h-4 w-4" />
                                     </a>
                                 </Button>
