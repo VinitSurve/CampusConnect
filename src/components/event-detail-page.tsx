@@ -102,24 +102,39 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                         )}
                     </div>
                 </div>
-                
-                {isEventPast && photoAlbumUrl && (
-                    <div className="text-center my-8">
-                        <Button asChild size="lg">
-                            <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
-                                <Camera className="mr-2 h-5 w-5" />
-                                View Event Gallery
-                                <ExternalLink className="ml-2 h-4 w-4" />
-                            </a>
-                        </Button>
-                    </div>
-                )}
-
 
                 <div className="space-y-8">
                     <DetailSection title="About this event" icon={<Info className="h-6 w-6 text-blue-400" />}>
                         <p>{longDescription}</p>
                     </DetailSection>
+
+                    {isEventPast && photoAlbumUrl && (
+                        <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
+                            <p className="text-sm text-white/70 mb-4">A snapshot of the moments from the event. Click the button below to see the full album.</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                {[...Array(4)].map((_, i) => (
+                                    <div key={i} className="aspect-square relative rounded-lg overflow-hidden group">
+                                        <Image
+                                            src={`https://placehold.co/400x300.png`}
+                                            alt={`Event photo ${i + 1}`}
+                                            layout="fill"
+                                            objectFit="cover"
+                                            className="transition-transform duration-300 group-hover:scale-105"
+                                            data-ai-hint="event photograph"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="text-center">
+                                <Button asChild size="lg">
+                                    <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
+                                        View Full Album
+                                        <ExternalLink className="ml-2 h-4 w-4" />
+                                    </a>
+                                </Button>
+                            </div>
+                        </DetailSection>
+                    )}
 
                     {allowExternals && (
                       <DetailSection title="Campus Location" icon={<Globe className="h-6 w-6 text-blue-400" />}>
