@@ -442,7 +442,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleConfirmTime = (selection: { start: string, end: string }) => {
       if (!selection.start || !selection.end || !selectedDate) return;
   
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
       setForm((prev:any) => ({
         ...prev,
