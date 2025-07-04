@@ -119,10 +119,19 @@ export async function getEventProposals(): Promise<EventProposal[]> {
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
       const data = doc.data();
+      // Serialize all timestamp fields to prevent passing complex objects to client components
+      const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString();
+      const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null;
+      const approvedAt = data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : null;
+      const rejectedAt = data.rejectedAt?.toDate ? data.rejectedAt.toDate().toISOString() : null;
+
       return { 
         ...data, 
         id: doc.id,
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString()
+        createdAt,
+        updatedAt,
+        approvedAt,
+        rejectedAt,
       } as EventProposal;
     });
     
