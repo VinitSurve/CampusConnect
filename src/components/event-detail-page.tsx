@@ -3,7 +3,7 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera, ExternalLink } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
@@ -109,6 +109,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                             <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
                                 <Camera className="mr-2 h-5 w-5" />
                                 View Event Gallery
+                                <ExternalLink className="ml-2 h-4 w-4" />
                             </a>
                         </Button>
                     </div>
