@@ -2,9 +2,11 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import type { EventProposal } from '@/types';
+import type { EventProposal, Event, SeminarBooking } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { approveRequest, rejectRequest } from '@/app/admin/actions';
+import { db } from '@/lib/firebase';
+import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { deleteFolder } from '@/lib/drive';
 import {
   Dialog,
   DialogContent,
@@ -109,6 +111,13 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const locationIdToNameMap: { [key: string]: string } = {
+    'lab401': 'Lab 401',
+    'lab402': 'Lab 402',
+    'lab503': 'Lab 503',
+    'seminar': 'Seminar Hall'
+  };
+
   useEffect(() => {
     if (initialRequests.length > 0) {
       setSelectedRequest(initialRequests[0]);
@@ -132,37 +141,134 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
 
   const handleApprove = () => {
     if (!requestForApproval) return;
-    
+
     startTransition(async () => {
-      const finalData = {
-        ...editedData,
-        equipmentNeeds: JSON.stringify(editedEquipment),
-      };
-      
-      const result = await approveRequest(requestForApproval, finalData);
-      
-      if (result.success) {
-        setRequests(prev => prev.filter(req => req.id !== requestForApproval.id));
-        setRequestForApproval(null);
-        toast({ title: "Success", description: "Event approved and published successfully!" });
-      } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
-      }
+        const proposal = requestForApproval;
+        const finalEventData = {
+            ...editedData,
+            equipmentNeeds: JSON.stringify(editedEquipment),
+        };
+
+        try {
+            const finalDate = finalEventData.date || proposal.date;
+            if (!finalDate) {
+                throw new Error("Cannot approve a proposal without a date.");
+            }
+
+            const requestRef = doc(db, "eventRequests", proposal.id);
+
+            const startTime = finalEventData.time || proposal.time || '09:00';
+            const endTime = finalEventData.endTime || proposal.endTime || (() => {
+                const [hour, minute] = startTime.split(':').map(Number);
+                const endHour = hour + 1;
+                return `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            })();
+
+            const finalLocation = finalEventData.location || proposal.location;
+            const locationName = locationIdToNameMap[finalLocation] || finalLocation;
+
+            const newEvent: Omit<Event, 'id'> = {
+                title: finalEventData.title || proposal.title,
+                description: (finalEventData.description || proposal.description).substring(0, 100) + ((finalEventData.description || proposal.description).length > 100 ? '...' : ''),
+                longDescription: finalEventData.description || proposal.description,
+                date: finalDate,
+                time: startTime,
+                endTime: endTime,
+                location: locationName,
+                organizer: proposal.clubName,
+                category: finalEventData.category || proposal.category,
+                image: finalEventData.headerImage || proposal.headerImage || 'https://placehold.co/600x400.png',
+                headerImage: finalEventData.headerImage || proposal.headerImage,
+                eventLogo: finalEventData.eventLogo || proposal.eventLogo,
+                attendees: 0,
+                capacity: 100,
+                registrationLink: finalEventData.registrationLink || proposal.registrationLink || '#',
+                status: 'upcoming',
+                gallery: [],
+                tags: [...(finalEventData.tags || proposal.tags || []), finalEventData.category || proposal.category].filter((value, index, self) => self.indexOf(value) === index),
+                targetAudience: finalEventData.targetAudience || proposal.targetAudience,
+                keySpeakers: finalEventData.keySpeakers || proposal.keySpeakers,
+                equipmentNeeds: finalEventData.equipmentNeeds || proposal.equipmentNeeds,
+                budgetDetails: finalEventData.budgetDetails || proposal.budgetDetails,
+                whatYouWillLearn: finalEventData.whatYouWillLearn || proposal.whatYouWillLearn,
+                googleDriveFolderId: proposal.googleDriveFolderId,
+                createdBy: proposal.createdBy,
+            };
+
+            const newEventRef = await addDoc(collection(db, "events"), newEvent);
+
+            if (finalLocation === 'seminar') {
+                const newBooking: Omit<SeminarBooking, 'id'> = {
+                    title: newEvent.title,
+                    organizer: newEvent.organizer,
+                    date: newEvent.date,
+                    startTime: newEvent.time,
+                    endTime: newEvent.endTime,
+                };
+
+                await addDoc(collection(db, "seminarBookings"), {
+                    ...newBooking,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+            }
+
+            await updateDoc(requestRef, {
+                status: "approved",
+                approvedAt: serverTimestamp(),
+                publishedEventId: newEventRef.id,
+            });
+
+            // UI update
+            const updatedRequests = requests.filter(req => req.id !== proposal.id);
+            setRequests(updatedRequests);
+            setSelectedRequest(updatedRequests[0] || null);
+            setRequestForApproval(null);
+            toast({ title: "Success", description: "Event approved and published successfully!" });
+
+        } catch (error) {
+            console.error("Error approving request:", error);
+            toast({ title: "Error Approving Request", description: (error as Error).message, variant: "destructive" });
+        }
     });
   };
 
   const handleRejectConfirm = () => {
     if (!requestForRejection) return;
     startTransition(async () => {
-      const result = await rejectRequest(requestForRejection.id, rejectionReason);
-       if (result.success) {
-        setRequests(prev => prev.filter(req => req.id !== requestForRejection.id));
-        setRequestForRejection(null);
-        setRejectionReason("");
-        toast({ title: "Success", description: "Event has been rejected." });
-      } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
-      }
+        const proposalId = requestForRejection.id;
+        const proposal = requestForRejection;
+
+        if (!rejectionReason.trim()) {
+            toast({ title: "Reason Required", description: "Rejection reason cannot be empty.", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const requestRef = doc(db, "eventRequests", proposalId);
+
+            if (proposal.googleDriveFolderId) {
+                await deleteFolder(proposal.googleDriveFolderId);
+            }
+
+            await updateDoc(requestRef, {
+                status: "rejected",
+                rejectionReason: rejectionReason,
+                rejectedAt: serverTimestamp(),
+            });
+
+            // UI update
+            const updatedRequests = requests.filter(req => req.id !== proposalId);
+            setRequests(updatedRequests);
+            setSelectedRequest(updatedRequests[0] || null);
+            setRequestForRejection(null);
+            setRejectionReason("");
+            toast({ title: "Success", description: "Event has been rejected." });
+
+        } catch (error) {
+            console.error("Error rejecting request:", error);
+            toast({ title: "Error Rejecting Request", description: (error as Error).message, variant: "destructive" });
+        }
     });
   };
 
