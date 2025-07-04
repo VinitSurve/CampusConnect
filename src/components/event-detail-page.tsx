@@ -109,7 +109,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                       <DetailSection title="Location" icon={<Globe className="h-6 w-6 text-blue-400" />}>
                         <div className="aspect-video w-full overflow-hidden rounded-lg border border-white/10">
                           <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d60292.88373322143!2d72.8191910609349!3d19.16913611367098!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b71a8f3b14e5%3A0x8e8e7c975a557b44!2sGoregaon%2C%20Mumbai%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1717088234567!5m2!1sen!2sin"
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.6917411681556!2d73.05602431538356!3d19.0332619871128!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c24243ffffff%3A0x1d14e05b6301389e!2sBharati%20Vidyapeeth%20Institute%20of%20Management%20Studies%20and%20Research!5e0!3m2!1sen!2sin"
                             width="100%"
                             height="100%"
                             style={{ border: 0 }}
