@@ -31,7 +31,9 @@ interface FacultyDashboardClientProps {
 }
 
 const DetailItem = ({ icon, label, value, isPreformatted = false, isLink = false }: { icon: React.ReactNode, label: string; value?: string | string[] | boolean; isPreformatted?: boolean, isLink?: boolean }) => {
-  if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) return null;
+  if (value === undefined || value === null || (Array.isArray(value) && value.length === 0) || (typeof value === 'string' && !value.trim())) {
+    return null;
+  }
 
   let displayValue: any = value;
   if (typeof value === 'boolean') {
@@ -55,51 +57,6 @@ const DetailItem = ({ icon, label, value, isPreformatted = false, isLink = false
     </div>
   )
 }
-
-const EquipmentDetails = ({ jsonString }: { jsonString?: string }) => {
-    if (!jsonString) return <p className="text-base text-white">None requested.</p>;
-  
-    try {
-        const data = JSON.parse(jsonString);
-        
-        const labelMap: { [key: string]: string } = {
-            wirelessMics: "Wireless Mics",
-            collarMics: "Collar Mics",
-            waterBottles: "Water Bottles",
-            table: "Table",
-            chairs: "Chairs",
-        };
-
-        const items = Object.entries(data)
-            .map(([key, value]) => {
-                if (!value || value === 0) return null;
-                const label = labelMap[key] || key;
-                const displayValue = value === true ? "Yes" : String(value);
-                return { label, value: displayValue };
-            })
-            .filter(Boolean);
-
-        if (items.length === 0) {
-            return <p className="text-base text-white">None requested.</p>;
-        }
-
-        return (
-            <div className="bg-black/20 p-3 rounded-md">
-                <ul className="list-disc list-inside text-base text-white space-y-1">
-                    {items.map(item => (
-                        item && <li key={item.label}>
-                            {item.label}: <span className="font-semibold">{item.value}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        );
-
-    } catch (e) {
-        return <p className="text-base text-white bg-black/20 p-3 rounded-md">{jsonString}</p>;
-    }
-};
-
 
 export default function FacultyDashboardClient({ initialRequests }: FacultyDashboardClientProps) {
   const [requests, setRequests] = useState(initialRequests);
@@ -279,6 +236,41 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
     const { name, value } = e.target;
     setEditedData(prev => ({ ...prev, [name]: value }));
   };
+  
+  const formatEquipmentString = (jsonString?: string): string => {
+    if (!jsonString) return '';
+  
+    try {
+        const data = JSON.parse(jsonString);
+        
+        const labelMap: { [key: string]: string } = {
+            wirelessMics: "Wireless Mics",
+            collarMics: "Collar Mics",
+            waterBottles: "Water Bottles",
+            table: "Table",
+            chairs: "Chairs",
+        };
+
+        const items = Object.entries(data)
+            .map(([key, value]) => {
+                if (!value || value === 0) return null;
+                const label = labelMap[key] || key;
+                const displayValue = value === true ? "" : `: ${String(value)}`;
+                return `- ${label}${displayValue}`;
+            })
+            .filter(Boolean);
+
+        if (items.length === 0) return '';
+        
+        return items.join('\n');
+    } catch (e) {
+        // If it's not JSON, it might be a plain text string. Return it if it's not a placeholder.
+        const lowercased = jsonString.toLowerCase();
+        if(lowercased.includes('none') || lowercased.trim() === '' || lowercased === '{}') return '';
+        return jsonString;
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -335,10 +327,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <DetailItem icon={<Mic />} label="Key Speakers / Guests" value={selectedRequest.keySpeakers} isPreformatted />
                 <DetailItem icon={<Globe />} label="Externals Allowed" value={selectedRequest.allowExternals} />
                 
-                <div>
-                  <p className="text-sm font-medium text-white/70 flex items-center gap-2 mb-1"><Wrench /> Equipment Needs</p>
-                  <EquipmentDetails jsonString={selectedRequest.equipmentNeeds} />
-                </div>
+                <DetailItem icon={<Wrench />} label="Equipment Needs" value={formatEquipmentString(selectedRequest.equipmentNeeds)} isPreformatted />
                 
                 <DetailItem icon={<DollarSign />} label="Budget & Funding" value={selectedRequest.budgetDetails} isPreformatted />
                 <DetailItem icon={<LinkIcon />} label="Registration Link" value={selectedRequest.registrationLink} isLink />
