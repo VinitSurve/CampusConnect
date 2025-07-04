@@ -156,8 +156,8 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                         <DetailSection title="Speakers" icon={<Mic className="h-6 w-6 text-blue-400" />}>
                             <div className="space-y-4">
                                 {speakersList.map((speaker, index) => (
-                                    <div key={index} className="flex items-start gap-4">
-                                        <UserCircle className="h-10 w-10 text-white/50 mt-1" />
+                                    <div key={index} className="flex items-center gap-4">
+                                        <UserCircle className="h-10 w-10 text-white/50" />
                                         <div>
                                             <h3 className="font-semibold text-white">{speaker.name}</h3>
                                             <p className="text-sm text-white/70">{speaker.bio}</p>
