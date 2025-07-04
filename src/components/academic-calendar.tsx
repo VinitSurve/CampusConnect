@@ -47,7 +47,6 @@ export default function AcademicCalendar({
   const renderEventContent = (eventInfo: EventContentArg) => {
     const props = eventInfo.event.extendedProps;
     const isTimetable = props.eventType === 'timetable';
-    const isSeminar = props.eventType === 'seminar';
     
     const eventDetails = (
         <div className="p-2">
@@ -59,16 +58,10 @@ export default function AcademicCalendar({
                     <p><strong>Time:</strong> {props.startTime} - {props.endTime}</p>
                     <p><strong>Location:</strong> {props.location}</p>
                 </div>
-            ) : isSeminar ? (
-                <div className="space-y-1 text-sm">
-                    <p><strong>Organizer:</strong> {props.organizer}</p>
-                    <p><strong>Time:</strong> {props.startTime} - {props.endTime}</p>
-                    <p><strong>Location:</strong> Seminar Hall</p>
-                </div>
             ) : (
                 <div className="space-y-1 text-sm">
                     <p><strong>Organizer:</strong> {props.organizer}</p>
-                    <p><strong>Time:</strong> {eventInfo.event.allDay ? 'All Day' : new Date(eventInfo.event.startStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    <p><strong>Time:</strong> {eventInfo.event.allDay ? 'All Day' : eventInfo.timeText}</p>
                     <p><strong>Location:</strong> {props.location}</p>
                 </div>
             )}
@@ -121,13 +114,19 @@ export default function AcademicCalendar({
         const regularEvents = eventsSnapshot.docs.map((doc) => {
           const data = doc.data() as Event;
           const startDateTime = new Date(`${data.date}T${data.time || '00:00'}:00`);
+          
+          const className = data.location === 'Seminar Hall'
+              ? 'bg-purple-600/30 text-purple-100 border-l-4 border-purple-400 cursor-pointer'
+              : 'bg-primary/30 text-primary-foreground border-l-4 border-primary cursor-pointer';
+
           return {
             id: doc.id,
             title: data.title,
             start: startDateTime,
+            end: data.endTime ? new Date(`${data.date}T${data.endTime}:00`) : undefined,
             allDay: !data.time,
             extendedProps: { ...data, eventType: 'event' },
-            className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary cursor-pointer'
+            className: className,
           };
         });
 
@@ -155,24 +154,7 @@ export default function AcademicCalendar({
         }).filter(Boolean);
 
 
-        // Fetch seminar bookings
-        const seminarBookingsQuery = query(collection(db, "seminarBookings"));
-        const seminarBookingsSnapshot = await getDocs(seminarBookingsQuery);
-        const seminarBookingEvents = seminarBookingsSnapshot.docs.map(doc => {
-            const data = doc.data() as SeminarBooking;
-            return {
-                id: `sb-${doc.id}`,
-                title: data.title,
-                start: `${data.date}T${data.startTime}`,
-                end: `${data.date}T${data.endTime}`,
-                allDay: false,
-                display: 'block',
-                extendedProps: { ...data, eventType: 'seminar', location: 'Seminar Hall' },
-                className: 'bg-purple-600/30 text-purple-100 border-l-4 border-purple-400 cursor-pointer'
-            }
-        });
-
-        const allCalEvents = [...regularEvents, ...timetableEvents, ...seminarBookingEvents];
+        const allCalEvents = [...regularEvents, ...timetableEvents];
         
         const filteredEvents = locationFilter
           ? allCalEvents.filter(e => {
