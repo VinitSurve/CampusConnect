@@ -19,8 +19,12 @@ let db: Firestore | null = null;
 let firebase_error: Error | null = null;
 
 try {
-  if (!firebaseConfig.apiKey) {
-    throw new Error(`Firebase configuration is missing in your .env file.
+  const requiredConfig: (keyof FirebaseOptions)[] = ['apiKey', 'authDomain', 'projectId'];
+  const missingConfig = requiredConfig.filter(key => !firebaseConfig[key]);
+
+  if (missingConfig.length > 0) {
+    throw new Error(`Firebase configuration is missing or incomplete in your .env file.
+Missing keys: ${missingConfig.join(', ')}
 
 To fix this:
 1. Go to your Firebase project console.

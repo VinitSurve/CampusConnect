@@ -27,7 +27,7 @@ function FirebaseErrorDisplay() {
         <AlertCircle className="h-5 w-5 text-red-300 mr-3 mt-0.5" />
         <div>
           <h3 className="text-white font-semibold">Configuration Error</h3>
-          <p className="text-red-200 text-sm mt-1">Could not connect to Firebase. Please check the server logs for your Firebase configuration details and ensure they are correct in your <code>.env</code> file.</p>
+          <pre className="text-red-200 text-sm mt-1 whitespace-pre-wrap font-sans">{firebase_error.message}</pre>
         </div>
       </div>
     </div>
