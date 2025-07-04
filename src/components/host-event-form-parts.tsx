@@ -6,7 +6,7 @@ import Image from "next/image";
 import type { EventProposal } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, Minus, Plus, CheckCircle2, XCircle, Share2 } from "lucide-react";
+import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, Minus, Plus, CheckCircle2, XCircle, Share2, Building, Link as LinkIcon } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -171,39 +171,48 @@ export const ProposalList = ({ list, emptyText, onEdit }: { list: EventProposal[
       return <div className="text-center py-12 text-white/70">{emptyText}</div>
     }
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {list.map(p => (
-          <div key={p.id} className="bg-white/5 rounded-lg p-4 flex justify-between items-center">
-            <div>
-              <p className="font-medium text-white">{p.title}</p>
-              <div className="text-sm text-white/60 flex items-center gap-4 mt-1">
-                <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {new Date(p.date || p.createdAt).toLocaleDateString()}</span>
-                {p.status && <Badge variant={statusVariantMap[p.status]} className="capitalize">{p.status}</Badge>}
+          <div key={p.id} className="bg-white/10 border border-white/10 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start">
+            <div className="flex-grow">
+              <h3 className="text-lg font-semibold text-white mb-2">{p.title}</h3>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/70 mb-4">
+                 <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> {p.date ? new Date(p.date).toLocaleDateString() : 'Date TBD'} {p.time && ` at ${p.time}`}</span>
+                 {p.status && <Badge variant={statusVariantMap[p.status]} className="capitalize">{p.status}</Badge>}
+                 <span className="flex items-center gap-1.5"><Building className="h-4 w-4" />{p.location || 'Location TBD'}</span>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                 <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20" onClick={() => onEdit(p)}>
+                    <FileEdit className="mr-2 h-4 w-4"/>
+                    {p.status === 'rejected' ? 'View & Resubmit' : p.status === 'pending' ? 'Edit Request' : 'Edit Draft'}
+                </Button>
+                 {p.status === 'approved' && p.publishedEventId && (
+                    <Button asChild size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20">
+                      <Link href={`/dashboard/events/${p.publishedEventId}`} target="_blank">
+                        <LinkIcon className="mr-2 h-4 w-4"/> View Published Event
+                      </Link>
+                    </Button>
+                )}
               </div>
             </div>
-             <div className="w-44 text-right">
-              {p.status === 'approved' && p.publishedEventId ? (
-                <Button asChild size="sm" variant="outline" className="bg-green-600/20 border-green-500/50 hover:bg-green-600/40 text-white">
-                  <Link href={`/dashboard/events/${p.publishedEventId}`} target="_blank">
-                    <Share2 className="mr-2 h-4 w-4"/> View Published
-                  </Link>
-                </Button>
-              ) : p.status === 'pending' ? (
-                <Button size="sm" variant="ghost" disabled>
-                    Pending Review
-                </Button>
-              ) : (
-                 <Button size="sm" variant="ghost" onClick={() => onEdit(p)}>
-                    <FileEdit className="mr-2 h-4 w-4"/>
-                    {p.status === 'rejected' ? 'View & Resubmit' : 'Edit Draft'}
-                </Button>
-              )}
+
+            <div className="w-full md:w-32 h-32 flex-shrink-0">
+                 <Image 
+                    src={p.eventLogo || 'https://placehold.co/100x100.png'} 
+                    alt="Event Logo" 
+                    width={100} 
+                    height={100} 
+                    className="rounded-lg object-cover w-full h-full bg-black/20" 
+                    data-ai-hint="event logo"
+                 />
             </div>
           </div>
         ))}
       </div>
     )
-  }
+}
 
 export const TemplateCard = ({ icon, title, description, onClick }: { icon: React.ReactNode, title: string, description: string, onClick: () => void }) => (
     <button onClick={onClick} className="text-left w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-6 transition-all hover:border-blue-500/50">
@@ -275,7 +284,7 @@ export const EquipmentSelector = ({ equipment, setEquipment }: { equipment: any,
 };
 
 
-export const TimeSlotSelectionModal = ({ isOpen, onClose, onConfirm, selectedDate, locationId }: { isOpen: boolean; onClose: () => void; onConfirm: (selection: { start: string; end: string }) => void; selectedDate: Date | null; locationId: string; }) => {
+export const TimeSlotSelectionModal = ({ isOpen, onClose, onConfirm, selectedDate, locationId }: { isOpen: boolean; onClose: () => void; onConfirm: (selection: { start: string; end: string; date: string; }) => void; selectedDate: Date | null; locationId: string; }) => {
     const [loading, setLoading] = useState(true);
     const [schedule, setSchedule] = useState<Record<string, any>>({});
     const [selection, setSelection] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
@@ -374,17 +383,12 @@ export const TimeSlotSelectionModal = ({ isOpen, onClose, onConfirm, selectedDat
              return;
         }
 
-        // Timezone-safe date string creation
-        const tzoffset = selectedDate.getTimezoneOffset() * 60000; //offset in milliseconds
-        const localISOTime = new Date(selectedDate.getTime() - tzoffset).toISOString().split('T')[0];
-        const dateStr = localISOTime;
-
         const finalEndTime = selection.end ? `${String(parseInt(selection.end.split(':')[0]) + 1).padStart(2, '0')}:00` : `${String(parseInt(selection.start.split(':')[0]) + 1).padStart(2, '0')}:00`;
         
         onConfirm({ 
             start: selection.start, 
             end: finalEndTime,
-            date: dateStr // Pass the corrected date string back
+            date: format(selectedDate, 'yyyy-MM-dd')
         });
 
         onClose();
