@@ -3,7 +3,7 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
@@ -120,6 +120,14 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                             referrerPolicy="no-referrer-when-downgrade"
                             title="Google Map of the event location"
                           ></iframe>
+                        </div>
+                        <div className="mt-4 flex justify-center">
+                            <Button asChild>
+                                <a href="https://maps.app.goo.gl/WZ5m7xgHH4YRyz9D9" target="_blank" rel="noopener noreferrer">
+                                    <Map className="mr-2 h-4 w-4" />
+                                    View on Google Maps
+                                </a>
+                            </Button>
                         </div>
                       </DetailSection>
                     )}
