@@ -45,6 +45,51 @@ const DetailItem = ({ icon, label, value, isPreformatted = false, isLink = false
   )
 }
 
+const EquipmentDetails = ({ jsonString }: { jsonString?: string }) => {
+    if (!jsonString) return <p className="text-base text-white">None requested.</p>;
+  
+    try {
+        const data = JSON.parse(jsonString);
+        
+        const labelMap: { [key: string]: string } = {
+            wirelessMics: "Wireless Mics",
+            collarMics: "Collar Mics",
+            waterBottles: "Water Bottles",
+            table: "Table",
+            chairs: "Chairs",
+        };
+
+        const items = Object.entries(data)
+            .map(([key, value]) => {
+                if (!value || value === 0) return null;
+                const label = labelMap[key] || key;
+                const displayValue = value === true ? "Yes" : String(value);
+                return { label, value: displayValue };
+            })
+            .filter(Boolean);
+
+        if (items.length === 0) {
+            return <p className="text-base text-white">None requested.</p>;
+        }
+
+        return (
+            <div className="bg-black/20 p-3 rounded-md">
+                <ul className="list-disc list-inside text-base text-white space-y-1">
+                    {items.map(item => (
+                        item && <li key={item.label}>
+                            {item.label}: <span className="font-semibold">{item.value}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        );
+
+    } catch (e) {
+        return <p className="text-base text-white bg-black/20 p-3 rounded-md">{jsonString}</p>;
+    }
+};
+
+
 export default function FacultyDashboardClient({ initialRequests }: FacultyDashboardClientProps) {
   const [requests, setRequests] = useState(initialRequests);
   const [selectedRequest, setSelectedRequest] = useState<EventProposal | null>(null);
@@ -55,7 +100,6 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
   const { toast } = useToast();
 
   useEffect(() => {
-    // Select the first request by default if the list is not empty
     if (initialRequests.length > 0) {
       setSelectedRequest(initialRequests[0]);
     } else {
@@ -145,7 +189,12 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <DetailItem icon={<Target />} label="What You'll Learn" value={selectedRequest.whatYouWillLearn} isPreformatted />
                 <DetailItem icon={<Users />} label="Target Audience" value={selectedRequest.targetAudience} />
                 <DetailItem icon={<Mic />} label="Key Speakers / Guests" value={selectedRequest.keySpeakers} isPreformatted />
-                <DetailItem icon={<Wrench />} label="Equipment Needs" value={selectedRequest.equipmentNeeds} isPreformatted />
+                
+                <div>
+                  <p className="text-sm font-medium text-white/70 flex items-center gap-2 mb-1"><Wrench /> Equipment Needs</p>
+                  <EquipmentDetails jsonString={selectedRequest.equipmentNeeds} />
+                </div>
+                
                 <DetailItem icon={<DollarSign />} label="Budget & Funding" value={selectedRequest.budgetDetails} isPreformatted />
                 <DetailItem icon={<LinkIcon />} label="Registration Link" value={selectedRequest.registrationLink} isLink />
                 <DetailItem icon={<FileText />} label="Tags" value={Array.isArray(selectedRequest.tags) ? selectedRequest.tags.join(', ') : selectedRequest.tags} />
