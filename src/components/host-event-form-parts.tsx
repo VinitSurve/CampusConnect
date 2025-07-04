@@ -6,7 +6,7 @@ import Image from "next/image";
 import type { EventProposal } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, Minus, Plus, CheckCircle2, XCircle, Share2, Building, Link as LinkIcon } from "lucide-react";
+import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, Minus, Plus, CheckCircle2, XCircle, Share2, Building, Link as LinkIcon, Camera } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -31,6 +31,7 @@ export const EMPTY_FORM = {
     location: "seminar",
     category: "",
     registrationLink: "",
+    photoAlbumUrl: "",
     clubId: "",
     clubName: "",
     date: "",

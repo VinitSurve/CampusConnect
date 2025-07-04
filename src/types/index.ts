@@ -45,6 +45,7 @@ export type Event = {
   budgetDetails?: string;
   whatYouWillLearn?: string;
   googleDriveFolderId?: string;
+  photoAlbumUrl?: string;
   createdBy?: string;
   approvedBy?: string;
   allowExternals?: boolean;
@@ -97,6 +98,7 @@ export type EventProposal = {
   headerImage?: string;
   eventLogo?: string;
   googleDriveFolderId?: string;
+  photoAlbumUrl?: string;
   tags?: string[];
   publishedEventId?: string;
   allowExternals?: boolean;

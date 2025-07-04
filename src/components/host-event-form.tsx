@@ -10,7 +10,7 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe } from "lucide-react";
+import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe, Camera } from "lucide-react";
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
@@ -153,6 +153,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         keySpeakers: form.keySpeakers,
         whatYouWillLearn: form.whatYouWillLearn,
         googleDriveFolderId: form.googleDriveFolderId,
+        photoAlbumUrl: form.photoAlbumUrl,
         allowExternals: form.allowExternals
     };
   }
@@ -640,6 +641,11 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         <div className="space-y-2">
                             <label className="text-white text-sm" htmlFor="registration-link">Registration Link*</label>
                             <input id="registration-link" name="registrationLink" type="url" value={form.registrationLink || ''} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." required />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-white text-sm" htmlFor="photo-album-link">Photo Album Link (Optional)</label>
+                            <input id="photo-album-link" name="photoAlbumUrl" type="url" value={form.photoAlbumUrl || ''} onChange={(e) => setForm({ ...form, photoAlbumUrl: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://photos.app.goo.gl/..." />
+                            <p className="text-xs text-white/60">Share a link to a Google Photos album after the event.</p>
                         </div>
                         {userClubs.length > 0 && (
                             <div>

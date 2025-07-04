@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wrench, Link as LinkIcon, Image as ImageIcon, FileText, Target, Mic, Globe } from 'lucide-react';
+import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wrench, Link as LinkIcon, Image as ImageIcon, FileText, Target, Mic, Globe, Camera } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -152,6 +152,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 targetAudience: proposal.targetAudience,
                 budgetDetails: proposal.budgetDetails,
                 googleDriveFolderId: proposal.googleDriveFolderId,
+                photoAlbumUrl: editedData.photoAlbumUrl,
                 createdBy: proposal.createdBy,
                 allowExternals: proposal.allowExternals,
                 attendees: 0,
@@ -331,6 +332,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 
                 <DetailItem icon={<DollarSign />} label="Budget & Funding" value={selectedRequest.budgetDetails} isPreformatted />
                 <DetailItem icon={<LinkIcon />} label="Registration Link" value={selectedRequest.registrationLink} isLink />
+                <DetailItem icon={<Camera />} label="Photo Album Link" value={selectedRequest.photoAlbumUrl} isLink />
                 <DetailItem icon={<FileText />} label="Tags" value={Array.isArray(selectedRequest.tags) ? selectedRequest.tags.join(', ') : selectedRequest.tags} />
                 <DetailItem icon={<UserIcon />} label="Submitted By" value={selectedRequest.creatorEmail} />
 
@@ -412,6 +414,10 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                <div className="space-y-2">
                   <Label htmlFor="edit-speakers">Key Speakers</Label>
                   <Textarea id="edit-speakers" name="keySpeakers" value={editedData.keySpeakers || ''} onChange={handleEditedDataChange} rows={3}/>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="edit-photos">Photo Album Link (Optional)</Label>
+                  <Input id="edit-photos" name="photoAlbumUrl" value={editedData.photoAlbumUrl || ''} onChange={handleEditedDataChange} placeholder="https://photos.app.goo.gl/..."/>
               </div>
               <EquipmentSelector equipment={editedEquipment} setEquipment={setEditedEquipment} />
           </div>

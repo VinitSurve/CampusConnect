@@ -63,6 +63,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                 headerImage: headerImageUrl,
                 eventLogo: eventLogoUrl,
                 googleDriveFolderId: googleDriveFolderId,
+                photoAlbumUrl: formData.get('photoAlbumUrl') as string,
                 tags: tags,
                 allowExternals: formData.get('allowExternals') === 'true',
             }

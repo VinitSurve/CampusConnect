@@ -3,7 +3,7 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
@@ -31,7 +31,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
       title, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
-      allowExternals
+      allowExternals, photoAlbumUrl
   } = event;
 
   const parseSpeakers = (speakers?: string) => {
@@ -46,6 +46,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
 
   // Safely create date object to avoid timezone issues during formatting
   const eventDate = new Date(`${date}T00:00:00`);
+  const isEventPast = new Date(date) < new Date();
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -101,6 +102,18 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                         )}
                     </div>
                 </div>
+                
+                {isEventPast && photoAlbumUrl && (
+                    <div className="text-center my-8">
+                        <Button asChild size="lg">
+                            <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
+                                <Camera className="mr-2 h-5 w-5" />
+                                View Event Gallery
+                            </a>
+                        </Button>
+                    </div>
+                )}
+
 
                 <div className="space-y-8">
                     <DetailSection title="About this event" icon={<Info className="h-6 w-6 text-blue-400" />}>
