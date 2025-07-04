@@ -10,18 +10,16 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, CheckCircle2, XCircle, Info as InfoIcon } from "lucide-react";
+import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit } from "lucide-react";
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
 import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getUserProposals, getDayScheduleForLocation } from "@/lib/data";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { getUserProposals } from '@/lib/data';
 import { format } from 'date-fns';
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
+    TimeSlotSelectionModal,
     FileInput, 
     ProposalList,
     TemplateCard,
@@ -32,187 +30,13 @@ import {
     categories,
     templates,
     availableCourses,
-    formSteps
+    formSteps,
 } from './host-event-form-parts';
 
 interface HostEventFormProps {
     user: User;
     proposals: EventProposal[];
 }
-
-const TimeSlotSelectionModal = ({ isOpen, onClose, onConfirm, selectedDate, locationId }: { isOpen: boolean; onClose: () => void; onConfirm: (selection: { start: string; end: string }) => void; selectedDate: Date | null; locationId: string; }) => {
-    const [loading, setLoading] = useState(true);
-    const [schedule, setSchedule] = useState<Record<string, any>>({});
-    const [selection, setSelection] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
-
-    const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']; // Ends at 17:00
-
-    useEffect(() => {
-        if (!isOpen || !selectedDate || !locationId) return;
-
-        const fetchSchedule = async () => {
-            setLoading(true);
-            setSelection({ start: null, end: null }); // Reset selection on open
-            const bookings = await getDayScheduleForLocation(selectedDate, locationId);
-            
-            const newSchedule: Record<string, any> = {};
-            timeSlots.forEach(slot => {
-                const slotStartHour = parseInt(slot.split(':')[0]);
-                const slotEndHour = slotStartHour + 1;
-
-                const bookingForSlot = bookings.find(b => {
-                    if (!b.startTime || !b.endTime) return false;
-                    const bookingStartHour = parseInt(b.startTime.split(':')[0]);
-                    const bookingEndHour = parseInt(b.endTime.split(':')[0]);
-                    return slotStartHour < bookingEndHour && slotEndHour > bookingStartHour;
-                });
-
-                newSchedule[slot] = bookingForSlot ? { booked: true, ...bookingForSlot } : { booked: false };
-            });
-
-            setSchedule(newSchedule);
-            setLoading(false);
-        };
-
-        fetchSchedule();
-    }, [isOpen, selectedDate, locationId]);
-
-    const { toast } = useToast();
-
-    const handleSlotClick = (slot: string) => {
-        if (schedule[slot]?.booked) return;
-
-        const { start, end } = selection;
-
-        if (start && end) { // A range is already selected, so reset
-            setSelection({ start: slot, end: null });
-        } else if (start && !end) { // Start is selected, now select end
-            const startIndex = timeSlots.indexOf(start);
-            const clickIndex = timeSlots.indexOf(slot);
-            
-            const [minIdx, maxIdx] = [Math.min(startIndex, clickIndex), Math.max(startIndex, clickIndex)];
-
-            for (let i = minIdx; i <= maxIdx; i++) {
-                if (schedule[timeSlots[i]].booked) {
-                    toast({ title: "Conflict Detected", description: "Your selection includes a booked slot. Please choose a continuous range of available slots.", variant: "destructive"});
-                    setSelection({ start: null, end: null });
-                    return;
-                }
-            }
-            setSelection({ start: timeSlots[minIdx], end: timeSlots[maxIdx] });
-
-        } else { // No selection yet, set start
-            setSelection({ start: slot, end: null });
-        }
-    };
-    
-    const getSlotClass = (slot: string) => {
-        const isBooked = schedule[slot]?.booked;
-        if (isBooked) return "bg-red-900/40 text-white/50 cursor-not-allowed";
-
-        const { start, end } = selection;
-        const slotIndex = timeSlots.indexOf(slot);
-        
-        if (start && end) {
-            const startIndex = timeSlots.indexOf(start);
-            const endIndex = timeSlots.indexOf(end);
-            if (slotIndex >= startIndex && slotIndex <= endIndex) {
-                return "bg-blue-600/80 ring-2 ring-blue-400 text-white";
-            }
-        }
-        
-        if (start === slot) return "bg-blue-600/50 ring-2 ring-blue-500 text-white";
-        
-        return "bg-green-800/20 hover:bg-green-800/50 cursor-pointer";
-    };
-    
-    const selectedStartTime = selection.start;
-    const selectedEndTime = selection.end ? `${parseInt(selection.end.split(':')[0]) + 1}:00` : null;
-
-    const handleConfirm = () => {
-        if (!selection.start) {
-            toast({ title: "No Selection", description: "Please select a time slot.", variant: "destructive"});
-            return;
-        }
-        const finalEndTime = selection.end ? `${parseInt(selection.end.split(':')[0]) + 1}:00`.padStart(5, '0') : `${parseInt(selection.start.split(':')[0]) + 1}:00`.padStart(5, '0');
-        onConfirm({ start: selection.start, end: finalEndTime });
-        onClose();
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
-                <DialogHeader>
-                    <DialogTitle>Select Time for {selectedDate && format(selectedDate, 'MMMM d, yyyy')}</DialogTitle>
-                    <DialogDescription>Click one available slot to select a single hour, or two to select a range.</DialogDescription>
-                </DialogHeader>
-                
-                <div className="max-h-[60vh] overflow-y-auto pr-4 my-4">
-                    {loading ? (
-                        <div className="space-y-2">
-                            {timeSlots.map(slot => <Skeleton key={slot} className="h-16 w-full bg-white/10" />)}
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                           <TooltipProvider>
-                            {timeSlots.map(slot => {
-                                const slotData = schedule[slot];
-                                const isBooked = slotData?.booked;
-                                const endTime = `${parseInt(slot.split(':')[0]) + 1}:00`.padStart(5, '0');
-                                
-                                const slotContent = (
-                                    <div key={slot} onClick={() => handleSlotClick(slot)} className={`p-3 rounded-lg flex justify-between items-center transition-all duration-200 ${getSlotClass(slot)}`}>
-                                        <div className="font-mono font-bold text-lg">{slot} - {endTime}</div>
-                                        {isBooked ? (
-                                            <div className="text-right">
-                                                <div className="font-semibold text-red-300 flex items-center gap-2"><XCircle className="w-5 h-5"/> Booked</div>
-                                                <div className="text-xs text-white/70 truncate max-w-xs">{slotData.title}</div>
-                                            </div>
-                                        ) : (
-                                            <div className="font-semibold text-green-300 flex items-center gap-2">
-                                                <CheckCircle2 className="w-5 h-5"/> Available
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-
-                                if (isBooked) {
-                                    return (
-                                        <Tooltip key={`tip-${slot}`} delayDuration={200}>
-                                            <TooltipTrigger asChild>{slotContent}</TooltipTrigger>
-                                            <TooltipContent className="bg-slate-900 text-white border-slate-700">
-                                                <p className="font-bold">{slotData.title}</p>
-                                                <p>Organized by: {slotData.organizer}</p>
-                                                <p>Type: {slotData.type}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    )
-                                }
-                                return slotContent;
-                            })}
-                           </TooltipProvider>
-                        </div>
-                    )}
-                </div>
-
-                <DialogFooter className="justify-between items-center bg-black/20 p-4 -m-6 mt-0 border-t border-white/10">
-                    <div className="text-white/80">
-                        {selectedStartTime ? (
-                            <span>Selected: <span className="font-bold text-white font-mono">{selectedStartTime} - {selectedEndTime || `${parseInt(selectedStartTime.split(':')[0]) + 1}:00`.padStart(5, '0')}</span></span>
-                        ) : (
-                            <span>No time selected.</span>
-                        )}
-                    </div>
-                    <div className="flex gap-2">
-                         <Button variant="ghost" onClick={() => setSelection({ start: null, end: null })}>Clear</Button>
-                         <Button onClick={handleConfirm} disabled={!selection.start}>Confirm Selection</Button>
-                    </div>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
 
 export default function HostEventForm({ user, proposals: initialProposals }: HostEventFormProps) {
   const [view, setView] = useState<'list' | 'templates' | 'form'>('list');
