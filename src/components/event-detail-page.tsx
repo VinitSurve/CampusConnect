@@ -29,7 +29,7 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
 
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
-      title, longDescription, organizer, category, image, headerImage, eventLogo,
+      title, description, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
       allowExternals, photoAlbumUrl
   } = event;

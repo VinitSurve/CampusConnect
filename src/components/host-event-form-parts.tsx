@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getDayScheduleForLocation } from "@/lib/data";
 import { format } from 'date-fns';
 import Link from "next/link";
+import { Input } from "./ui/input";
 
 // --- CONSTANTS ---
 

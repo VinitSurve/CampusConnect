@@ -132,12 +132,12 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             const locationName = locationIdToNameMap[finalLocation] || finalLocation;
             
             const newEvent: Omit<Event, 'id'> = {
-                title: editedData.title,
-                longDescription: editedData.description,
-                whatYouWillLearn: editedData.whatYouWillLearn,
-                keySpeakers: editedData.keySpeakers,
+                title: editedData.title || proposal.title,
+                longDescription: editedData.description || proposal.description,
+                whatYouWillLearn: editedData.whatYouWillLearn || proposal.whatYouWillLearn,
+                keySpeakers: editedData.keySpeakers || proposal.keySpeakers,
                 equipmentNeeds: JSON.stringify(editedEquipment),
-                description: (editedData.description || '').substring(0, 100) + ((editedData.description || '').length > 100 ? '...' : ''),
+                description: (editedData.description || proposal.description || '').substring(0, 100) + ((editedData.description || proposal.description || '').length > 100 ? '...' : ''),
                 date: finalDate,
                 time: startTime,
                 endTime: endTime,
@@ -152,7 +152,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 targetAudience: proposal.targetAudience,
                 budgetDetails: proposal.budgetDetails,
                 googleDriveFolderId: proposal.googleDriveFolderId,
-                photoAlbumUrl: editedData.photoAlbumUrl,
+                photoAlbumUrl: editedData.photoAlbumUrl || proposal.photoAlbumUrl,
                 createdBy: proposal.createdBy,
                 allowExternals: proposal.allowExternals,
                 attendees: 0,
