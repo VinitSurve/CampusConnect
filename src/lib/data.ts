@@ -182,8 +182,7 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
     if (handleDbError('getDayScheduleForLocation')) return [];
     
     const dateStr = format(date, 'yyyy-MM-dd');
-    // JS: Sun=0, Mon=1..Sat=6. Matches our DB for Mon-Sat.
-    const firestoreDayOfWeek = date.getDay(); 
+    const firestoreDayOfWeek = date.getDay(); // JS: Sun=0, Mon=1..Sat=6.
     const locationName = locationIdToNameMap[locationId] || locationId;
 
     const allBookings: any[] = [];
@@ -193,8 +192,18 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
         const eventsSnapshot = await getDocs(eventsQuery);
         eventsSnapshot.forEach(doc => {
-            const data = doc.data();
-            allBookings.push({ title: data.title, startTime: data.time, endTime: data.endTime, organizer: data.organizer, type: 'Event', location: data.location });
+            const data = doc.data() as Event;
+            // Handle both timed and all-day events
+            if (data.time && data.endTime) {
+                 allBookings.push({ title: data.title, startTime: data.time, endTime: data.endTime, organizer: data.organizer, type: 'Event', location: data.location });
+            } else if (data.time) { // Has start time but no end time, assume 1 hour
+                const startTime = data.time;
+                const [hour, minute] = startTime.split(':').map(Number);
+                const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                allBookings.push({ title: data.title, startTime, endTime, organizer: data.organizer, type: 'Event', location: data.location });
+            } else { // All-day event
+                allBookings.push({ title: data.title, startTime: '08:00', endTime: '18:00', organizer: data.organizer, type: 'All-Day Event', location: data.location });
+            }
         });
 
         // Fetch recurring timetable entries for that day of the week
@@ -210,7 +219,6 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         const seminarSnapshot = await getDocs(seminarQuery);
         seminarSnapshot.forEach(doc => {
             const data = doc.data();
-            // All bookings in this collection are for the seminar hall
             allBookings.push({ title: data.title, startTime: data.startTime, endTime: data.endTime, organizer: data.organizer, type: 'Booking', location: 'Seminar Hall' });
         });
 
