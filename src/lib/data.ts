@@ -182,67 +182,50 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
     if (handleDbError('getDayScheduleForLocation')) return [];
     
     const dateStr = format(date, 'yyyy-MM-dd');
-    const dayOfWeek = date.getDay();
-    const firestoreDayOfWeek = dayOfWeek; 
-
+    const firestoreDayOfWeek = date.getDay(); // Sunday is 0
+    const locationName = locationIdToNameMap[locationId] || locationId;
     let allBookings: any[] = [];
 
     try {
-        const locationName = locationIdToNameMap[locationId] || locationId;
+        // --- Fetch all possible bookings for the day/day-of-week ---
+        const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
+        const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
+        const timetablesQuery = query(collection(db, "timetables"), where("dayOfWeek", "==", firestoreDayOfWeek));
 
-        // Fetch Events for the selected location
-        const eventsQuery = query(
-            collection(db, "events"),
-            where("date", "==", dateStr),
-            where("location", "==", locationName)
-        );
-        const eventsSnapshot = await getDocs(eventsQuery);
+        const [eventsSnapshot, seminarSnapshot, timetablesSnapshot] = await Promise.all([
+            getDocs(eventsQuery),
+            getDocs(seminarQuery),
+            getDocs(timetablesQuery),
+        ]);
+
+        // --- Now, filter them in code based on the selected location ---
+
+        // Filter one-off events
         eventsSnapshot.docs.forEach(doc => {
             const data = doc.data();
-            allBookings.push({
-                title: data.title,
-                startTime: data.time,
-                endTime: data.endTime,
-                organizer: data.organizer,
-                type: 'Event'
-            });
-        });
-
-        // If it's a lab, fetch timetable entries.
-        // If it's the seminar hall, fetch seminar bookings.
-        if (locationId.startsWith('lab')) {
-            if (firestoreDayOfWeek > 0) { // No lectures on Sunday
-                const timetablesQuery = query(
-                    collection(db, "timetables"),
-                    where("dayOfWeek", "==", firestoreDayOfWeek),
-                    where("location", "==", locationName)
-                );
-                const timetablesSnapshot = await getDocs(timetablesQuery);
-                timetablesSnapshot.docs.forEach(doc => {
-                    const data = doc.data();
-                    allBookings.push({
-                        title: `${data.subject} (${data.course} ${data.year}-${data.division})`,
-                        startTime: data.startTime,
-                        endTime: data.endTime,
-                        organizer: data.facultyName,
-                        type: 'Lecture'
-                    });
+            if (data.location === locationName) {
+                allBookings.push({
+                    title: data.title, startTime: data.time, endTime: data.endTime, organizer: data.organizer, type: 'Event'
                 });
             }
-        } else if (locationId === 'seminar') {
-            const seminarQuery = query(
-                collection(db, "seminarBookings"),
-                where("date", "==", dateStr)
-            );
-            const seminarSnapshot = await getDocs(seminarQuery);
+        });
+
+        // Filter recurring timetable lectures
+        timetablesSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.location === locationName) {
+                allBookings.push({
+                    title: `${data.subject} (${data.course} ${data.year}-${data.division})`, startTime: data.startTime, endTime: data.endTime, organizer: data.facultyName, type: 'Lecture'
+                });
+            }
+        });
+        
+        // Add seminar bookings ONLY if seminar hall is the selected location
+        if (locationId === 'seminar') {
             seminarSnapshot.docs.forEach(doc => {
                 const data = doc.data();
                 allBookings.push({
-                    title: data.title,
-                    startTime: data.startTime,
-                    endTime: data.endTime,
-                    organizer: data.organizer,
-                    type: 'Booking'
+                    title: data.title, startTime: data.startTime, endTime: data.endTime, organizer: data.organizer, type: 'Booking'
                 });
             });
         }
