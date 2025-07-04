@@ -39,7 +39,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import type { EventClickArg, DateSelectArg } from '@fullcalendar/core';
-import { getUserRole } from '@/app/actions';
+import { getAuthedUser } from '@/app/actions';
 
 export default function SeminarHallManagerPage() {
   const [loading, setLoading] = useState(true);
@@ -50,12 +50,12 @@ export default function SeminarHallManagerPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentBooking, setCurrentBooking] = useState<Partial<SeminarBooking>>({});
-  const [userRole, setUserRole] = useState<User['role'] | undefined>();
+  const [user, setUser] = useState<User | null>(null);
 
   const { toast } = useToast();
 
   useEffect(() => {
-    getUserRole().then(role => setUserRole(role));
+    getAuthedUser().then(u => setUser(u));
     fetchSeminarBookings();
   }, []);
 
@@ -89,7 +89,7 @@ export default function SeminarHallManagerPage() {
     }
   };
   
-  const canAddManually = userRole === 'faculty';
+  const canAddManually = user?.role === 'faculty';
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     if (!canAddManually) return;
@@ -102,6 +102,7 @@ export default function SeminarHallManagerPage() {
         date: format(selectInfo.start, 'yyyy-MM-dd'),
         startTime: '09:00',
         endTime: '10:00',
+        organizer: user?.name,
     });
     setIsFormOpen(true);
   };
@@ -125,7 +126,7 @@ export default function SeminarHallManagerPage() {
   const handleSave = () => {
     const dataToSave: Omit<SeminarBooking, 'id'> = {
         title: currentBooking.title || '',
-        organizer: currentBooking.organizer || '',
+        organizer: currentBooking.organizer || user?.name || '',
         date: currentBooking.date || '',
         startTime: currentBooking.startTime || '',
         endTime: currentBooking.endTime || '',
@@ -200,7 +201,7 @@ export default function SeminarHallManagerPage() {
           }
         </p>
 
-        {loading || userRole === undefined ? (
+        {loading || !user ? (
             <Skeleton className="h-[700px] w-full bg-white/5" />
         ) : (
             <FullCalendar

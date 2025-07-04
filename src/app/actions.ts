@@ -40,7 +40,7 @@ export async function logout() {
   cookieStore.set('firebaseUid', '', { maxAge: 0 })
 }
 
-export async function getUserRole(): Promise<User['role'] | undefined> {
+export async function getAuthedUser(): Promise<User | null> {
   const user = await getCurrentUser();
-  return user?.role;
+  return user;
 }
