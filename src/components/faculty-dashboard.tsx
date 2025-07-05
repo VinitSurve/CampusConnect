@@ -6,6 +6,7 @@ import type { EventProposal, Event, SeminarBooking } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { db, auth } from '@/lib/firebase';
 import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { deleteFolder } from '@/lib/drive';
 import {
   Dialog,
   DialogContent,
@@ -205,7 +206,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
   const handleRejectConfirm = () => {
     if (!requestForRejection) return;
     startTransition(async () => {
-        const proposalId = requestForRejection.id;
+        const proposal = requestForRejection;
 
         if (!rejectionReason.trim()) {
             toast({ title: "Reason Required", description: "Rejection reason cannot be empty.", variant: "destructive" });
@@ -213,13 +214,19 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
         }
 
         try {
-            const requestRef = doc(db, "eventRequests", proposalId);
+            const requestRef = doc(db, "eventRequests", proposal.id);
             await updateDoc(requestRef, {
                 status: "rejected",
                 rejectionReason: rejectionReason,
                 rejectedAt: serverTimestamp(),
             });
-            const updatedRequests = requests.filter(req => req.id !== proposalId);
+
+            // If there's a drive folder associated, delete it
+            if (proposal.googleDriveFolderId) {
+                await deleteFolder(proposal.googleDriveFolderId);
+            }
+
+            const updatedRequests = requests.filter(req => req.id !== proposal.id);
             setRequests(updatedRequests);
             setSelectedRequest(updatedRequests[0] || null);
             setRequestForRejection(null);
