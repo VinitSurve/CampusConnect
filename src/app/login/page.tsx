@@ -1,3 +1,4 @@
+
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AuthenticationForm from "@/components/authentication-form";
@@ -9,7 +10,12 @@ export default async function LoginPage() {
     if (user.role === "faculty") {
       redirect("/admin");
     } else {
-      redirect("/dashboard");
+      // User is a student. Check for profile completion.
+      if (!user.course || !user.year) {
+        redirect('/setup');
+      } else {
+        redirect("/dashboard");
+      }
     }
   }
 
