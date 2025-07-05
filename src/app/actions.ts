@@ -16,9 +16,9 @@ export async function createSession(uid: string, isNewUser: boolean = false) {
     maxAge: 60 * 60 * 24 * 7, // 1 week
   })
 
-  // For a new user, always redirect to dashboard
+  // For a new user, redirect to the setup page
   if (isNewUser) {
-    return '/dashboard'
+    return '/setup'
   }
 
   const userDocRef = doc(db, 'users', uid)
