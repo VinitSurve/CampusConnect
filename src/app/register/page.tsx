@@ -1,3 +1,4 @@
+
 import { redirect } from 'next/navigation';
 
 // This page was incorrectly showing the home page.
