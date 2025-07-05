@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,7 +6,7 @@ import { useSession, signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
-import { Camera, AlertTriangle } from 'lucide-react';
+import { Camera, AlertTriangle, Link as LinkIcon } from 'lucide-react';
 
 interface PhotoGalleryProps {
   albumUrl: string;
@@ -39,7 +40,6 @@ export default function PhotoGallery({ albumUrl }: PhotoGalleryProps) {
         setIsLoading(true);
         setError(null);
         try {
-          // Pass the share token directly to our API route
           const res = await fetch(`/api/photos/${shareToken}`);
           if (!res.ok) {
             const errorData = await res.json();
@@ -60,7 +60,7 @@ export default function PhotoGallery({ albumUrl }: PhotoGalleryProps) {
     }
   }, [status, albumUrl]);
 
-  if (status === 'loading' || isLoading) {
+  if (isLoading) {
     return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
@@ -72,10 +72,11 @@ export default function PhotoGallery({ albumUrl }: PhotoGalleryProps) {
   
   if (status === 'unauthenticated') {
     return (
-        <div className="text-center p-8 bg-black/20 rounded-lg">
-            <Camera className="mx-auto h-12 w-12 text-white/50 mb-4" />
-            <p className="text-white mb-4">Sign in with Google to view the event gallery.</p>
-            <Button onClick={() => signIn('google')}>Sign In with Google</Button>
+        <div className="text-center p-8 bg-black/20 rounded-lg border border-white/10">
+            <LinkIcon className="mx-auto h-12 w-12 text-white/50 mb-4" />
+            <p className="text-white mb-1">To view the event gallery, you need to connect your Google account.</p>
+            <p className="text-white/70 mb-4 text-sm">This is a one-time step to grant permission.</p>
+            <Button onClick={() => signIn('google')}>Connect with Google</Button>
         </div>
     )
   }
@@ -101,8 +102,8 @@ export default function PhotoGallery({ albumUrl }: PhotoGalleryProps) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {photos.map((photoUrl, i) => (
-        <div key={i} className="aspect-square relative rounded-lg overflow-hidden group">
+      {photos.slice(0, 4).map((photoUrl, i) => (
+        <div key={i} className="aspect-square relative rounded-lg overflow-hidden group border-2 border-white/10 shadow-lg">
           <Image
             src={photoUrl}
             alt={`Event photo ${i + 1}`}
