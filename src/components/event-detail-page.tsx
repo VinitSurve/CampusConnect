@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Event } from '@/types';
@@ -47,7 +46,6 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
 
   // Safely create date object to avoid timezone issues during formatting
   const eventDate = new Date(`${date}T00:00:00`);
-  const isEventPast = new Date(date) < new Date();
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -109,7 +107,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                         <p>{longDescription}</p>
                     </DetailSection>
 
-                    {isEventPast && photoAlbumUrl && (
+                    {photoAlbumUrl && (
                         <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
                             <PhotoGallery albumUrl={photoAlbumUrl} />
                             <div className="text-center mt-6">
