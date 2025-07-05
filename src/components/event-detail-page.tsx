@@ -31,7 +31,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
       title, description, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
-      allowExternals, photoAlbumUrl
+      allowExternals, photoAlbumUrl, gallery
   } = event;
 
   const parseSpeakers = (speakers?: string) => {
@@ -46,6 +46,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
 
   // Safely create date object to avoid timezone issues during formatting
   const eventDate = new Date(`${date}T00:00:00`);
+  const hasGallery = Array.isArray(gallery) && gallery.length > 0;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -107,17 +108,19 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                         <p>{longDescription}</p>
                     </DetailSection>
 
-                    {photoAlbumUrl && (
+                    {hasGallery && (
                         <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
-                            <PhotoGallery albumUrl={photoAlbumUrl} />
-                            <div className="text-center mt-6">
-                                <Button asChild size="lg">
-                                    <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
-                                        View Full Album in Google Photos
-                                        <ExternalLink className="ml-2 h-4 w-4" />
-                                    </a>
-                                </Button>
-                            </div>
+                            <PhotoGallery photoUrls={gallery!} />
+                             {photoAlbumUrl && (
+                                <div className="text-center mt-6">
+                                    <Button asChild size="lg">
+                                        <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
+                                            View Full Album
+                                            <ExternalLink className="ml-2 h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                </div>
+                            )}
                         </DetailSection>
                     )}
 

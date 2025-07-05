@@ -97,6 +97,7 @@ export type EventProposal = {
   whatYouWillLearn?: string;
   headerImage?: string;
   eventLogo?: string;
+  gallery?: string[];
   googleDriveFolderId?: string;
   photoAlbumUrl?: string;
   tags?: string[];

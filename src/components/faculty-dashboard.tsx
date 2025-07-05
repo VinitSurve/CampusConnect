@@ -158,7 +158,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 attendees: 0,
                 capacity: 100,
                 status: 'upcoming',
-                gallery: [],
+                gallery: proposal.gallery || [],
                 approvedBy: currentUser.uid,
             };
 
@@ -336,15 +336,28 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <DetailItem icon={<FileText />} label="Tags" value={Array.isArray(selectedRequest.tags) ? selectedRequest.tags.join(', ') : selectedRequest.tags} />
                 <DetailItem icon={<UserIcon />} label="Submitted By" value={selectedRequest.creatorEmail} />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-white/70 flex items-center gap-2 mb-1"><ImageIcon /> Header Image</p>
-                    <Image src={selectedRequest.headerImage || 'https://placehold.co/600x400.png'} alt="Header Image" width={400} height={200} className="rounded-lg object-cover" />
-                  </div>
-                   <div>
-                    <p className="text-sm font-medium text-white/70 flex items-center gap-2 mb-1"><ImageIcon /> Event Logo</p>
-                    <Image src={selectedRequest.eventLogo || 'https://placehold.co/100x100.png'} alt="Event Logo" width={100} height={100} className="rounded-lg object-cover bg-black/20" />
-                  </div>
+                 <div className="space-y-3">
+                    <p className="text-sm font-medium text-white/70 flex items-center gap-2"><ImageIcon /> Submitted Media</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <p className="text-xs text-white/60 mb-1">Header Image</p>
+                            <Image src={selectedRequest.headerImage || 'https://placehold.co/600x400.png'} alt="Header Image" width={200} height={100} className="rounded-lg object-cover bg-black/20" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-white/60 mb-1">Event Logo</p>
+                            <Image src={selectedRequest.eventLogo || 'https://placehold.co/100x100.png'} alt="Event Logo" width={100} height={100} className="rounded-lg object-cover bg-black/20" />
+                        </div>
+                    </div>
+                     {(selectedRequest.gallery && selectedRequest.gallery.length > 0) && (
+                        <div>
+                             <p className="text-xs text-white/60 mb-1 mt-4">Gallery Preview Images</p>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {selectedRequest.gallery.map((imgUrl, index) => (
+                                    <Image key={index} src={imgUrl} alt={`Gallery Image ${index + 1}`} width={100} height={100} className="rounded-lg object-cover bg-black/20" />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
               </div>

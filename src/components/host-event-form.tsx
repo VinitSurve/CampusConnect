@@ -47,7 +47,14 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [equipment, setEquipment] = useState(EMPTY_EQUIPMENT_STATE);
   const [currentProposalId, setCurrentProposalId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates | 'scratch' | null>(null);
-  const [previews, setPreviews] = useState({ headerImage: null as string | null, eventLogo: null as string | null });
+  const [previews, setPreviews] = useState({ 
+      headerImage: null as string | null, 
+      eventLogo: null as string | null,
+      galleryImage1: null as string | null,
+      galleryImage2: null as string | null,
+      galleryImage3: null as string | null,
+      galleryImage4: null as string | null,
+  });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
@@ -129,6 +136,13 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       return [];
     };
 
+    const galleryPreviewUrls = [
+      previews.galleryImage1,
+      previews.galleryImage2,
+      previews.galleryImage3,
+      previews.galleryImage4
+    ].filter(Boolean) as string[];
+
     return {
         id: 'preview',
         title: form.title || 'Your Event Title',
@@ -147,7 +161,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         capacity: 100,
         registrationLink: form.registrationLink || '#',
         status: 'upcoming',
-        gallery: [],
+        gallery: galleryPreviewUrls,
         tags: getTagsArray(form.tags),
         targetAudience: form.targetAudience,
         keySpeakers: form.keySpeakers,
@@ -234,6 +248,15 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     
     const draftLocation = proposal.location || 'seminar';
 
+    const galleryImageUrls = proposal.gallery || [];
+    const galleryFormFields: {[key: string]: any} = {};
+    const galleryPreviewFields: {[key: string]: any} = {};
+    for (let i = 0; i < 4; i++) {
+        galleryFormFields[`galleryImage${i+1}Url`] = galleryImageUrls[i] || '';
+        galleryPreviewFields[`galleryImage${i+1}`] = galleryImageUrls[i] || null;
+    }
+
+
     setForm({
         ...EMPTY_FORM,
         ...proposal,
@@ -241,10 +264,12 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
         headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
+        ...galleryFormFields
     });
     setPreviews({
         headerImage: proposal.headerImage || null,
         eventLogo: proposal.eventLogo || null,
+        ...galleryPreviewFields
     });
     if (proposal.date) {
         setSelectedDate(toDate(proposal.date));
@@ -272,7 +297,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setEquipment(EMPTY_EQUIPMENT_STATE);
     setCurrentProposalId(null);
     setSelectedTemplate(null);
-    setPreviews({ headerImage: null, eventLogo: null });
+    setPreviews({ headerImage: null, eventLogo: null, galleryImage1: null, galleryImage2: null, galleryImage3: null, galleryImage4: null });
     setSelectedDate(null);
     setView('templates');
     setStep(1);
@@ -344,31 +369,49 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             status,
         };
 
+        let newProposalId: string | null = null;
         if (currentProposalId) {
           const docRef = doc(db, "eventRequests", currentProposalId);
           await updateDoc(docRef, { ...finalDataToSave, updatedAt: serverTimestamp() });
         } else {
           const newDoc = await addDoc(collection(db, "eventRequests"), { ...finalDataToSave, createdAt: serverTimestamp() });
+          newProposalId = newDoc.id;
           setCurrentProposalId(newDoc.id);
         }
         
+        const galleryImageUrls = dataToSave.gallery || [];
+        const galleryPreviewFields: {[key: string]: any} = {};
+        const galleryFormFields: {[key: string]: any} = {};
+
+        for (let i = 0; i < 4; i++) {
+            galleryFormFields[`galleryImage${i+1}Url`] = galleryImageUrls[i] || '';
+            galleryPreviewFields[`galleryImage${i+1}`] = galleryImageUrls[i] || null;
+        }
+
         const finalFormState = {
             ...form,
             ...dataToSave,
             tags: Array.isArray(dataToSave.tags) ? dataToSave.tags.join(', ') : (dataToSave.tags || ''),
             headerImage: null,
             eventLogo: null,
+            galleryImage1: null, galleryImage2: null, galleryImage3: null, galleryImage4: null,
             headerImageUrl: dataToSave.headerImage,
             eventLogoUrl: dataToSave.eventLogo,
+            ...galleryFormFields,
             googleDriveFolderId: uploadResult.data.googleDriveFolderId
         };
-
+        
         setForm(finalFormState);
 
         setPreviews({
             headerImage: dataToSave.headerImage || null,
             eventLogo: dataToSave.eventLogo || null,
+            ...galleryPreviewFields
         });
+        
+        if (newProposalId) {
+            setCurrentProposalId(newProposalId);
+        }
 
         toast({ title: "Success!", description: status === 'draft' ? "Your draft has been saved." : "Your proposal has been submitted!" });
 
@@ -610,8 +653,21 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                             </div>
                         </div>
 
-                        <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.headerImage} />
-                        <FileInput name="eventLogo" label="Event Logo (Optional)" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
+                        <div className="space-y-4">
+                            <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.headerImage} />
+                            <FileInput name="eventLogo" label="Event Logo (Optional)" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-white text-sm">Gallery Preview Images</label>
+                            <p className="text-xs text-white/60">Upload up to 4 images to be shown on the event page. These will be public.</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FileInput name="galleryImage1" label="Image 1" accepted="image/*" helpText="1:1 ratio recommended" onFileChange={handleFileChange} currentPreview={previews.galleryImage1} />
+                                <FileInput name="galleryImage2" label="Image 2" accepted="image/*" helpText="1:1 ratio recommended" onFileChange={handleFileChange} currentPreview={previews.galleryImage2} />
+                                <FileInput name="galleryImage3" label="Image 3" accepted="image/*" helpText="1:1 ratio recommended" onFileChange={handleFileChange} currentPreview={previews.galleryImage3} />
+                                <FileInput name="galleryImage4" label="Image 4" accepted="image/*" helpText="1:1 ratio recommended" onFileChange={handleFileChange} currentPreview={previews.galleryImage4} />
+                            </div>
+                        </div>
                         
                         <EquipmentSelector equipment={equipment} setEquipment={setEquipment} />
                         
@@ -643,9 +699,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                             <input id="registration-link" name="registrationLink" type="url" value={form.registrationLink || ''} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." required />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-white text-sm" htmlFor="photo-album-link">Google Photos Album Link*</label>
-                            <input id="photo-album-link" name="photoAlbumUrl" type="url" value={form.photoAlbumUrl || ''} onChange={(e) => setForm({ ...form, photoAlbumUrl: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://photos.app.goo.gl/..." required />
-                             <p className="text-xs text-white/60">After the event, upload photos to this album. It must be shareable.</p>
+                            <label className="text-white text-sm" htmlFor="photo-album-link">Full Photo Album Link (Optional)</label>
+                            <input id="photo-album-link" name="photoAlbumUrl" type="url" value={form.photoAlbumUrl || ''} onChange={(e) => setForm({ ...form, photoAlbumUrl: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="e.g., a Google Photos album link" />
+                             <p className="text-xs text-white/60">A button to this link will appear below the gallery preview.</p>
                         </div>
                         {userClubs.length > 0 && (
                             <div>
