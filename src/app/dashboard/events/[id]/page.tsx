@@ -23,33 +23,36 @@ export default async function Page({ params }: { params: { id: string } }) {
   let finalGalleryImages: string[] = [];
   const totalImageCount = allGalleryImages?.length || 0;
 
-  if (!galleryHasError) {
+  if (!galleryHasError && allGalleryImages) {
       if (totalImageCount > 4) {
           try {
-              const curationResult = await curateEventPhotos({ photoUrls: allGalleryImages! });
+              const curationResult = await curateEventPhotos({ photoUrls: allGalleryImages });
               // Ensure we have a valid array, even if AI returns junk
-              if (curationResult && Array.isArray(curationResult.curatedUrls) && curationResult.curatedUrls.length > 0) {
+              if (curationResult && Array.isArray(curationResult.curatedUrls)) {
                   finalGalleryImages = curationResult.curatedUrls;
               } else {
                   // AI failed or returned empty, fallback to first 4
                   console.error("AI photo curation returned invalid data, falling back.");
-                  finalGalleryImages = allGalleryImages!.slice(0, 4);
+                  finalGalleryImages = allGalleryImages.slice(0, 4);
               }
           } catch (error) {
               console.error("AI photo curation failed, falling back to showing the first 4 images.", error);
-              finalGalleryImages = allGalleryImages!.slice(0, 4);
+              finalGalleryImages = allGalleryImages.slice(0, 4);
           }
       } else {
           // 4 or fewer images, just show them all
-          finalGalleryImages = allGalleryImages!;
+          finalGalleryImages = allGalleryImages;
       }
   }
+
+  // Final defensive filtering to absolutely prevent empty strings from reaching the Image component.
+  const cleanGalleryImages = finalGalleryImages.filter(url => url && typeof url === 'string');
 
   return (
     <div className="container mx-auto px-4 py-8">
       <EventDetailPage 
         event={event} 
-        galleryImages={finalGalleryImages} 
+        galleryImages={cleanGalleryImages} 
         galleryHasError={galleryHasError}
         totalImageCount={totalImageCount}
       />
