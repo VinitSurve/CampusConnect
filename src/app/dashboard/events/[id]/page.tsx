@@ -19,24 +19,30 @@ export default async function Page({ params }: { params: { id: string } }) {
     ? await getImagesFromDriveFolder(event.photoAlbumUrl) 
     : [];
 
-  // Handle the case where the folder is inaccessible vs. empty
   const galleryHasError = allGalleryImages === null;
-  let finalGalleryImages = allGalleryImages || [];
-  
-  // If there are more than 4 images, use AI to curate the best ones.
-  if (!galleryHasError && finalGalleryImages.length > 4) {
-    try {
-      // The AI flow will return up to 4 images
-      const curationResult = await curateEventPhotos({ photoUrls: finalGalleryImages });
-      finalGalleryImages = curationResult.curatedUrls;
-    } catch (error) {
-      console.error("AI photo curation failed, falling back to showing the first 4 images.", error);
-      // Fallback to showing the first 4 if AI fails
-      finalGalleryImages = finalGalleryImages.slice(0, 4);
-    }
-  } else if (!galleryHasError && finalGalleryImages.length > 0) {
-     // If there are 1-4 images, just show them all.
-     finalGalleryImages = finalGalleryImages.slice(0, 4);
+  let finalGalleryImages: string[] = [];
+  const totalImageCount = allGalleryImages?.length || 0;
+
+  if (!galleryHasError) {
+      if (totalImageCount > 4) {
+          try {
+              const curationResult = await curateEventPhotos({ photoUrls: allGalleryImages! });
+              // Ensure we have a valid array, even if AI returns junk
+              if (curationResult && Array.isArray(curationResult.curatedUrls) && curationResult.curatedUrls.length > 0) {
+                  finalGalleryImages = curationResult.curatedUrls;
+              } else {
+                  // AI failed or returned empty, fallback to first 4
+                  console.error("AI photo curation returned invalid data, falling back.");
+                  finalGalleryImages = allGalleryImages!.slice(0, 4);
+              }
+          } catch (error) {
+              console.error("AI photo curation failed, falling back to showing the first 4 images.", error);
+              finalGalleryImages = allGalleryImages!.slice(0, 4);
+          }
+      } else {
+          // 4 or fewer images, just show them all
+          finalGalleryImages = allGalleryImages!;
+      }
   }
 
   return (
@@ -45,7 +51,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         event={event} 
         galleryImages={finalGalleryImages} 
         galleryHasError={galleryHasError}
-        totalImageCount={allGalleryImages?.length || 0}
+        totalImageCount={totalImageCount}
       />
     </div>
   );

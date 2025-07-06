@@ -106,25 +106,18 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
 
     try {
         const response = await drive.files.list({
-            q: `'${folderId}' in parents and trashed = false`,
-            fields: 'files(id, mimeType)',
-            pageSize: 10,
+            q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
+            fields: 'files(id)',
+            pageSize: 50, // Fetch up to 50 images to pass to the AI
             orderBy: 'createdTime desc',
         });
 
         const files = response.data.files;
-        if (!files) {
+        if (!files || files.length === 0) {
             return []; 
         }
 
-        const imageFiles = files.filter(file => file.mimeType?.startsWith('image/'));
-
-        if (imageFiles.length === 0) {
-            return [];
-        }
-
-        return imageFiles
-            .slice(0, 4)
+        return files
             .filter(file => !!file.id)
             .map(file => `https://drive.google.com/uc?export=view&id=${file.id!}`);
         
