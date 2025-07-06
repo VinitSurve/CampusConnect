@@ -60,6 +60,25 @@ const curateEventPhotosFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await prompt(input);
-    return llmResponse.output!;
+    const output = llmResponse.output;
+
+    // Validate the AI's output. If it's invalid, fall back to showing the first 4.
+    if (!output || !Array.isArray(output.curatedUrls)) {
+      return { curatedUrls: input.photoUrls.slice(0, 4) };
+    }
+    
+    // Filter out any empty or non-string values from the AI's response.
+    const validatedUrls = output.curatedUrls.filter(url => typeof url === 'string' && url.length > 0);
+    
+    // If we still have fewer than 4 images, top up from the original list.
+    if (validatedUrls.length < 4 && input.photoUrls.length >= 4) {
+      const remainingNeeded = 4 - validatedUrls.length;
+      // Find photos from the original list that weren't already selected by the AI.
+      const remainingCandidates = input.photoUrls.filter(url => !validatedUrls.includes(url));
+      validatedUrls.push(...remainingCandidates.slice(0, remainingNeeded));
+    }
+    
+    // Ensure we always return exactly 4 URLs if available.
+    return { curatedUrls: validatedUrls.slice(0, 4) };
   }
 );
