@@ -8,12 +8,15 @@ interface PhotoGalleryProps {
 }
 
 export default function PhotoGallery({ photoUrls }: PhotoGalleryProps) {
-  // Add a final, robust filter to ensure only valid, non-empty strings are passed to the Image component.
-  // This prevents crashes if the AI or data source returns malformed data (e.g., empty strings or nulls).
-  const validPhotoUrls = photoUrls.filter(url => typeof url === 'string' && url.trim() !== '');
+  // This is the final line of defense. We will only accept strings that are valid data URIs for images.
+  // This prevents crashes from empty strings, nulls, or malformed data from any source.
+  const validPhotoUrls = Array.isArray(photoUrls)
+    ? photoUrls.filter(url => typeof url === 'string' && url.startsWith('data:image'))
+    : [];
 
   if (validPhotoUrls.length === 0) {
-    return null; // Don't render anything if there are no valid photos.
+    // It's better to render nothing than to crash the page.
+    return null;
   }
   
   return (
