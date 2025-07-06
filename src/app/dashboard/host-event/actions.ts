@@ -1,7 +1,7 @@
 
 'use server'
 
-import { createFolder, uploadFile } from "@/lib/drive";
+import { createFolder, uploadFile, getImagesFromDriveFolder, deleteFolder } from "@/lib/drive";
 
 // This is a data preparation function that runs on the server.
 // It handles the secure file uploads to Google Drive.
@@ -74,4 +74,18 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         console.error("Error handling event media upload:", error);
         return { success: false, error: (error as Error).message };
     }
+}
+
+export async function checkDriveLinkAccessibility(folderUrl: string): Promise<{ status: 'valid' | 'inaccessible' | 'invalid_link' }> {
+  if (!folderUrl || !folderUrl.includes('drive.google.com/drive/folders/')) {
+    return { status: 'invalid_link' };
+  }
+  
+  const result = await getImagesFromDriveFolder(folderUrl);
+
+  if (result === null) {
+    return { status: 'inaccessible' };
+  }
+
+  return { status: 'valid' };
 }
