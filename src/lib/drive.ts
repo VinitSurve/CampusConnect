@@ -105,9 +105,14 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
     const folderId = folderIdMatch[1];
 
     try {
-        // The most reliable way to check for access is to try to perform the desired action.
-        // We will attempt to list the files. If this fails due to permissions, the catch block will handle it.
-        // If it succeeds (even with an empty list), the folder is considered accessible.
+        // Step 1: Directly verify folder existence and basic access.
+        // This is a more reliable way to catch invalid IDs and permission issues upfront.
+        await drive.files.get({
+            fileId: folderId,
+            fields: 'id', // We only need to know if it exists and is accessible.
+        });
+
+        // Step 2: If the folder is accessible, list the images inside.
         const response = await drive.files.list({
             q: `'${folderId}' in parents and mimeType contains 'image/'`,
             fields: 'files(id)',
@@ -115,7 +120,6 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
             orderBy: 'createdTime desc',
         });
 
-        // If the request succeeds, we have access.
         const files = response.data.files;
         if (!files) {
             return []; // Accessible but empty or no images
@@ -124,15 +128,13 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
         return files.map(file => `https://drive.google.com/uc?export=view&id=${file.id}`);
         
     } catch (error: any) {
-        // This catch block handles cases where the folder doesn't exist or the service account has NO access at all.
-        // A 404 or 403 error from drive.files.list means the folder is not found or not shared with the service account.
-        // This is the correct way to detect a restricted folder.
+        // This catch block handles cases where the folder doesn't exist (404) or is restricted (403).
         if (error.code === 404 || error.code === 403) {
-            console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}. This is the expected result for a restricted folder.`);
+            console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}. Error code: ${error.code}`);
         } else {
             console.error('An unexpected error occurred while fetching files from Google Drive folder:', error);
         }
-        // Return null on any error to signal an accessibility problem.
+        // Any error during the process means the folder is not valid for our use.
         return null;
     }
 }
