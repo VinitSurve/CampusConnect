@@ -10,12 +10,9 @@ export default async function LoginPage() {
     if (user.role === "faculty") {
       redirect("/admin");
     } else {
-      // User is a student. Check for profile completion.
-      if (!user.course || !user.year) {
-        redirect('/setup');
-      } else {
-        redirect("/dashboard");
-      }
+      // All non-faculty users are redirected to the main dashboard.
+      // The check for profile completion has been removed.
+      redirect("/dashboard");
     }
   }
 

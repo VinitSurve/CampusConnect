@@ -16,10 +16,7 @@ export async function createSession(uid: string, isNewUser: boolean = false) {
     maxAge: 60 * 60 * 24 * 7, // 1 week
   })
 
-  // For a new user, redirect to the setup page
-  if (isNewUser) {
-    return '/setup'
-  }
+  // The redirect to /setup for new users has been removed.
 
   const userDocRef = doc(db, 'users', uid)
   const userDoc = await getDoc(userDocRef)
@@ -31,7 +28,7 @@ export async function createSession(uid: string, isNewUser: boolean = false) {
     }
   }
 
-  // Default redirect for existing users
+  // Default redirect for all non-faculty users
   return '/dashboard'
 }
 
