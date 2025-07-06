@@ -8,10 +8,17 @@ interface PhotoGalleryProps {
 }
 
 export default function PhotoGallery({ photoUrls }: PhotoGalleryProps) {
-  // The parent component now ensures photoUrls is not empty and handles errors.
+  // Add a final, robust filter to ensure only valid, non-empty strings are passed to the Image component.
+  // This prevents crashes if the AI or data source returns malformed data (e.g., empty strings or nulls).
+  const validPhotoUrls = photoUrls.filter(url => typeof url === 'string' && url.trim() !== '');
+
+  if (validPhotoUrls.length === 0) {
+    return null; // Don't render anything if there are no valid photos.
+  }
+  
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {photoUrls.map((photoUrl, i) => (
+      {validPhotoUrls.map((photoUrl, i) => (
         <div key={i} className="aspect-square relative rounded-lg overflow-hidden group border-2 border-white/10 shadow-lg">
           <Image
             src={photoUrl}
