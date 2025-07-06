@@ -13,6 +13,7 @@ interface EventDetailPageProps {
   event: Event;
   galleryImages: string[];
   galleryHasError?: boolean;
+  totalImageCount?: number;
 }
 
 const DetailSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => {
@@ -30,7 +31,7 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
     );
 };
 
-export default function EventDetailPage({ event, galleryImages, galleryHasError }: EventDetailPageProps) {
+export default function EventDetailPage({ event, galleryImages, galleryHasError, totalImageCount = 0 }: EventDetailPageProps) {
   const { 
       title, description, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
@@ -121,14 +122,16 @@ export default function EventDetailPage({ event, galleryImages, galleryHasError 
                             ) : galleryImages.length > 0 ? (
                                 <>
                                     <PhotoGallery photoUrls={galleryImages} />
+                                    {totalImageCount > 4 && (
                                     <div className="text-center mt-6">
                                         <Button asChild size="lg">
                                             <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
-                                                View Full Album
+                                                View Full Album ({totalImageCount} Photos)
                                                 <ExternalLink className="ml-2 h-4 w-4" />
                                             </a>
                                         </Button>
                                     </div>
+                                    )}
                                 </>
                             ) : (
                                 <div className="text-center p-8 bg-blue-900/20 border border-blue-500/30 rounded-lg">
