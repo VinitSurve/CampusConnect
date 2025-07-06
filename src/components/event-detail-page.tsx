@@ -133,8 +133,8 @@ export default function EventDetailPage({ event, galleryImages, galleryHasError 
                             ) : (
                                 <div className="text-center p-8 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                                     <Info className="mx-auto h-12 w-12 text-blue-300 mb-4" />
-                                    <p className="text-white font-semibold">No public photos found yet.</p>
-                                    <p className="text-white/80 text-sm mt-1">Photos will appear here once they are added. Make sure both the folder and the images inside are shared with 'Anyone with the link'.</p>
+                                    <p className="text-white font-semibold">Photos Coming Soon!</p>
+                                    <p className="text-white/80 text-sm mt-1">Photos from the event will appear here once they are added by the organizer.</p>
                                 </div>
                             )}
                         </DetailSection>
