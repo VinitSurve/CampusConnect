@@ -12,13 +12,17 @@ export default async function Page({ params }: { params: { id: string } }) {
   }
 
   // Fetch gallery images from the drive link on the server
-  const galleryImages = event.photoAlbumUrl 
+  const galleryImageResult = event.photoAlbumUrl 
     ? await getImagesFromDriveFolder(event.photoAlbumUrl) 
     : [];
 
+  // Handle the case where the folder is inaccessible vs. empty
+  const galleryHasError = galleryImageResult === null;
+  const galleryImages = galleryImageResult || [];
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <EventDetailPage event={event} galleryImages={galleryImages} />
+      <EventDetailPage event={event} galleryImages={galleryImages} galleryHasError={galleryHasError} />
     </div>
   );
 }

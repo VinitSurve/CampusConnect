@@ -12,6 +12,7 @@ import PhotoGallery from './photo-gallery';
 interface EventDetailPageProps {
   event: Event;
   galleryImages: string[];
+  galleryHasError?: boolean;
 }
 
 const DetailSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => {
@@ -29,7 +30,7 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
     );
 };
 
-export default function EventDetailPage({ event, galleryImages }: EventDetailPageProps) {
+export default function EventDetailPage({ event, galleryImages, galleryHasError }: EventDetailPageProps) {
   const { 
       title, description, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
@@ -111,7 +112,7 @@ export default function EventDetailPage({ event, galleryImages }: EventDetailPag
 
                     {photoAlbumUrl && (
                         <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
-                            <PhotoGallery photoUrls={galleryImages} />
+                            <PhotoGallery photoUrls={galleryImages} hasError={galleryHasError} />
                             <div className="text-center mt-6">
                                 <Button asChild size="lg">
                                     <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">

@@ -94,7 +94,7 @@ export async function deleteFolder(folderId: string): Promise<void> {
     }
 }
 
-export async function getImagesFromDriveFolder(folderUrl: string): Promise<string[]> {
+export async function getImagesFromDriveFolder(folderUrl: string): Promise<string[] | null> {
     const drive = getDriveClient();
     const folderIdMatch = folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
     
@@ -126,6 +126,7 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
         } else {
             console.error('Error fetching files from Google Drive folder:', error);
         }
-        return []; // Return an empty array on any error to prevent crashes.
+        // Return null on any error to signal a problem to the UI
+        return null;
     }
 }
