@@ -100,36 +100,40 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
     
     if (!folderIdMatch || !folderIdMatch[1]) {
         console.warn("Could not parse folder ID from URL:", folderUrl);
-        return []; // Return empty array for invalid link format to avoid showing an error.
+        return [];
     }
     const folderId = folderIdMatch[1];
 
     try {
-        // We only need to attempt to list the files. 
-        // If this succeeds, the folder is accessible. If it fails, it's restricted.
         const response = await drive.files.list({
-            q: `'${folderId}' in parents and mimeType contains 'image/'`,
-            fields: 'files(id)',
-            pageSize: 4, // Fetch only the first 4 images for the preview
+            q: `'${folderId}' in parents and trashed = false`,
+            fields: 'files(id, mimeType)',
+            pageSize: 10,
             orderBy: 'createdTime desc',
         });
 
         const files = response.data.files;
-        if (!files || files.length === 0) {
-            return []; // Accessible but empty or no images
+        if (!files) {
+            return []; 
         }
 
-        return files.map(file => `https://drive.google.com/uc?export=view&id=${file.id}`);
+        const imageFiles = files.filter(file => file.mimeType?.startsWith('image/'));
+
+        if (imageFiles.length === 0) {
+            return [];
+        }
+
+        return imageFiles
+            .slice(0, 4)
+            .filter(file => !!file.id)
+            .map(file => `https://drive.google.com/uc?export=view&id=${file.id!}`);
         
     } catch (error: any) {
-        // This catch block handles cases where the folder doesn't exist (404) or is restricted (403).
-        // Any error here means we can't access the images.
         if (error.code === 404 || error.code === 403) {
             console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}.`);
         } else {
             console.error('An unexpected error occurred while fetching files from Google Drive folder:', error);
         }
-        // Return null to signal to the UI that there was an error loading the gallery.
         return null;
     }
 }
