@@ -313,6 +313,17 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         toast({ title: "Missing Information", description: "Please fill all required fields, including the Google Drive link.", variant: "destructive"});
         return;
     }
+
+    if (status === 'pending' && driveLinkStatus !== 'valid') {
+        toast({ 
+            title: "Invalid Google Drive Link", 
+            description: "Please provide a valid, publicly accessible folder link and wait for the green checkmark before submitting.", 
+            variant: "destructive"
+        });
+        handleDriveLinkValidation(form.photoAlbumUrl || '');
+        return;
+    }
+
     if (status === 'draft' && !form.title) {
         toast({ title: "Title Required", description: "Please enter a title to save a draft.", variant: "destructive" });
         return;
@@ -735,8 +746,12 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                     <Button type="button" variant="outline" className="bg-white/10" onClick={handlePreview}>Preview</Button>
                     {step < 3 && <Button type="button" onClick={handleNext}>Next</Button>}
                     {step === 3 && 
-                        <Button type="button" onClick={() => handleFormSubmit('pending')} disabled={isSubmitting}>
-                            {isSubmitting ? 'Submitting...' : 'Submit Event Request'}
+                        <Button 
+                          type="button" 
+                          onClick={() => handleFormSubmit('pending')} 
+                          disabled={isSubmitting || driveLinkStatus === 'checking'}
+                        >
+                          {isSubmitting ? 'Submitting...' : driveLinkStatus === 'checking' ? 'Validating Link...' : 'Submit Event Request'}
                         </Button>
                     }
                 </div>
