@@ -100,19 +100,13 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
     
     if (!folderIdMatch || !folderIdMatch[1]) {
         console.warn("Could not parse folder ID from URL:", folderUrl);
-        return null; // Signal invalid link format
+        return []; // Return empty array for invalid link format to avoid showing an error.
     }
     const folderId = folderIdMatch[1];
 
     try {
-        // Step 1: Directly verify folder existence and basic access.
-        // This is a more reliable way to catch invalid IDs and permission issues upfront.
-        await drive.files.get({
-            fileId: folderId,
-            fields: 'id', // We only need to know if it exists and is accessible.
-        });
-
-        // Step 2: If the folder is accessible, list the images inside.
+        // We only need to attempt to list the files. 
+        // If this succeeds, the folder is accessible. If it fails, it's restricted.
         const response = await drive.files.list({
             q: `'${folderId}' in parents and mimeType contains 'image/'`,
             fields: 'files(id)',
@@ -121,7 +115,7 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
         });
 
         const files = response.data.files;
-        if (!files) {
+        if (!files || files.length === 0) {
             return []; // Accessible but empty or no images
         }
 
@@ -129,12 +123,13 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
         
     } catch (error: any) {
         // This catch block handles cases where the folder doesn't exist (404) or is restricted (403).
+        // Any error here means we can't access the images.
         if (error.code === 404 || error.code === 403) {
-            console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}. Error code: ${error.code}`);
+            console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}.`);
         } else {
             console.error('An unexpected error occurred while fetching files from Google Drive folder:', error);
         }
-        // Any error during the process means the folder is not valid for our use.
+        // Return null to signal to the UI that there was an error loading the gallery.
         return null;
     }
 }
