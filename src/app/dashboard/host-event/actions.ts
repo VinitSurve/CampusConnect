@@ -3,6 +3,8 @@
 
 import { createFolder, uploadFile, getImagesFromDriveFolder, deleteFolder } from "@/lib/drive";
 
+const FOLDER_URL_REGEX = /drive\.google\.com\/drive\/(u\/\d\/)?folders\/([a-zA-Z0-9_-]+)/;
+
 // This is a data preparation function that runs on the server.
 // It handles the secure file uploads to Google Drive.
 // It DOES NOT write to Firestore, to avoid permission errors.
@@ -77,7 +79,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
 }
 
 export async function checkDriveLinkAccessibility(folderUrl: string): Promise<{ status: 'valid' | 'inaccessible' | 'invalid_link' }> {
-  if (!folderUrl || !folderUrl.includes('drive.google.com/drive/folders/')) {
+  if (!folderUrl || !FOLDER_URL_REGEX.test(folderUrl)) {
     return { status: 'invalid_link' };
   }
   

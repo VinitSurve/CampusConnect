@@ -100,11 +100,39 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
     
     if (!folderIdMatch || !folderIdMatch[1]) {
         console.warn("Could not parse folder ID from URL:", folderUrl);
-        return [];
+        return null;
     }
     const folderId = folderIdMatch[1];
 
     try {
+        // Step 1: First, try to get the folder's metadata. 
+        // This will fail with a 404/403 if the service account has no access, which is what we want for restricted folders.
+        const file = await drive.files.get({
+            fileId: folderId,
+            fields: 'id, mimeType',
+        });
+
+        if (file.data.mimeType !== 'application/vnd.google-apps.folder') {
+            console.warn(`Provided ID ${folderId} is not a folder.`);
+            return null; // It's a file link, not a folder link. Inaccessible for our purposes.
+        }
+        
+        // The service account has access, but is the folder public for everyone?
+        // This is a more robust check.
+        const permissionsRes = await drive.permissions.list({
+            fileId: folderId,
+            fields: 'permissions(type, role)',
+        });
+        
+        const permissions = permissionsRes.data.permissions;
+        const isPubliclyReadable = permissions?.some(p => p.type === 'anyone' && p.role === 'reader');
+        
+        if (!isPubliclyReadable) {
+             console.warn(`Folder ${folderId} is not publicly readable.`);
+             return null; // Not public, so inaccessible.
+        }
+
+        // Step 2: If public, list the images.
         const response = await drive.files.list({
             q: `'${folderId}' in parents and mimeType contains 'image/'`,
             fields: 'files(id)',
@@ -114,19 +142,19 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
 
         const files = response.data.files;
         if (!files) {
-            return [];
+            return []; // Public but empty or no images
         }
 
         return files.map(file => `https://drive.google.com/uc?export=view&id=${file.id}`);
         
     } catch (error: any) {
-        // This is where we catch permission errors.
+        // This catch block handles cases where the folder doesn't exist or the service account has NO access at all.
         if (error.code === 404 || error.code === 403) {
-            console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}. Ensure the folder is shared publicly ('Anyone with the link').`);
+            console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}. This is expected for restricted folders.`);
         } else {
             console.error('Error fetching files from Google Drive folder:', error);
         }
-        // Return null on any error to signal a problem to the UI
+        // Return null on any error to signal an accessibility problem.
         return null;
     }
 }
