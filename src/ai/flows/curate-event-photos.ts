@@ -11,13 +11,13 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const CurateEventPhotosInputSchema = z.object({
-  photoUrls: z.array(z.string().url()).describe('A list of URLs for the event photos.'),
+  photoUrls: z.array(z.string()).describe('A list of URLs for the event photos.'),
 });
 export type CurateEventPhotosInput = z.infer<typeof CurateEventPhotosInputSchema>;
 
 const CurateEventPhotosOutputSchema = z.object({
   curatedUrls: z
-    .array(z.string().url())
+    .array(z.string())
     .describe('A list containing the URLs of the 4 best photos, in order of preference.'),
 });
 export type CurateEventPhotosOutput = z.infer<typeof CurateEventPhotosOutputSchema>;
