@@ -4,6 +4,8 @@ import EventDetailPage from '@/components/event-detail-page';
 import { notFound } from 'next/navigation';
 import { getImagesFromDriveFolder } from '@/lib/drive';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Page({ params }: { params: { id: string } }) {
   const event = await getEventById(params.id);
 
