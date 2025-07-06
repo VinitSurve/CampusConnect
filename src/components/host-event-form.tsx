@@ -303,8 +303,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       return;
     }
 
-    if (status === 'pending' && (!form.location || !form.category || !form.description || !form.date || !form.time || !form.registrationLink)) {
-        toast({ title: "Missing Information", description: "Please fill all required fields before submitting.", variant: "destructive"});
+    if (status === 'pending' && (!form.location || !form.category || !form.description || !form.date || !form.time || !form.registrationLink || !form.photoAlbumUrl)) {
+        toast({ title: "Missing Information", description: "Please fill all required fields, including the Google Drive link.", variant: "destructive"});
         return;
     }
     if (status === 'draft' && !form.title) {
@@ -654,9 +654,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                             <input id="registration-link" name="registrationLink" type="url" value={form.registrationLink || ''} onChange={(e) => setForm({ ...form, registrationLink: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://..." required />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-white text-sm" htmlFor="photo-album-link">Google Drive Folder Link (for Gallery)</label>
-                            <input id="photo-album-link" name="photoAlbumUrl" type="url" value={form.photoAlbumUrl || ''} onChange={(e) => setForm({ ...form, photoAlbumUrl: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://drive.google.com/drive/folders/..." />
-                             <p className="text-xs text-white/60">After the event, paste a public Google Drive folder link here. The first 4 images will appear on the event page. Ensure sharing is set to "Anyone with the link".</p>
+                            <label className="text-white text-sm" htmlFor="photo-album-link">Google Drive Folder Link*</label>
+                            <input id="photo-album-link" name="photoAlbumUrl" type="url" value={form.photoAlbumUrl || ''} onChange={(e) => setForm({ ...form, photoAlbumUrl: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="https://drive.google.com/drive/folders/..." required />
+                             <p className="text-xs text-white/60">Paste a public Google Drive folder link for the event's photo gallery. Ensure sharing is set to "Anyone with the link".</p>
                         </div>
                         {userClubs.length > 0 && (
                             <div>
