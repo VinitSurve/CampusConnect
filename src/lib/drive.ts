@@ -107,8 +107,8 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
     try {
         const response = await drive.files.list({
             q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
-            fields: 'files(id)',
-            pageSize: 50, // Fetch up to 50 images to pass to the AI
+            fields: 'files(id, mimeType)',
+            pageSize: 50,
             orderBy: 'createdTime desc',
         });
 
@@ -116,10 +116,33 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
         if (!files || files.length === 0) {
             return []; 
         }
-
-        return files
-            .filter(file => !!file.id)
-            .map(file => `https://drive.google.com/uc?export=view&id=${file.id!}`);
+        
+        // Use Promise.all to fetch all files concurrently and convert them to data URIs.
+        // This is necessary because Gemini requires a valid image mimeType,
+        // and direct Google Drive links often serve as application/octet-stream.
+        const dataUris = await Promise.all(
+            files
+                .filter(file => !!file.id && !!file.mimeType)
+                .map(async (file) => {
+                    try {
+                        const fileContentResponse = await drive.files.get(
+                            { fileId: file.id!, alt: 'media' },
+                            { responseType: 'arraybuffer' }
+                        );
+                        
+                        const buffer = Buffer.from(fileContentResponse.data as ArrayBuffer);
+                        const base64 = buffer.toString('base64');
+                        
+                        return `data:${file.mimeType};base64,${base64}`;
+                    } catch (fileError) {
+                        console.error(`Failed to fetch content for file ${file.id}:`, fileError);
+                        return null; // Return null for files that fail to download
+                    }
+                })
+        );
+        
+        // Filter out any nulls from failed downloads before returning
+        return dataUris.filter((uri): uri is string => uri !== null);
         
     } catch (error: any) {
         if (error.code === 404 || error.code === 403) {
