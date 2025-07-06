@@ -111,17 +111,15 @@ export default function EventDetailPage({ event, galleryImages, galleryHasError 
                     </DetailSection>
 
                     {photoAlbumUrl && (
-                        <>
+                        <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
                             {galleryHasError ? (
-                                <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
-                                    <div className="text-center p-8 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
-                                        <AlertTriangle className="mx-auto h-12 w-12 text-yellow-400 mb-4" />
-                                        <p className="text-yellow-200 font-semibold">Could not load photos.</p>
-                                        <p className="text-yellow-300/80 text-sm mt-1">Please ensure the Google Drive folder is shared with "Anyone with the link".</p>
-                                    </div>
-                                </DetailSection>
+                                <div className="text-center p-8 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
+                                    <AlertTriangle className="mx-auto h-12 w-12 text-yellow-400 mb-4" />
+                                    <p className="text-yellow-200 font-semibold">Could not load photos.</p>
+                                    <p className="text-yellow-300/80 text-sm mt-1">The folder might be restricted or deleted. Please ensure it's shared with "Anyone with the link".</p>
+                                </div>
                             ) : galleryImages.length > 0 ? (
-                                <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
+                                <>
                                     <PhotoGallery photoUrls={galleryImages} />
                                     <div className="text-center mt-6">
                                         <Button asChild size="lg">
@@ -131,9 +129,15 @@ export default function EventDetailPage({ event, galleryImages, galleryHasError 
                                             </a>
                                         </Button>
                                     </div>
-                                </DetailSection>
-                            ) : null}
-                        </>
+                                </>
+                            ) : (
+                                <div className="text-center p-8 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                                    <Info className="mx-auto h-12 w-12 text-blue-300 mb-4" />
+                                    <p className="text-white font-semibold">No public photos found yet.</p>
+                                    <p className="text-white/80 text-sm mt-1">Photos will appear here once they are added. Make sure both the folder and the images inside are shared with 'Anyone with the link'.</p>
+                                </div>
+                            )}
+                        </DetailSection>
                     )}
 
                     {allowExternals && (
