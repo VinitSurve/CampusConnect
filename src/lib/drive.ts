@@ -93,3 +93,39 @@ export async function deleteFolder(folderId: string): Promise<void> {
         console.error(`Failed to delete Google Drive folder ${folderId}:`, err);
     }
 }
+
+export async function getImagesFromDriveFolder(folderUrl: string): Promise<string[]> {
+    const drive = getDriveClient();
+    const folderIdMatch = folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
+    
+    if (!folderIdMatch || !folderIdMatch[1]) {
+        console.warn("Could not parse folder ID from URL:", folderUrl);
+        return [];
+    }
+    const folderId = folderIdMatch[1];
+
+    try {
+        const response = await drive.files.list({
+            q: `'${folderId}' in parents and mimeType contains 'image/'`,
+            fields: 'files(id)',
+            pageSize: 4, // Fetch only the first 4 images
+            orderBy: 'createdTime desc',
+        });
+
+        const files = response.data.files;
+        if (!files) {
+            return [];
+        }
+
+        return files.map(file => `https://drive.google.com/uc?export=view&id=${file.id}`);
+        
+    } catch (error: any) {
+        // This is where we catch permission errors.
+        if (error.code === 404 || error.code === 403) {
+            console.warn(`Permission denied or folder not found for Drive link: ${folderUrl}. Ensure the folder is shared publicly ('Anyone with the link').`);
+        } else {
+            console.error('Error fetching files from Google Drive folder:', error);
+        }
+        return []; // Return an empty array on any error to prevent crashes.
+    }
+}

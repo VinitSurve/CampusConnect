@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Event } from '@/types';
@@ -10,6 +11,7 @@ import PhotoGallery from './photo-gallery';
 
 interface EventDetailPageProps {
   event: Event;
+  galleryImages: string[];
 }
 
 const DetailSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => {
@@ -27,11 +29,11 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
     );
 };
 
-export default function EventDetailPage({ event }: EventDetailPageProps) {
+export default function EventDetailPage({ event, galleryImages }: EventDetailPageProps) {
   const { 
       title, description, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
-      allowExternals, photoAlbumUrl, gallery
+      allowExternals, photoAlbumUrl
   } = event;
 
   const parseSpeakers = (speakers?: string) => {
@@ -46,7 +48,6 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
 
   // Safely create date object to avoid timezone issues during formatting
   const eventDate = new Date(`${date}T00:00:00`);
-  const hasGallery = Array.isArray(gallery) && gallery.length > 0;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -108,19 +109,17 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                         <p>{longDescription}</p>
                     </DetailSection>
 
-                    {hasGallery && (
+                    {photoAlbumUrl && (
                         <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
-                            <PhotoGallery photoUrls={gallery!} />
-                             {photoAlbumUrl && (
-                                <div className="text-center mt-6">
-                                    <Button asChild size="lg">
-                                        <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
-                                            View Full Album
-                                            <ExternalLink className="ml-2 h-4 w-4" />
-                                        </a>
-                                    </Button>
-                                </div>
-                            )}
+                            <PhotoGallery photoUrls={galleryImages} />
+                            <div className="text-center mt-6">
+                                <Button asChild size="lg">
+                                    <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
+                                        View Full Album
+                                        <ExternalLink className="ml-2 h-4 w-4" />
+                                    </a>
+                                </Button>
+                            </div>
                         </DetailSection>
                     )}
 

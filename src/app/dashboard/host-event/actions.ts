@@ -21,7 +21,6 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
 
         let headerImageUrl: string | undefined = typeof rawHeaderUrl === 'string' ? rawHeaderUrl : undefined;
         let eventLogoUrl: string | undefined = typeof rawLogoUrl === 'string' ? rawLogoUrl : undefined;
-        let gallery: string[] = [];
 
         if (googleDriveFolderId) {
             // Process Header and Logo
@@ -34,25 +33,6 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             if (eventLogoFile && eventLogoFile.size > 0) {
                 eventLogoUrl = await uploadFile(eventLogoFile, googleDriveFolderId);
             }
-
-            // Process Gallery Images
-            const galleryUploadPromises: Promise<string | null>[] = [];
-            for (let i = 1; i <= 4; i++) {
-                const key = `galleryImage${i}`;
-                const file = formData.get(key) as File;
-                if (file && file.size > 0) {
-                    galleryUploadPromises.push(uploadFile(file, googleDriveFolderId));
-                } else {
-                    const existingUrl = formData.get(`${key}Url`) as string;
-                    if(existingUrl) {
-                       galleryUploadPromises.push(Promise.resolve(existingUrl));
-                    } else {
-                       galleryUploadPromises.push(Promise.resolve(null));
-                    }
-                }
-            }
-            const uploadedGalleryUrls = await Promise.all(galleryUploadPromises);
-            gallery = uploadedGalleryUrls.filter((url): url is string => url !== null);
         }
         
         const whatYouWillLearnRaw = formData.get('whatYouWillLearn') as string;
@@ -62,6 +42,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         const tags = tagsRaw.split(',').map(tag => tag.trim()).filter(Boolean);
 
         // Return a clean data object for the client to save.
+        // Gallery is now just the raw link, not an array of processed images.
         return {
             success: true,
             data: {
@@ -82,7 +63,6 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                 endTime: formData.get('endTime') as string,
                 headerImage: headerImageUrl,
                 eventLogo: eventLogoUrl,
-                gallery: gallery,
                 googleDriveFolderId: googleDriveFolderId,
                 photoAlbumUrl: formData.get('photoAlbumUrl') as string,
                 tags: tags,

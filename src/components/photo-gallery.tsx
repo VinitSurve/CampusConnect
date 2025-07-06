@@ -2,7 +2,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Camera } from 'lucide-react';
+import { Camera, AlertTriangle } from 'lucide-react';
 
 interface PhotoGalleryProps {
   photoUrls: string[];
@@ -10,11 +10,24 @@ interface PhotoGalleryProps {
 
 export default function PhotoGallery({ photoUrls }: PhotoGalleryProps) {
 
-  if (!photoUrls || photoUrls.length === 0) {
-      return (
+  if (!photoUrls) {
+      // This case handles when the fetch itself fails for unknown reasons.
+       return (
            <div className="text-center p-8 bg-black/20 rounded-lg">
                 <Camera className="mx-auto h-12 w-12 text-white/50 mb-4" />
-                <p className="text-white">No gallery preview available for this event.</p>
+                <p className="text-white">Photo gallery is not available for this event.</p>
+           </div>
+      )
+  }
+
+  if (photoUrls.length === 0) {
+      // This case handles when the fetch is successful but returns no images,
+      // which implies a permissions issue or an empty folder.
+      return (
+           <div className="text-center p-8 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
+                <AlertTriangle className="mx-auto h-12 w-12 text-yellow-400 mb-4" />
+                <p className="text-yellow-200 font-semibold">Could not load photos.</p>
+                <p className="text-yellow-300/80 text-sm mt-1">Please ensure the Google Drive folder is shared with "Anyone with the link".</p>
            </div>
       )
   }

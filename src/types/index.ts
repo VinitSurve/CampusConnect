@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string; // Document ID from Firestore, same as uid
   uid: string; // Firebase Auth User ID
@@ -35,7 +36,6 @@ export type Event = {
   capacity: number;
   registrationLink: string;
   status: 'upcoming' | 'past' | 'cancelled';
-  gallery: string[];
   tags: string[];
   eventType?: 'event' | 'timetable';
   // New fields
@@ -45,10 +45,12 @@ export type Event = {
   budgetDetails?: string;
   whatYouWillLearn?: string;
   googleDriveFolderId?: string;
-  photoAlbumUrl?: string;
+  photoAlbumUrl?: string; // This now holds the Google Drive Folder URL
   createdBy?: string;
   approvedBy?: string;
   allowExternals?: boolean;
+  // This field is for passing fetched image URLs, not for storing in DB
+  gallery?: string[];
 };
 
 export type Club = {
@@ -97,12 +99,13 @@ export type EventProposal = {
   whatYouWillLearn?: string;
   headerImage?: string;
   eventLogo?: string;
-  gallery?: string[];
   googleDriveFolderId?: string;
   photoAlbumUrl?: string;
   tags?: string[];
   publishedEventId?: string;
   allowExternals?: boolean;
+  // This field is for passing fetched image URLs, not for storing in DB
+  gallery?: string[];
 };
 
 export type TimetableEntry = {
