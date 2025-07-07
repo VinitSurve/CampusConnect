@@ -196,7 +196,7 @@ export default function AdminClubsPage() {
                 {clubs.map(club => (
                     <div key={club.id} className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden flex flex-col group">
                         <div className="relative h-40 w-full">
-                            <Image src={club.image || 'https://placehold.co/600x400.png'} alt={club.name} fill className="object-cover" />
+                            <Image src={club.image || 'https://placehold.co/600x400.png'} alt={club.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
                         </div>
                         <div className="p-4 flex-grow flex flex-col">
                             <h2 className="text-xl font-semibold text-white mb-2">{club.name}</h2>

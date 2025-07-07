@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import StudentNavbar from '@/components/student-navbar';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {
