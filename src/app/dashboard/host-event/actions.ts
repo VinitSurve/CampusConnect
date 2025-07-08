@@ -1,7 +1,7 @@
 
 'use server'
 
-import { createFolder, uploadFile, getImagesFromDriveFolder, deleteFolder } from "@/lib/drive";
+import { createFolder, uploadFile, getImageInfoFromDriveFolder, deleteFolder } from "@/lib/drive";
 
 const FOLDER_URL_REGEX = /drive\.google\.com\/drive\/(u\/\d\/)?folders\/([a-zA-Z0-9_-]+)/;
 
@@ -83,7 +83,7 @@ export async function checkDriveLinkAccessibility(folderUrl: string): Promise<{ 
     return { status: 'invalid_link' };
   }
   
-  const result = await getImagesFromDriveFolder(folderUrl);
+  const result = await getImageInfoFromDriveFolder(folderUrl);
 
   if (result === null) {
     return { status: 'inaccessible' };

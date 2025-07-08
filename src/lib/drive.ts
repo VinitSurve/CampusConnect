@@ -94,7 +94,7 @@ export async function deleteFolder(folderId: string): Promise<void> {
     }
 }
 
-export async function getImagesFromDriveFolder(folderUrl: string): Promise<string[] | null> {
+export async function getImageInfoFromDriveFolder(folderUrl: string): Promise<{ id: string, thumbnailUrl: string }[] | null> {
     const drive = getDriveClient();
     const folderIdMatch = folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
     
@@ -107,7 +107,7 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
     try {
         const response = await drive.files.list({
             q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
-            fields: 'files(id, mimeType)',
+            fields: 'files(id, thumbnailLink)',
             pageSize: 50,
             orderBy: 'createdTime desc',
         });
@@ -117,32 +117,12 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
             return []; 
         }
         
-        // Use Promise.all to fetch all files concurrently and convert them to data URIs.
-        // This is necessary because Gemini requires a valid image mimeType,
-        // and direct Google Drive links often serve as application/octet-stream.
-        const dataUris = await Promise.all(
-            files
-                .filter(file => !!file.id && !!file.mimeType)
-                .map(async (file) => {
-                    try {
-                        const fileContentResponse = await drive.files.get(
-                            { fileId: file.id!, alt: 'media' },
-                            { responseType: 'arraybuffer' }
-                        );
-                        
-                        const buffer = Buffer.from(fileContentResponse.data as ArrayBuffer);
-                        const base64 = buffer.toString('base64');
-                        
-                        return `data:${file.mimeType};base64,${base64}`;
-                    } catch (fileError) {
-                        console.error(`Failed to fetch content for file ${file.id}:`, fileError);
-                        return null; // Return null for files that fail to download
-                    }
-                })
-        );
-        
-        // Filter out any nulls from failed downloads before returning
-        return dataUris.filter((uri): uri is string => uri !== null);
+        return files
+            .filter(file => !!file.id && !!file.thumbnailLink)
+            .map(file => ({
+                id: file.id!,
+                thumbnailUrl: file.thumbnailLink!,
+            }));
         
     } catch (error: any) {
         if (error.code === 404 || error.code === 403) {
@@ -152,4 +132,43 @@ export async function getImagesFromDriveFolder(folderUrl: string): Promise<strin
         }
         return null;
     }
+}
+
+export async function getImagesDataUrisFromIds(fileIds: string[]): Promise<string[]> {
+    if (fileIds.length === 0) return [];
+
+    const drive = getDriveClient();
+    const dataUris = await Promise.all(
+        fileIds.map(async (fileId) => {
+            try {
+                // We must get the mimeType first to construct a valid data URI
+                const metaResponse = await drive.files.get({
+                    fileId: fileId,
+                    fields: 'mimeType',
+                });
+                const mimeType = metaResponse.data.mimeType;
+
+                if (!mimeType || !mimeType.startsWith('image/')) {
+                    console.warn(`Skipping file ${fileId} as it's not a valid image.`);
+                    return null;
+                }
+
+                // Then get the full image content
+                const fileContentResponse = await drive.files.get(
+                    { fileId: fileId, alt: 'media' },
+                    { responseType: 'arraybuffer' }
+                );
+                
+                const buffer = Buffer.from(fileContentResponse.data as ArrayBuffer);
+                const base64 = buffer.toString('base64');
+                
+                return `data:${mimeType};base64,${base64}`;
+            } catch (fileError) {
+                console.error(`Failed to fetch content for file ${fileId}:`, fileError);
+                return null;
+            }
+        })
+    );
+    
+    return dataUris.filter((uri): uri is string => uri !== null);
 }

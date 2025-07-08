@@ -11,7 +11,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const CurateEventPhotosInputSchema = z.object({
-  photoUrls: z.array(z.string()).describe('A list of URLs for the event photos, as data URIs.'),
+  photoUrls: z.array(z.string()).describe('A list of URLs for the event photos, typically thumbnails.'),
 });
 export type CurateEventPhotosInput = z.infer<typeof CurateEventPhotosInputSchema>;
 
