@@ -62,8 +62,15 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
         }, 1000);
     };
 
-    const upcomingEvents = events.filter(e => new Date(e.date) >= new Date());
-    const pastEvents = events.filter(e => new Date(e.date) < new Date());
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const upcomingEvents = events
+        .filter(e => e.date >= todayStr)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+    const pastEvents = events
+        .filter(e => e.date < todayStr)
+        .sort((a, b) => b.date.localeCompare(a.date));
 
     // Fake members list for UI purposes
     const memberDisplayCount = 10;
@@ -109,7 +116,7 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                         <Separator className="my-6 bg-white/10" />
 
                         {/* Upcoming Events Section */}
-                        {upcomingEvents.length > 0 && (
+                        {upcomingEvents.length > 0 ? (
                             <Section 
                                 title={`Upcoming Events (${upcomingEvents.length})`}
                                 icon={<Calendar className="w-6 h-6 text-blue-400" />}
@@ -119,9 +126,32 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                                     {upcomingEvents.slice(0, 3).map(event => <EventCard key={event.id} event={event} />)}
                                 </div>
                             </Section>
+                        ) : (
+                            <Section 
+                                title="Upcoming Events"
+                                icon={<Calendar className="w-6 h-6 text-blue-400" />}
+                            >
+                                <p className="text-center text-white/70 py-4">No upcoming events scheduled yet. Check back soon!</p>
+                            </Section>
                         )}
                         
                         <Separator className="my-6 bg-white/10" />
+
+                        {/* Past Events Section */}
+                        {pastEvents.length > 0 && (
+                            <>
+                                <Section 
+                                    title={`Past Events (${pastEvents.length})`}
+                                    icon={<Clock className="w-6 h-6 text-blue-400" />}
+                                    cta={<Button variant="link" className="text-blue-400">See all</Button>}
+                                >
+                                    <div className="space-y-4 not-prose">
+                                        {pastEvents.slice(0, 3).map(event => <EventCard key={event.id} event={event} />)}
+                                    </div>
+                                </Section>
+                                <Separator className="my-6 bg-white/10" />
+                            </>
+                        )}
 
                         {/* Photos section */}
                         <Section 
