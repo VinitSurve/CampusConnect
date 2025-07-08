@@ -1,3 +1,4 @@
+
 'use server'
 
 import { cookies } from 'next/headers'
@@ -28,8 +29,8 @@ export async function createSession(uid: string, isNewUser: boolean = false) {
     }
   }
 
-  // Default redirect for all non-faculty users
-  return '/dashboard'
+  // Default redirect for all non-faculty users to the canonical events page.
+  return '/dashboard/events'
 }
 
 export async function logout() {

@@ -12,9 +12,9 @@ export default async function LoginPage() {
     if (user.role === "faculty") {
       redirect("/admin");
     } else {
-      // All non-faculty users are redirected to the main dashboard.
-      // The check for profile completion has been removed.
-      redirect("/dashboard");
+      // All non-faculty users are redirected to the main dashboard events page
+      // to avoid a redirect chain from /dashboard -> /dashboard/events.
+      redirect("/dashboard/events");
     }
   }
 

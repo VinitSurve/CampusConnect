@@ -77,7 +77,21 @@ export async function getClubById(id: string): Promise<Club | null> {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return { id: docSnap.id, ...data } as Club;
+      // Manually construct the object and serialize timestamps
+      const club: Club = {
+        id: docSnap.id,
+        name: data.name,
+        description: data.description,
+        image: data.image,
+        tags: data.tags,
+        members: data.members,
+        contactEmail: data.contactEmail,
+        facultyAdvisor: data.facultyAdvisor,
+        leadId: data.leadId,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
+        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
+      };
+      return club;
     } else {
       console.log("No such club document!");
       return null;

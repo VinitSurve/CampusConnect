@@ -52,7 +52,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/dashboard" className="flex-shrink-0 flex items-center">
+            <Link href="/dashboard/events" className="flex-shrink-0 flex items-center">
               <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg">
                 CC
               </div>
