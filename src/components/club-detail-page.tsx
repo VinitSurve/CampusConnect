@@ -50,7 +50,7 @@ const EventCard = ({ event }: { event: Event }) => (
 export default function ClubDetailPage({ club, events, lead, allStudents }: ClubDetailPageProps) {
     const [isMember, setIsMember] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [memberCount, setMemberCount] = useState(club.members);
+    const [memberCount, setMemberCount] = useState(club.members || 0);
 
     const handleJoinClub = () => {
         setIsProcessing(true);
@@ -87,7 +87,7 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                     <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg mb-3">{club.name}</h1>
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-white/80 mb-6">
                         <span className="flex items-center gap-2"><Users /> {memberCount} Members</span>
-                        {lead && <span className="flex items-center gap-2"><UserIcon /> Organized by {lead.name}</span>}
+                        {club.facultyAdvisor && <span className="flex items-center gap-2"><BookUser /> {club.facultyAdvisor}</span>}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 items-center">
                         {isMember ? (
