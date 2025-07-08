@@ -14,12 +14,12 @@ export default async function Page({ params }: { params: { id: string } }) {
   }
 
   const events = await getEventsByClubId(club.id);
-  const students = await getStudents();
+  const students = await getStudents(); // Fetches all students
   const leadUser = students.find(s => s.id === club.leadId) || null;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <ClubDetailPage club={club} events={events} lead={leadUser} />
+      <ClubDetailPage club={club} events={events} lead={leadUser} allStudents={students} />
     </div>
   );
 }
