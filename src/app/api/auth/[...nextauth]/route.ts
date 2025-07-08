@@ -1,3 +1,2 @@
-// This file is no longer used for the photo gallery feature.
-// The authentication flow has been simplified to avoid client-side OAuth.
 // This file has been deactivated to improve development server stability.
+// It was part of a previous authentication scheme that is no longer in use.

@@ -1,3 +1,2 @@
-// This file is no longer in use.
-// The Google Photos API integration has been removed in favor of a simpler
-// Google Drive upload flow, which does not require client-side OAuth token refreshes.
+// This file has been deactivated to improve development server stability.
+// It was part of a previous authentication scheme that is no longer in use.
