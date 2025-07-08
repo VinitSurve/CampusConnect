@@ -51,6 +51,9 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
     const [isMember, setIsMember] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [memberCount, setMemberCount] = useState(club.members || 0);
+    const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+    const [showAllPast, setShowAllPast] = useState(false);
+    const [showAllPhotos, setShowAllPhotos] = useState(false);
 
     const handleJoinClub = () => {
         setIsProcessing(true);
@@ -120,10 +123,14 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                             <Section 
                                 title={`Upcoming Events (${upcomingEvents.length})`}
                                 icon={<Calendar className="w-6 h-6 text-blue-400" />}
-                                cta={<Button variant="link" className="text-blue-400">See all</Button>}
+                                cta={upcomingEvents.length > 3 ? (
+                                    <Button variant="link" className="text-blue-400" onClick={() => setShowAllUpcoming(!showAllUpcoming)}>
+                                        {showAllUpcoming ? 'Show less' : 'See all'}
+                                    </Button>
+                                ) : null}
                             >
                                 <div className="space-y-4 not-prose">
-                                    {upcomingEvents.slice(0, 3).map(event => <EventCard key={event.id} event={event} />)}
+                                    {(showAllUpcoming ? upcomingEvents : upcomingEvents.slice(0, 3)).map(event => <EventCard key={event.id} event={event} />)}
                                 </div>
                             </Section>
                         ) : (
@@ -143,10 +150,14 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                                 <Section 
                                     title={`Past Events (${pastEvents.length})`}
                                     icon={<Clock className="w-6 h-6 text-blue-400" />}
-                                    cta={<Button variant="link" className="text-blue-400">See all</Button>}
+                                    cta={pastEvents.length > 3 ? (
+                                        <Button variant="link" className="text-blue-400" onClick={() => setShowAllPast(!showAllPast)}>
+                                            {showAllPast ? 'Show less' : 'See all'}
+                                        </Button>
+                                    ) : null}
                                 >
                                     <div className="space-y-4 not-prose">
-                                        {pastEvents.slice(0, 3).map(event => <EventCard key={event.id} event={event} />)}
+                                        {(showAllPast ? pastEvents : pastEvents.slice(0, 3)).map(event => <EventCard key={event.id} event={event} />)}
                                     </div>
                                 </Section>
                                 <Separator className="my-6 bg-white/10" />
@@ -157,13 +168,17 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                         <Section 
                             title="Photos"
                             icon={<Camera className="w-6 h-6 text-blue-400" />}
-                            cta={pastEvents.length > 0 ? <Button variant="link" className="text-blue-400">See all</Button> : null}
+                            cta={pastEvents.length > 4 ? (
+                                <Button variant="link" className="text-blue-400" onClick={() => setShowAllPhotos(!showAllPhotos)}>
+                                    {showAllPhotos ? 'Show less' : 'See all'}
+                                </Button>
+                            ) : null}
                         >
                             {pastEvents.length > 0 ? (
                                 <>
                                     <p className="text-sm text-white/70">Photos from past events are available on the event pages.</p>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 not-prose pt-4">
-                                        {pastEvents.slice(0, 4).map(event => (
+                                        {(showAllPhotos ? pastEvents : pastEvents.slice(0, 4)).map(event => (
                                             <Link href={`/dashboard/events/${event.id}`} key={event.id} className="aspect-square relative rounded-lg overflow-hidden group border-2 border-white/10 shadow-lg">
                                                 <Image src={event.headerImage || event.image || 'https://placehold.co/400x400.png'} alt={event.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
                                                 <div className="absolute inset-0 bg-black/50 flex items-end p-2">
