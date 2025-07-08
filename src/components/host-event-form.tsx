@@ -10,11 +10,11 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe, Camera, Loader2, XCircle, CheckCircle2 } from "lucide-react";
+import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe, Camera } from "lucide-react";
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
-import { handleEventMediaUpload, checkDriveLinkAccessibility } from "../app/dashboard/host-event/actions";
+import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserProposals } from '@/lib/data';
 import { format, toDate } from 'date-fns';
@@ -59,8 +59,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [isSubmitting, startTransition] = useTransition();
   const [proposals, setProposals] = useState(initialProposals);
   const [previewChannel, setPreviewChannel] = useState<BroadcastChannel | null>(null);
-  const [driveLinkStatus, setDriveLinkStatus] = useState<'idle' | 'checking' | 'valid' | 'error' | 'invalid'>('idle');
-  const [driveLinkError, setDriveLinkError] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -236,8 +234,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const handleEditProposal = (proposal: EventProposal) => {
     setCurrentProposalId(proposal.id);
     setSelectedTemplate(null);
-    setDriveLinkStatus('idle');
-    setDriveLinkError(null);
     
     const draftLocation = proposal.location || 'seminar';
 
@@ -283,8 +279,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setSelectedDate(null);
     setView('templates');
     setStep(1);
-    setDriveLinkStatus('idle');
-    setDriveLinkError(null);
   }
   
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
@@ -309,18 +303,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       return;
     }
 
-    if (status === 'pending' && (!form.location || !form.category || !form.description || !form.date || !form.time || !form.registrationLink || !form.photoAlbumUrl)) {
-        toast({ title: "Missing Information", description: "Please fill all required fields, including the Google Drive link.", variant: "destructive"});
-        return;
-    }
-
-    if (status === 'pending' && driveLinkStatus !== 'valid') {
-        toast({ 
-            title: "Invalid Google Drive Link", 
-            description: "Please provide a valid, publicly accessible folder link and wait for the green checkmark before submitting.", 
-            variant: "destructive"
-        });
-        handleDriveLinkValidation(form.photoAlbumUrl || '');
+    if (status === 'pending' && (!form.location || !form.category || !form.description || !form.date || !form.time || !form.registrationLink)) {
+        toast({ title: "Missing Information", description: "Please fill all required fields before submitting for review.", variant: "destructive"});
         return;
     }
 
@@ -382,7 +366,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             eventLogo: null,
             headerImageUrl: dataToSave.headerImage,
             eventLogoUrl: dataToSave.eventLogo,
-            googleDriveFolderId: uploadResult.data.googleDriveFolderId
+            googleDriveFolderId: uploadResult.data.googleDriveFolderId,
+            photoAlbumUrl: uploadResult.data.photoAlbumUrl,
         };
         
         setForm(finalFormState);
@@ -466,29 +451,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       toast({ title: "Time Slot Confirmed", description: `Set to ${selection.date} from ${selection.start} to ${selection.end}` });
       setIsTimeModalOpen(false);
   };
-
-  const handleDriveLinkValidation = async (url: string) => {
-      if (!url.trim()) {
-          setDriveLinkStatus('idle');
-          return;
-      }
-
-      setDriveLinkStatus('checking');
-      setDriveLinkError(null);
-
-      const { status } = await checkDriveLinkAccessibility(url);
-
-      if (status === 'valid') {
-          setDriveLinkStatus('valid');
-      } else if (status === 'inaccessible') {
-          setDriveLinkStatus('error');
-          setDriveLinkError("This folder is restricted. Please set sharing to 'Anyone with the link'.");
-      } else { // invalid_link
-          setDriveLinkStatus('invalid');
-          setDriveLinkError("Please enter a valid Google Drive folder URL.");
-      }
-  };
-
 
   if (!isAllowed) {
     return (
@@ -694,35 +656,20 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         </div>
                         
                         <div className="space-y-2">
-                            <label className="text-white text-sm" htmlFor="photo-album-link">Google Drive Folder Link*</label>
-                            <div className="relative">
-                                <input
-                                    id="photo-album-link"
-                                    name="photoAlbumUrl"
-                                    type="url"
-                                    value={form.photoAlbumUrl || ''}
-                                    onChange={(e) => {
-                                        setForm({ ...form, photoAlbumUrl: e.target.value });
-                                        if (driveLinkStatus !== 'idle' && driveLinkStatus !== 'checking') {
-                                            setDriveLinkStatus('idle');
-                                            setDriveLinkError(null);
-                                        }
-                                    }}
-                                    onBlur={(e) => handleDriveLinkValidation(e.target.value)}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white pr-10"
-                                    placeholder="https://drive.google.com/drive/folders/..."
-                                    required
-                                />
-                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    {driveLinkStatus === 'checking' && <Loader2 className="h-5 w-5 text-white/50 animate-spin" />}
-                                    {driveLinkStatus === 'valid' && <CheckCircle2 className="h-5 w-5 text-green-400" />}
-                                    {(driveLinkStatus === 'error' || driveLinkStatus === 'invalid') && <XCircle className="h-5 w-5 text-red-400" />}
-                                </div>
+                            <label className="text-white text-sm">Photo Album Folder</label>
+                            <div className="p-4 bg-black/20 rounded-lg border border-white/10 min-h-[56px] flex items-center">
+                                {form.photoAlbumUrl ? (
+                                    <div className="flex justify-between items-center w-full">
+                                        <Link href={form.photoAlbumUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline truncate text-sm">
+                                            {form.photoAlbumUrl}
+                                        </Link>
+                                        <Camera className="w-5 h-5 text-white/70 ml-4 flex-shrink-0" />
+                                    </div>
+                                ) : (
+                                    <p className="text-white/60 text-sm">A Google Drive folder will be automatically created when you save a draft with a title.</p>
+                                )}
                             </div>
-                            {(driveLinkStatus === 'error' || driveLinkStatus === 'invalid') && driveLinkError && (
-                                <p className="text-xs text-red-400 mt-1">{driveLinkError}</p>
-                            )}
-                            <p className="text-xs text-white/60">Paste a public Google Drive folder link. This will be checked for public accessibility.</p>
+                            <p className="text-xs text-white/60">Upload photos to this folder to display them in the event gallery after the event.</p>
                         </div>
 
                         {userClubs.length > 0 && (
@@ -749,9 +696,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         <Button 
                           type="button" 
                           onClick={() => handleFormSubmit('pending')} 
-                          disabled={isSubmitting || driveLinkStatus === 'checking'}
+                          disabled={isSubmitting}
                         >
-                          {isSubmitting ? 'Submitting...' : driveLinkStatus === 'checking' ? 'Validating Link...' : 'Submit Event Request'}
+                          {isSubmitting ? 'Submitting...' : 'Submit Event Request'}
                         </Button>
                     }
                 </div>

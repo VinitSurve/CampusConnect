@@ -33,7 +33,7 @@ const getDriveClient = () => {
     return google.drive({ version: 'v3', auth });
 }
 
-export async function createFolder(name: string): Promise<string> {
+export async function createFolder(name: string): Promise<{ folderId: string; folderUrl: string }> {
     const drive = getDriveClient();
     if (!process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID) {
         throw new Error("GOOGLE_DRIVE_PARENT_FOLDER_ID is not configured.");
@@ -46,9 +46,23 @@ export async function createFolder(name: string): Promise<string> {
     try {
         const file = await drive.files.create({
             resource: fileMetadata,
-            fields: 'id',
+            fields: 'id, webViewLink',
         });
-        return file.data.id!;
+        const folderId = file.data.id!;
+        const folderUrl = file.data.webViewLink!;
+
+        // Make the folder publicly accessible so anyone with the link can view.
+        // This is necessary for the AI curation to work on thumbnail links
+        // and for the user to view the full album.
+        await drive.permissions.create({
+            fileId: folderId,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+
+        return { folderId, folderUrl };
     } catch (err) {
         console.error('Error creating folder in Google Drive:', err);
         throw new Error('Failed to create event folder.');

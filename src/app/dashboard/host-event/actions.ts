@@ -1,9 +1,7 @@
 
 'use server'
 
-import { createFolder, uploadFile, getImageInfoFromDriveFolder, deleteFolder } from "@/lib/drive";
-
-const FOLDER_URL_REGEX = /drive\.google\.com\/drive\/(u\/\d\/)?folders\/([a-zA-Z0-9_-]+)/;
+import { createFolder, uploadFile } from "@/lib/drive";
 
 // This is a data preparation function that runs on the server.
 // It handles the secure file uploads to Google Drive.
@@ -12,10 +10,13 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
     try {
         const title = formData.get('title') as string;
         let googleDriveFolderId = existingFolderId;
+        let photoAlbumUrl = formData.get('photoAlbumUrl') as string; // Keep existing URL if it's there
 
         // Create a new folder only if one doesn't already exist and a title is present
         if (!googleDriveFolderId && title) {
-            googleDriveFolderId = await createFolder(title);
+            const { folderId, folderUrl } = await createFolder(title);
+            googleDriveFolderId = folderId;
+            photoAlbumUrl = folderUrl;
         }
         
         const rawHeaderUrl = formData.get('headerImageUrl');
@@ -44,7 +45,6 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         const tags = tagsRaw.split(',').map(tag => tag.trim()).filter(Boolean);
 
         // Return a clean data object for the client to save.
-        // Gallery is now just the raw link, not an array of processed images.
         return {
             success: true,
             data: {
@@ -66,7 +66,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                 headerImage: headerImageUrl,
                 eventLogo: eventLogoUrl,
                 googleDriveFolderId: googleDriveFolderId,
-                photoAlbumUrl: formData.get('photoAlbumUrl') as string,
+                photoAlbumUrl: photoAlbumUrl,
                 tags: tags,
                 allowExternals: formData.get('allowExternals') === 'true',
             }
@@ -76,18 +76,4 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         console.error("Error handling event media upload:", error);
         return { success: false, error: (error as Error).message };
     }
-}
-
-export async function checkDriveLinkAccessibility(folderUrl: string): Promise<{ status: 'valid' | 'inaccessible' | 'invalid_link' }> {
-  if (!folderUrl || !FOLDER_URL_REGEX.test(folderUrl)) {
-    return { status: 'invalid_link' };
-  }
-  
-  const result = await getImageInfoFromDriveFolder(folderUrl);
-
-  if (result === null) {
-    return { status: 'inaccessible' };
-  }
-
-  return { status: 'valid' };
 }
