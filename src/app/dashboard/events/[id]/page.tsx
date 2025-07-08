@@ -40,7 +40,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         }
       } catch (error) {
         console.error("AI photo curation failed:", error);
-        // Fallback to showing the first 4 photos is handled below.
+        // Fallback to showing the first 4 photos is handled by the check below if curatedFileIds remains empty.
       }
     }
     
