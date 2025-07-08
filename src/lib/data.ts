@@ -48,6 +48,41 @@ export async function getEventById(id: string): Promise<Event | null> {
   }
 }
 
+export async function getEventsByClubId(clubId: string): Promise<Event[]> {
+  if (handleDbError('getEventsByClubId')) return [];
+  try {
+    const q = query(collection(db, "events"), where("clubId", "==", clubId), orderBy("date", "desc"));
+    const querySnapshot = await getDocs(q);
+    const events = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { id: doc.id, ...data } as Event;
+    });
+    return events;
+  } catch (error) {
+    console.error("Error fetching events by club ID:", error);
+    return [];
+  }
+}
+
+export async function getClubById(id: string): Promise<Club | null> {
+  if (handleDbError('getClubById')) return null;
+  try {
+    const docRef = doc(db, "clubs", id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return { id: docSnap.id, ...data } as Club;
+    } else {
+      console.log("No such club document!");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching club by ID:", error);
+    return null;
+  }
+}
+
 export async function getClubs(): Promise<Club[]> {
   if (handleDbError('getClubs')) return [];
   try {

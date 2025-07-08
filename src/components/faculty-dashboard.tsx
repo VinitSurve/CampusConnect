@@ -144,6 +144,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 endTime: endTime,
                 location: locationName,
                 organizer: proposal.clubName,
+                clubId: proposal.clubId,
                 category: proposal.category,
                 image: proposal.headerImage || 'https://placehold.co/600x400.png',
                 headerImage: proposal.headerImage,

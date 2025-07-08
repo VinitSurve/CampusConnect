@@ -39,6 +39,7 @@ export type Event = {
   tags: string[];
   eventType?: 'event' | 'timetable';
   // New fields
+  clubId?: string;
   targetAudience?: string[];
   keySpeakers?: string;
   equipmentNeeds?: string;
