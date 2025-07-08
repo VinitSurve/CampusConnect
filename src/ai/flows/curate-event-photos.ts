@@ -59,20 +59,27 @@ const curateEventPhotosFlow = ai.defineFlow(
     outputSchema: CurateEventPhotosOutputSchema,
   },
   async (input) => {
-    const llmResponse = await prompt(input);
-    const output = llmResponse.output;
+    try {
+      const llmResponse = await prompt(input);
+      const output = llmResponse.output;
 
-    // Validate the AI's output. If it's invalid, return an empty array and let the client handle the fallback.
-    if (!output || !Array.isArray(output.curatedIndices)) {
-      console.error("AI Curation: Invalid or missing curatedIndices array in output.");
+      // Validate the AI's output. If it's invalid, return an empty array and let the client handle the fallback.
+      if (!output || !Array.isArray(output.curatedIndices)) {
+        console.error("AI Curation: Invalid or missing curatedIndices array in output.");
+        return { curatedIndices: [] };
+      }
+      
+      // Filter out any non-number or out-of-bounds indices from the AI's response.
+      const validatedIndices = output.curatedIndices
+        .filter(idx => typeof idx === 'number' && idx >= 0 && idx < input.photoUrls.length)
+        .slice(0, 4); // Ensure we don't return more than 4 indices.
+      
+      return { curatedIndices: validatedIndices };
+    } catch (error) {
+      console.error("AI Curation Flow Error: The call to the AI model failed.", error);
+      // On any error from the AI service (like 503), return an empty array
+      // to allow the frontend to gracefully fallback.
       return { curatedIndices: [] };
     }
-    
-    // Filter out any non-number or out-of-bounds indices from the AI's response.
-    const validatedIndices = output.curatedIndices
-      .filter(idx => typeof idx === 'number' && idx >= 0 && idx < input.photoUrls.length)
-      .slice(0, 4); // Ensure we don't return more than 4 indices.
-    
-    return { curatedIndices: validatedIndices };
   }
 );
