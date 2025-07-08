@@ -48,29 +48,20 @@ const EventCard = ({ event }: { event: Event }) => (
 
 
 export default function ClubDetailPage({ club, events, lead, allStudents }: ClubDetailPageProps) {
-    const [joinStatus, setJoinStatus] = useState<'idle' | 'pending' | 'joined'>('idle');
+    const [isMember, setIsMember] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [memberCount, setMemberCount] = useState(club.members);
 
-    const handleJoinRequest = () => {
-        setJoinStatus('pending');
-        // Mocking an API call
+    const handleJoinClub = () => {
+        setIsProcessing(true);
+        // Mock API call to join the club
         setTimeout(() => {
-            setJoinStatus('joined');
-        }, 1500);
+            setIsMember(true);
+            setMemberCount(count => count + 1);
+            setIsProcessing(false);
+        }, 1000);
     };
 
-    const getButtonState = () => {
-        switch (joinStatus) {
-            case 'pending':
-                return { text: 'Request Sent', disabled: true };
-            case 'joined':
-                return { text: "You're a Member", disabled: true };
-            default:
-                return { text: 'Request to Join', disabled: false };
-        }
-    };
-
-    const buttonState = getButtonState();
-    
     const upcomingEvents = events.filter(e => new Date(e.date) >= new Date());
     const pastEvents = events.filter(e => new Date(e.date) < new Date());
 
@@ -88,13 +79,19 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                 <div className="p-6">
                     <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg mb-3">{club.name}</h1>
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-white/80 mb-6">
-                        <span className="flex items-center gap-2"><Users /> {club.members} Members</span>
+                        <span className="flex items-center gap-2"><Users /> {memberCount} Members</span>
                         {lead && <span className="flex items-center gap-2"><UserIcon /> Organized by {lead.name}</span>}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 items-center">
-                        <Button onClick={handleJoinRequest} disabled={buttonState.disabled} size="lg" className="w-full sm:w-auto flex-grow sm:flex-grow-0">
-                            {buttonState.text}
-                        </Button>
+                        {isMember ? (
+                            <Button size="lg" disabled className="w-full sm:w-auto flex-grow sm:flex-grow-0 bg-green-700 hover:bg-green-700">
+                                <Users className="mr-2"/> You're a Member
+                            </Button>
+                        ) : (
+                            <Button onClick={handleJoinClub} disabled={isProcessing} size="lg" className="w-full sm:w-auto flex-grow sm:flex-grow-0">
+                                {isProcessing ? 'Joining...' : 'Join Club'}
+                            </Button>
+                        )}
                         <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 text-white"><Share2 className="mr-2"/> Share</Button>
                     </div>
                 </div>
@@ -183,7 +180,7 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                              ) : <p className="text-sm text-white/70">Organizer information not available.</p>}
                         </Section>
                         <Separator className="my-4 bg-white/10" />
-                        <Section title={`Members (${club.members})`} cta={<Button variant="link" className="text-blue-400">See all</Button>}>
+                        <Section title={`Members (${memberCount})`} cta={<Button variant="link" className="text-blue-400">See all</Button>}>
                              <div className="grid grid-cols-5 gap-3 not-prose">
                                 {fakeMembers.map(member => (
                                     <Avatar key={member.id}>
@@ -191,6 +188,12 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                                         <AvatarFallback>{member.name?.[0]}</AvatarFallback>
                                     </Avatar>
                                 ))}
+                                {isMember && allStudents.length >= memberDisplayCount && (
+                                    <Avatar>
+                                        <AvatarImage src={allStudents[memberDisplayCount]?.avatar} alt={allStudents[memberDisplayCount]?.name} />
+                                        <AvatarFallback>{allStudents[memberDisplayCount]?.name?.[0] || 'U'}</AvatarFallback>
+                                    </Avatar>
+                                )}
                              </div>
                         </Section>
                      </div>
@@ -198,7 +201,7 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                      <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
                          <Section title="Related Topics" icon={<Tag className="w-6 h-6 text-blue-400" />}>
                             <div className="flex flex-wrap gap-2">
-                                {club.tags?.map((tag, index) => (
+                                {(club.tags || []).map((tag, index) => (
                                     <Badge key={index} variant="secondary" className="bg-white/10 text-white font-normal cursor-pointer hover:bg-white/20">
                                         {tag}
                                     </Badge>
