@@ -51,12 +51,17 @@ export async function getEventById(id: string): Promise<Event | null> {
 export async function getEventsByClubId(clubId: string): Promise<Event[]> {
   if (handleDbError('getEventsByClubId')) return [];
   try {
-    const q = query(collection(db, "events"), where("clubId", "==", clubId), orderBy("date", "desc"));
+    // The query now fetches events without ordering to avoid the composite index requirement.
+    const q = query(collection(db, "events"), where("clubId", "==", clubId));
     const querySnapshot = await getDocs(q);
     const events = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return { id: doc.id, ...data } as Event;
     });
+    
+    // We sort the events here in code, after fetching them.
+    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
     return events;
   } catch (error) {
     console.error("Error fetching events by club ID:", error);
