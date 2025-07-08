@@ -17,7 +17,7 @@ const handleDbError = (operation: string) => {
 export async function getEvents(): Promise<Event[]> {
   if (handleDbError('getEvents')) return [];
   try {
-    const q = query(collection(db, "events"), orderBy("date", "desc"));
+    const q = query(collection(db, "events"), orderBy("date", "asc"));
     const querySnapshot = await getDocs(q);
     const events = querySnapshot.docs.map(doc => {
       const data = doc.data();
