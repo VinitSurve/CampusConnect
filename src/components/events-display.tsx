@@ -194,6 +194,11 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                 selectMirror={false}
                 dayMaxEvents={true}
                 height="auto"
+                eventTimeFormat={{
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    meridiem: 'short'
+                }}
             />
         </div>
       )}

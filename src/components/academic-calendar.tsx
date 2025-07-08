@@ -216,6 +216,11 @@ export default function AcademicCalendar({
             slotMaxTime="18:00:00"
             slotLabelInterval="01:00:00"
             slotDuration="01:00:00"
+            eventTimeFormat={{
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short'
+            }}
             />
         )}
         </div>
