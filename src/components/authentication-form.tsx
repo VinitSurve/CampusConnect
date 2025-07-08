@@ -199,21 +199,21 @@ export default function AuthenticationForm() {
                         {isRegisterMode && (
                             <div>
                                 <Label htmlFor="fullName" className="text-white">Full Name</Label>
-                                <Input id="fullName" name="fullName" type="text" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                                <Input id="fullName" name="fullName" type="text" value={fullName} onChange={e => setFullName(e.target.value)} required autoComplete="name" />
                             </div>
                         )}
                         <div>
                             <Label htmlFor="email" className="text-white">Email Address</Label>
-                            <Input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                            <Input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
                         </div>
                         <div>
                             <Label htmlFor="password"  className="text-white">Password</Label>
-                            <Input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                            <Input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete={isRegisterMode ? "new-password" : "current-password"} />
                         </div>
                         {isRegisterMode && (
                              <div>
                                 <Label htmlFor="confirmPassword"  className="text-white">Confirm Password</Label>
-                                <Input id="confirmPassword" name="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+                                <Input id="confirmPassword" name="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required autoComplete="new-password" />
                             </div>
                         )}
                         <Button type="submit" className="w-full" disabled={isLoading}>

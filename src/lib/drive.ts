@@ -4,19 +4,30 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.warn("GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Google Drive features will not work. Please add the path to your credentials.json file in the .env file.");
+// New warning messages for environment variable-based credentials
+if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY || !process.env.GOOGLE_PROJECT_ID) {
+  console.warn("Google Drive environment variables (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_PROJECT_ID) are not set. Google Drive features will not work. Please add them from your credentials file to your .env file or Vercel environment variables.");
 }
+
 if (!process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID) {
     console.warn("GOOGLE_DRIVE_PARENT_FOLDER_ID environment variable not set. Google Drive features will not work.");
 }
 
 const getDriveClient = () => {
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-        throw new Error("GOOGLE_APPLICATION_CREDENTIALS path is not configured in .env file.");
+    const credentials = {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        // In .env files, newlines in keys must be represented as `\n`.
+        // The `?.replace` handles this to restore the original format for the googleapis library.
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        project_id: process.env.GOOGLE_PROJECT_ID,
+    };
+    
+    if (!credentials.client_email || !credentials.private_key || !credentials.project_id) {
+        throw new Error("Google Drive credentials are not configured correctly in environment variables. Please check your .env file or Vercel deployment settings.");
     }
+
     const auth = new google.auth.GoogleAuth({
-        keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        credentials,
         scopes: ['https://www.googleapis.com/auth/drive'],
     });
     return google.drive({ version: 'v3', auth });
