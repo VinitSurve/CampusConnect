@@ -65,7 +65,7 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
     const todayStr = new Date().toISOString().split('T')[0];
 
     const upcomingEvents = events
-        .filter(e => e.date >= todayStr)
+        .filter(e => e.date >= todayStr && e.status === 'upcoming')
         .sort((a, b) => a.date.localeCompare(b.date));
 
     const pastEvents = events

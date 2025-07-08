@@ -51,8 +51,16 @@ export async function getEventById(id: string): Promise<Event | null> {
 export async function getEventsByClubId(clubId: string): Promise<Event[]> {
   if (handleDbError('getEventsByClubId')) return [];
   try {
-    // The query now fetches events without ordering to avoid the composite index requirement.
-    const q = query(collection(db, "events"), where("clubId", "==", clubId));
+    // There seems to be an issue with clubId propagation.
+    // A more reliable way is to find the club document, get its name, and query by the organizer field.
+    const clubDoc = await getDoc(doc(db, 'clubs', clubId));
+    if (!clubDoc.exists()) {
+      console.error(`Club with id ${clubId} not found.`);
+      return [];
+    }
+    const clubName = clubDoc.data().name;
+
+    const q = query(collection(db, "events"), where("organizer", "==", clubName));
     const querySnapshot = await getDocs(q);
     const events = querySnapshot.docs.map(doc => {
       const data = doc.data();
