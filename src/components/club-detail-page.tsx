@@ -1,16 +1,19 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import type { Club, Event, User } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Users, Share2, Tag } from 'lucide-react';
+import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Users, Share2, Tag, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { format } from 'date-fns';
 import { Separator } from './ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from '@/hooks/use-toast';
+import { getMembershipStatus, joinClub } from '@/app/dashboard/clubs/[id]/actions';
+
 
 interface ClubDetailPageProps {
   club: Club;
@@ -19,7 +22,6 @@ interface ClubDetailPageProps {
   allStudents: User[]; 
 }
 
-// Reusable section component for styling consistency
 const Section = ({ title, icon, children, cta }: { title: string; icon?: React.ReactNode; children: React.ReactNode; cta?: React.ReactNode }) => {
     return (
         <div className="py-8">
@@ -37,7 +39,6 @@ const Section = ({ title, icon, children, cta }: { title: string; icon?: React.R
     );
 };
 
-// Event card for the list
 const EventCard = ({ event }: { event: Event }) => (
     <Link href={`/dashboard/events/${event.id}`} className="block bg-white/5 hover:bg-white/10 p-4 rounded-lg transition-colors">
         <p className="text-sm text-white/70">{format(new Date(`${event.date}T00:00:00`), 'EEE, MMM d, yyyy')} • {event.time}</p>
@@ -49,39 +50,46 @@ const EventCard = ({ event }: { event: Event }) => (
 
 export default function ClubDetailPage({ club, events, lead, allStudents }: ClubDetailPageProps) {
     const [isMember, setIsMember] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+
     const [memberCount, setMemberCount] = useState(club.members || 0);
     const [showAllUpcoming, setShowAllUpcoming] = useState(false);
     const [showAllPast, setShowAllPast] = useState(false);
     const [showAllPhotos, setShowAllPhotos] = useState(false);
 
+    useEffect(() => {
+        const checkStatus = async () => {
+            setIsLoading(true);
+            const status = await getMembershipStatus(club.id);
+            setIsMember(status);
+            setIsLoading(false);
+        };
+        checkStatus();
+    }, [club.id]);
+
     const handleJoinClub = () => {
-        setIsProcessing(true);
-        // Mock API call to join the club
-        setTimeout(() => {
-            setIsMember(true);
-            setMemberCount(count => count + 1);
-            setIsProcessing(false);
-        }, 1000);
+        startTransition(async () => {
+            const result = await joinClub(club.id);
+            if (result.success) {
+                toast({ title: "Success!", description: `You've joined ${club.name}.` });
+                setIsMember(true);
+                setMemberCount(count => count + 1);
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
+            }
+        });
     };
 
     const todayStr = new Date().toISOString().split('T')[0];
-
-    const upcomingEvents = events
-        .filter(e => e.date >= todayStr && e.status === 'upcoming')
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-    const pastEvents = events
-        .filter(e => e.date < todayStr)
-        .sort((a, b) => b.date.localeCompare(a.date));
-
-    // Fake members list for UI purposes
+    const upcomingEvents = events.filter(e => e.date >= todayStr && e.status === 'upcoming').sort((a, b) => a.date.localeCompare(b.date));
+    const pastEvents = events.filter(e => e.date < todayStr).sort((a, b) => b.date.localeCompare(a.date));
     const memberDisplayCount = 10;
     const fakeMembers = allStudents.slice(0, Math.min(memberDisplayCount, allStudents.length));
 
     return (
         <div className="max-w-4xl mx-auto">
-            {/* Header section with image and primary info */}
             <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden mb-8">
                 <div className="relative h-64 md:h-80 w-full">
                     <Image src={club.image || 'https://placehold.co/2560x650.png'} alt={club.name} fill sizes="100vw" className="object-cover" data-ai-hint="organization community" />
@@ -93,13 +101,15 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                         {club.facultyAdvisor && <span className="flex items-center gap-2"><BookUser /> {club.facultyAdvisor}</span>}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 items-center">
-                        {isMember ? (
+                        {isLoading ? (
+                             <Button size="lg" disabled className="w-full sm:w-auto flex-grow sm:flex-grow-0">Loading...</Button>
+                        ) : isMember ? (
                             <Button size="lg" disabled className="w-full sm:w-auto flex-grow sm:flex-grow-0 bg-green-700 hover:bg-green-700">
-                                <Users className="mr-2"/> You're a Member
+                                <CheckCircle2 className="mr-2"/> You're a Member
                             </Button>
                         ) : (
-                            <Button onClick={handleJoinClub} disabled={isProcessing} size="lg" className="w-full sm:w-auto flex-grow sm:flex-grow-0">
-                                {isProcessing ? 'Joining...' : 'Join Club'}
+                            <Button onClick={handleJoinClub} disabled={isPending} size="lg" className="w-full sm:w-auto flex-grow sm:flex-grow-0">
+                                {isPending ? 'Joining...' : 'Join Club'}
                             </Button>
                         )}
                         <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 text-white"><Share2 className="mr-2"/> Share</Button>
@@ -107,18 +117,13 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                 </div>
             </div>
 
-            {/* Main content grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
                     <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-                        {/* About Section */}
                         <Section title="What we're about">
                             <p>{club.description}</p>
                         </Section>
-
                         <Separator className="my-6 bg-white/10" />
-
-                        {/* Upcoming Events Section */}
                         {upcomingEvents.length > 0 ? (
                             <Section 
                                 title={`Upcoming Events (${upcomingEvents.length})`}
@@ -144,7 +149,6 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                         
                         <Separator className="my-6 bg-white/10" />
 
-                        {/* Past Events Section */}
                         {pastEvents.length > 0 && (
                             <>
                                 <Section 
@@ -164,7 +168,6 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                             </>
                         )}
 
-                        {/* Photos section */}
                         <Section 
                             title="Photos"
                             icon={<Camera className="w-6 h-6 text-blue-400" />}
@@ -195,7 +198,6 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
 
                         <Separator className="my-6 bg-white/10" />
 
-                         {/* Discussions section */}
                         <Section 
                             title="Discussions"
                             icon={<MessageSquare className="w-6 h-6 text-blue-400" />}
@@ -207,7 +209,6 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                     </div>
                 </div>
 
-                {/* Right Sidebar */}
                 <div className="space-y-8">
                      <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
                         <Section title="Organizer">

@@ -2,11 +2,12 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import type { EventProposal, Event, SeminarBooking } from '@/types';
+import type { EventProposal, Event, SeminarBooking, Club, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, updateDoc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, getDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { deleteFolder } from '@/lib/drive';
+import { sendNewEventNotification } from '@/lib/email';
 import {
   Dialog,
   DialogContent,
@@ -132,7 +133,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             const finalLocation = proposal.location;
             const locationName = locationIdToNameMap[finalLocation] || finalLocation;
             
-            const newEvent: Omit<Event, 'id'> = {
+            const newEventData: Omit<Event, 'id'> = {
                 title: editedData.title || proposal.title,
                 longDescription: editedData.description || proposal.description,
                 whatYouWillLearn: editedData.whatYouWillLearn || proposal.whatYouWillLearn,
@@ -164,7 +165,8 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 approvedBy: currentUser.uid,
             };
 
-            const newEventRef = await addDoc(collection(db, "events"), newEvent);
+            const newEventRef = await addDoc(collection(db, "events"), newEventData);
+            const newEvent = { ...newEventData, id: newEventRef.id };
 
             if (finalLocation === 'seminar') {
                 const newBooking: Omit<SeminarBooking, 'id'> = {
@@ -196,6 +198,31 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             setSelectedRequest(updatedRequests[0] || null);
             setRequestForApproval(null);
             toast({ title: "Success", description: "Event approved and published successfully!" });
+
+            // Send notifications after everything is confirmed
+            if (newEvent.clubId) {
+                const clubRef = doc(db, 'clubs', newEvent.clubId);
+                const clubMembersQuery = query(collection(clubRef, 'members'));
+                const [clubSnap, membersSnap] = await Promise.all([getDoc(clubRef), getDocs(clubMembersQuery)]);
+
+                if (clubSnap.exists() && !membersSnap.empty) {
+                    const clubData = clubSnap.data() as Club;
+                    const members = membersSnap.docs.map(doc => doc.data() as User);
+                    
+                    toast({ title: `Notifying ${members.length} members...`, description: "Emails are being sent in the background." });
+
+                    for (const member of members) {
+                        if (member.email) {
+                            await sendNewEventNotification({
+                                toEmail: member.email,
+                                event: newEvent,
+                                club: clubData,
+                            });
+                        }
+                    }
+                }
+            }
+
 
         } catch (error) {
             console.error("Error approving request:", error);
