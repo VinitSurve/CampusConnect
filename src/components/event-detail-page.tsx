@@ -3,17 +3,14 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
-import PhotoGallery from './photo-gallery';
+import EventGallery from './event-gallery';
 
 interface EventDetailPageProps {
   event: Event;
-  galleryImages: string[];
-  galleryHasError?: boolean;
-  totalImageCount?: number;
 }
 
 const DetailSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => {
@@ -31,7 +28,7 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
     );
 };
 
-export default function EventDetailPage({ event, galleryImages, galleryHasError, totalImageCount = 0 }: EventDetailPageProps) {
+export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { 
       title, description, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
@@ -108,38 +105,12 @@ export default function EventDetailPage({ event, galleryImages, galleryHasError,
 
                 <div className="space-y-8">
                     <DetailSection title="About this event" icon={<Info className="h-6 w-6 text-blue-400" />}>
-                        <p>{longDescription}</p>
+                        <p>{longDescription || description}</p>
                     </DetailSection>
 
                     {photoAlbumUrl && (
                         <DetailSection title="Event Gallery" icon={<Camera className="h-6 w-6 text-blue-400" />}>
-                            {galleryHasError ? (
-                                <div className="text-center p-8 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
-                                    <AlertTriangle className="mx-auto h-12 w-12 text-yellow-400 mb-4" />
-                                    <p className="text-yellow-200 font-semibold">Could not load photos.</p>
-                                    <p className="text-yellow-300/80 text-sm mt-1">The folder might be restricted or deleted. Please ensure it's shared with "Anyone with the link".</p>
-                                </div>
-                            ) : galleryImages.length > 0 ? (
-                                <>
-                                    <PhotoGallery photoUrls={galleryImages} />
-                                    {totalImageCount > 4 && (
-                                    <div className="text-center mt-6">
-                                        <Button asChild size="lg">
-                                            <a href={photoAlbumUrl} target="_blank" rel="noopener noreferrer">
-                                                View Full Album ({totalImageCount} Photos)
-                                                <ExternalLink className="ml-2 h-4 w-4" />
-                                            </a>
-                                        </Button>
-                                    </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="text-center p-8 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                                    <Info className="mx-auto h-12 w-12 text-blue-300 mb-4" />
-                                    <p className="text-white font-semibold">Photos Coming Soon!</p>
-                                    <p className="text-white/80 text-sm mt-1">Photos from the event will appear here once they are added by the organizer.</p>
-                                </div>
-                            )}
+                            <EventGallery photoAlbumUrl={photoAlbumUrl} />
                         </DetailSection>
                     )}
 
