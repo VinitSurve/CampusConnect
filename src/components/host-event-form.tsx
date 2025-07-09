@@ -192,7 +192,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           toast({ title: "AI Generated Content", description: "Event details have been filled in. Please review." });
       } catch (error) {
           console.error("Error generating details:", error);
-          toast({ title: "AI Error", description: "Failed to generate details.", variant: "destructive" });
+          toast({ title: "AI Error", description: (error as Error).message, variant: "destructive" });
       } finally {
           setIsGeneratingDetails(false);
       }

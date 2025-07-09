@@ -59,7 +59,18 @@ const generateEventDetailsFlow = ai.defineFlow(
     outputSchema: GenerateEventDetailsOutputSchema,
   },
   async (input) => {
-    const llmResponse = await prompt(input);
-    return llmResponse.output!;
+    try {
+        const llmResponse = await prompt(input);
+        if (!llmResponse.output) {
+            throw new Error('The AI model did not return the expected output. Please try again.');
+        }
+        return llmResponse.output;
+    } catch (error: any) {
+        console.error("AI Generation Error in Flow:", error);
+        if (error.message && (error.message.includes('503') || error.message.toLowerCase().includes('overloaded'))) {
+            throw new Error('The AI service is currently busy. Please try again in a moment.');
+        }
+        throw new Error('An unexpected error occurred while generating event details.');
+    }
   }
 );
