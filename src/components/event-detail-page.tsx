@@ -3,7 +3,7 @@
 
 import type { Event } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera } from 'lucide-react';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera, CalendarPlus } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
@@ -47,6 +47,32 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
 
   // Safely create date object to avoid timezone issues during formatting
   const eventDate = new Date(`${date}T00:00:00`);
+  
+  const generateGoogleCalendarLink = () => {
+    if (!event.date || !event.time) return '#';
+
+    const formatGoogleCalendarDate = (date: Date) => {
+      // Converts to YYYYMMDDTHHMMSSZ format
+      return date.toISOString().replace(/-|:|\.\d{3}/g, '');
+    };
+    
+    const startDate = new Date(`${event.date}T${event.time}`);
+    // Default to a 1-hour duration if no end time is provided
+    const endDate = event.endTime ? new Date(`${event.date}T${event.endTime}`) : new Date(startDate.getTime() + 60 * 60 * 1000);
+
+    // Creating a more detailed description for the calendar event
+    const details = `For more details, visit the event page:\n${window.location.href}\n\n${event.longDescription || event.description}`;
+
+    const gCalUrl = new URL('https://www.google.com/calendar/render');
+    gCalUrl.searchParams.set('action', 'TEMPLATE');
+    gCalUrl.searchParams.set('text', event.title);
+    gCalUrl.searchParams.set('dates', `${formatGoogleCalendarDate(startDate)}/${formatGoogleCalendarDate(endDate)}`);
+    gCalUrl.searchParams.set('details', details);
+    gCalUrl.searchParams.set('location', event.location);
+
+    return gCalUrl.toString();
+  };
+
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -94,9 +120,15 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                             </div>
                         </div>
                     </div>
-                    <div className="w-full md:w-auto flex-shrink-0">
+                    <div className="w-full md:w-auto flex-shrink-0 flex flex-col sm:flex-row gap-3">
+                        <Button asChild size="lg" variant="outline" className="bg-white/10 text-white hover:bg-white/20">
+                            <a href={generateGoogleCalendarLink()} target="_blank" rel="noopener noreferrer">
+                                <CalendarPlus />
+                                Add to Calendar
+                            </a>
+                        </Button>
                         {registrationLink && (
-                        <Button asChild size="lg" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
+                        <Button asChild size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
                             <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
                         </Button>
                         )}
