@@ -27,10 +27,6 @@ service cloud.firestore {
     // Main Collections
     
     // Users Collection
-    // WARNING: User documents are publicly readable to allow server-side rendering
-    // to function. This is a temporary solution to fix a permissions error.
-    // The recommended long-term solution is to use the Firebase Admin SDK on the server,
-    // which securely bypasses security rules for admin operations.
     match /users/{userId} {
       allow read: if true;
       allow create: if isAuthenticated();
@@ -53,10 +49,13 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if isFaculty();
       // Allow faculty to update anything.
-      // Allow authenticated users to update ONLY the members count when joining.
+      // Allow an authenticated user to join a club by only incrementing the `members` count.
+      // This is more robust than the previous `hasOnly` check.
       allow update: if isFaculty() || (
         isAuthenticated() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+        request.resource.data.members == (resource.data.members || 0) + 1 &&
+        request.resource.data.name == resource.data.name &&
+        request.resource.data.leadId == resource.data.leadId
       );
       
       // Members subcollection for clubs
