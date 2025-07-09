@@ -52,6 +52,7 @@ export async function joinClub(clubId: string): Promise<{ success: boolean; erro
         userId: user.uid,
         name: user.name,
         email: user.email,
+        avatar: user.avatar || '',
         joinedAt: serverTimestamp(),
       });
 

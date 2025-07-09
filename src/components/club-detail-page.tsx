@@ -19,7 +19,7 @@ interface ClubDetailPageProps {
   club: Club;
   events: Event[];
   lead: User | null;
-  allStudents: User[]; 
+  members: User[]; 
 }
 
 const Section = ({ title, icon, children, cta }: { title: string; icon?: React.ReactNode; children: React.ReactNode; cta?: React.ReactNode }) => {
@@ -48,7 +48,7 @@ const EventCard = ({ event }: { event: Event }) => (
 );
 
 
-export default function ClubDetailPage({ club, events, lead, allStudents }: ClubDetailPageProps) {
+export default function ClubDetailPage({ club, events, lead, members }: ClubDetailPageProps) {
     const [isMember, setIsMember] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
@@ -85,14 +85,24 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
     const todayStr = new Date().toISOString().split('T')[0];
     const upcomingEvents = events.filter(e => e.date >= todayStr && e.status === 'upcoming').sort((a, b) => a.date.localeCompare(b.date));
     const pastEvents = events.filter(e => e.date < todayStr).sort((a, b) => b.date.localeCompare(a.date));
+    
+    // Use the real members passed in props
     const memberDisplayCount = 10;
-    const fakeMembers = allStudents.slice(0, Math.min(memberDisplayCount, allStudents.length));
+    const displayedMembers = members.slice(0, memberDisplayCount);
 
     return (
         <div className="max-w-4xl mx-auto">
             <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden mb-8">
                 <div className="relative h-64 md:h-80 w-full">
-                    <Image src={club.image || 'https://placehold.co/2560x650.png'} alt={club.name} fill sizes="100vw" className="object-cover" data-ai-hint="organization community" />
+                    <Image 
+                      src={club.image || 'https://placehold.co/2560x650.png'} 
+                      alt={club.name} 
+                      fill 
+                      sizes="(max-width: 896px) 100vw, 896px"
+                      className="object-cover" 
+                      data-ai-hint="organization community" 
+                      priority 
+                    />
                 </div>
                 <div className="p-6">
                     <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg mb-3">{club.name}</h1>
@@ -226,19 +236,15 @@ export default function ClubDetailPage({ club, events, lead, allStudents }: Club
                              ) : <p className="text-sm text-white/70">Organizer information not available.</p>}
                         </Section>
                         <Separator className="my-4 bg-white/10" />
-                        <Section title={`Members (${memberCount})`} cta={<Button variant="link" className="text-blue-400">See all</Button>}>
+                        <Section title={`Members (${memberCount})`} cta={memberCount > memberDisplayCount ? <Button variant="link" className="text-blue-400">See all</Button> : null}>
                              <div className="grid grid-cols-5 gap-3 not-prose">
-                                {fakeMembers.map(member => (
+                                {displayedMembers.length > 0 ? displayedMembers.map(member => (
                                     <Avatar key={member.id}>
                                         <AvatarImage src={member.avatar} alt={member.name} />
-                                        <AvatarFallback>{member.name?.[0]}</AvatarFallback>
+                                        <AvatarFallback>{member.name?.[0] || '?'}</AvatarFallback>
                                     </Avatar>
-                                ))}
-                                {isMember && allStudents.length >= memberDisplayCount && (
-                                    <Avatar>
-                                        <AvatarImage src={allStudents[memberDisplayCount]?.avatar} alt={allStudents[memberDisplayCount]?.name} />
-                                        <AvatarFallback>{allStudents[memberDisplayCount]?.name?.[0] || 'U'}</AvatarFallback>
-                                    </Avatar>
+                                )) : (
+                                    <p className="col-span-5 text-sm text-center text-white/70">Be the first to join!</p>
                                 )}
                              </div>
                         </Section>

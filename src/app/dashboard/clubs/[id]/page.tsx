@@ -1,5 +1,5 @@
 
-import { getClubById, getEventsByClubId, getStudents } from '@/lib/data';
+import { getClubById, getEventsByClubId, getStudents, getClubMembers } from '@/lib/data';
 import ClubDetailPage from '@/components/club-detail-page';
 import { notFound } from 'next/navigation';
 import type { User } from '@/types';
@@ -13,13 +13,17 @@ export default async function Page({ params }: { params: { id: string } }) {
     notFound();
   }
 
-  const events = await getEventsByClubId(club.id);
-  const students = await getStudents(); // Fetches all students
+  const [events, students, members] = await Promise.all([
+    getEventsByClubId(club.id),
+    getStudents(), // Keep fetching all students for lead lookup
+    getClubMembers(club.id),
+  ]);
+  
   const leadUser = students.find(s => s.id === club.leadId) || null;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <ClubDetailPage club={club} events={events} lead={leadUser} allStudents={students} />
+      <ClubDetailPage club={club} events={events} lead={leadUser} members={members} />
     </div>
   );
 }

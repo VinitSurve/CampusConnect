@@ -113,7 +113,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
         // List View
         filteredEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in-0 duration-300">
-            {filteredEvents.map(event => (
+            {filteredEvents.map((event, index) => (
               <div
                 key={event.id}
                 className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col group"
@@ -126,6 +126,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                     data-ai-hint="event photo"
+                    priority={index < 3}
                   />
                 </div>
                 <div className="p-4 flex-grow flex flex-col">

@@ -1,5 +1,4 @@
 
-
 'use server'
 
 import type { Club, Event, EventProposal, User, TimetableEntry, SeminarBooking } from '@/types';
@@ -237,6 +236,29 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
     return proposals;
   } catch (error) {
     console.error("Error fetching user event proposals:", error);
+    return [];
+  }
+}
+
+export async function getClubMembers(clubId: string): Promise<User[]> {
+  if (handleDbError('getClubMembers')) return [];
+  try {
+    const membersQuery = query(collection(db, 'clubs', clubId, 'members'), orderBy('joinedAt', 'desc'));
+    const querySnapshot = await getDocs(membersQuery);
+    const members = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: data.userId,
+            uid: data.userId,
+            name: data.name,
+            email: data.email,
+            avatar: data.avatar,
+            role: 'student', // Assuming all members are students
+        } as User;
+    });
+    return members;
+  } catch (error) {
+    console.error(`Error fetching members for club ${clubId}:`, error);
     return [];
   }
 }

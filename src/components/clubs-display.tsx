@@ -63,7 +63,7 @@ export function ClubsDisplay({ clubs }: ClubsDisplayProps) {
 
       {filteredClubs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClubs.map(club => (
+          {filteredClubs.map((club, index) => (
             <Link key={club.id} href={`/dashboard/clubs/${club.id}`} className="block bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all flex flex-col group">
               <div className="relative h-40 w-full overflow-hidden">
                 <Image
@@ -73,6 +73,7 @@ export function ClubsDisplay({ clubs }: ClubsDisplayProps) {
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   data-ai-hint="organization community"
+                  priority={index < 3}
                 />
               </div>
               <div className="p-4 flex-grow flex flex-col">

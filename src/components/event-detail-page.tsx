@@ -83,7 +83,15 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
     <div className="max-w-4xl mx-auto">
         <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
              <div className="relative h-64 md:h-80 w-full">
-                <Image src={headerImage || image || 'https://placehold.co/2560x650.png'} alt={title} fill sizes="100vw" className="object-cover" data-ai-hint="event photo" />
+                <Image 
+                  src={headerImage || image || 'https://placehold.co/2560x650.png'} 
+                  alt={title} 
+                  fill 
+                  sizes="(max-width: 896px) 100vw, 896px" 
+                  className="object-cover" 
+                  data-ai-hint="event photo" 
+                  priority
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
                 <div className="absolute bottom-0 left-0 p-6 w-full">
                     <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4">
