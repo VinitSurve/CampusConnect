@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -21,10 +22,6 @@ service cloud.firestore {
     
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    function isClubLead(clubId) {
-      return isAuthenticated() && get(/databases/$(database)/documents/clubs/$(clubId)).data.leadId == request.auth.uid;
     }
 
     // Main Collections
@@ -51,7 +48,8 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if isFaculty();
       // Allow faculty or the assigned club lead to update.
-      allow update: if isFaculty() || isClubLead(clubId);
+      // This uses `resource.data` to check the existing document's leadId before the update.
+      allow update: if isFaculty() || (isAuthenticated() && resource.data.leadId == request.auth.uid);
     }
 
 
