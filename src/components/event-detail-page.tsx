@@ -63,12 +63,17 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
     // Creating a more detailed description for the calendar event
     const details = `For more details, visit the event page:\n${window.location.href}\n\n${event.longDescription || event.description}`;
 
+    // Determine location based on whether externals are allowed
+    const calendarLocation = event.allowExternals 
+      ? "Bharati Vidyapeeth Department of Management Studies (Off Campus), Sector 3, Sector 4, Kharghar, Navi Mumbai, Maharashtra 410210" 
+      : event.location;
+
     const gCalUrl = new URL('https://www.google.com/calendar/render');
     gCalUrl.searchParams.set('action', 'TEMPLATE');
     gCalUrl.searchParams.set('text', event.title);
     gCalUrl.searchParams.set('dates', `${formatGoogleCalendarDate(startDate)}/${formatGoogleCalendarDate(endDate)}`);
     gCalUrl.searchParams.set('details', details);
-    gCalUrl.searchParams.set('location', event.location);
+    gCalUrl.searchParams.set('location', calendarLocation);
 
     return gCalUrl.toString();
   };
