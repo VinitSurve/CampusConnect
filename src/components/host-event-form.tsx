@@ -186,7 +186,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
               description: result.description,
               category: result.category,
               whatYouWillLearn: result.whatYouWillLearn,
-              targetAudience: result.targetAudience,
               tags: result.tags.join(', '),
           }));
           toast({ title: "AI Generated Content", description: "Event details have been filled in. Please review." });

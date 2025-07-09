@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to generate multiple event details from a title.
@@ -20,7 +21,6 @@ const GenerateEventDetailsOutputSchema = z.object({
   description: z.string().describe('A clear, engaging, and exciting summary for the event, around 300 characters long.'),
   category: z.enum(['Academic', 'Cultural', 'Technical', 'Sports', 'Workshop', 'Social', 'Networking', 'Guest Speaker']).describe('The single best category for the event.'),
   whatYouWillLearn: z.string().describe('A bulleted list of 3-5 key takeaways or skills that attendees will learn, with each point starting with a hyphen.'),
-  targetAudience: z.array(z.string()).describe('A list of suitable student groups for this event.'),
   tags: z.array(z.string()).describe('A list of 3-5 relevant keywords or tags for the event to help with discoverability.'),
 });
 export type GenerateEventDetailsOutput = z.infer<typeof GenerateEventDetailsOutputSchema>;
@@ -45,8 +45,7 @@ The user started from a "{{template}}" template. Use this as a strong hint for t
 1.  **description**: A clear, engaging, and exciting summary, around 300 characters. Highlight what makes the event unique or fun. Do not include date, time, or location details.
 2.  **category**: Choose the single best category from this list: Academic, Cultural, Technical, Sports, Workshop, Social, Networking, Guest Speaker.
 3.  **whatYouWillLearn**: A bulleted list of 3-5 key takeaways or skills that attendees will learn. Phrase them as actionable learning outcomes. Start each point with a hyphen.
-4.  **targetAudience**: A list of suitable student groups. Choose from this list: All Students, BCA, BBA, BAF, MBA. You can select one or more. If the event title sounds technical (e.g., related to coding, AI, data science, workshops), you should prioritize including "BCA" in the target audience.
-5.  **tags**: A list of 3-5 single-word or short-phrase tags that will help students discover the event (e.g., "AI", "Machine Learning", "Career", "Guest Speaker", "Python", "Music").
+4.  **tags**: A list of 3-5 single-word or short-phrase tags that will help students discover the event (e.g., "AI", "Machine Learning", "Career", "Guest Speaker", "Python", "Music").
 
 Return the output as a JSON object.
 `,
