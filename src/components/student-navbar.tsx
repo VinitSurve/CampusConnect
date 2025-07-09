@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { User } from '@/types';
 import { logout } from '@/app/actions';
 import { Button } from './ui/button';
-import { Search, Bell, User as UserIcon, LogOut, Settings, Menu, X } from 'lucide-react';
+import { Search, Bell, User as UserIcon, LogOut, Settings, Menu, X, Club } from 'lucide-react';
 
 interface StudentNavbarProps {
   user: User;
@@ -35,6 +36,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
     { path: '/dashboard/events', label: 'Events', icon: '🎫' },
     { path: '/dashboard/host-event', label: 'Host Event', icon: '🎭' },
     { path: '/dashboard/clubs', label: 'Clubs', icon: '👥' },
+    { path: '/dashboard/manage-club', label: 'Manage Club', icon: '⚙️' },
   ];
 
   const getActiveItem = () => {

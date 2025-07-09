@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -23,14 +22,14 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+    
+    function isClubLead(clubId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/clubs/$(clubId)).data.leadId == request.auth.uid;
+    }
 
     // Main Collections
     
     // Users Collection
-    // WARNING: User documents are publicly readable to allow server-side rendering
-    // to function. This is a temporary solution to fix a permissions error.
-    // The recommended long-term solution is to use the Firebase Admin SDK on the server,
-    // which securely bypasses security rules for admin operations.
     match /users/{userId} {
       allow read: if true;
       allow create: if isAuthenticated();
@@ -42,7 +41,6 @@ service cloud.firestore {
 
     // Events Collection
     match /events/{eventId} {
-      // Events are public for the home page.
       allow read: if true;
       allow create, update: if isFaculty();
       allow delete: if isFaculty();
@@ -51,17 +49,15 @@ service cloud.firestore {
     // Clubs Collection
     match /clubs/{clubId} {
       allow read: if true;
-      // Only faculty can create, update, or delete clubs.
-      allow write: if isFaculty();
+      allow create, delete: if isFaculty();
+      // Allow faculty or the assigned club lead to update.
+      allow update: if isFaculty() || isClubLead(clubId);
     }
 
 
     // Event Requests collection
     match /eventRequests/{requestId} {
-      // Made readable by anyone to allow server-side rendering by unauthenticated server.
-      // A better long-term solution is to use the Firebase Admin SDK.
       allow read: if true;
-      // Allow any authenticated user to create a request. UI logic restricts this further.
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (resource.data.createdBy == request.auth.uid || isFaculty());
       allow delete: if false;
@@ -75,43 +71,6 @@ service cloud.firestore {
 
     // Seminar Bookings collection
     match /seminarBookings/{bookingId} {
-      allow read: if isAuthenticated();
-      allow write: if isFaculty();
-    }
-
-    // Other collections
-    match /media/{mediaId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && resource.data.uploader == request.auth.uid;
-      allow delete: if request.auth != null && 
-                     (resource.data.uploader == request.auth.uid || isAdmin());
-    }
-    
-    match /organizer_requests/{requestId} {
-      allow read: if request.auth != null && 
-                   (resource.data.userId == request.auth.uid || isAdmin() || isFaculty());
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (isAdmin() || isFaculty());
-      allow delete: if isAdmin();
-    }
-
-    match /club_members/{memberId} {
-      allow read: if isAuthenticated();
-      allow write: if isFaculty();
-    }
-
-    match /club_leads/{leadId} {
-      allow read: if isAuthenticated();
-      allow write: if isFaculty();
-    }
-
-    match /academicSchedules/{scheduleId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isFaculty();
-    }
-    
-    match /eventAvailability/{dateId} {
       allow read: if isAuthenticated();
       allow write: if isFaculty();
     }

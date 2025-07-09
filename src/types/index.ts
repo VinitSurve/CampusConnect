@@ -65,6 +65,15 @@ export type Club = {
   leadId: string;
   createdAt?: string | null;
   updatedAt?: string | null;
+  // New fields for club management
+  socialLinks?: {
+    website?: string;
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+  };
+  gallery?: string[];
+  googleDriveFolderId?: string;
 };
 
 export type EventProposal = {

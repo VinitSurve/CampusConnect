@@ -1,8 +1,9 @@
 
+
 'use server'
 
 import type { Club, Event, EventProposal, User, TimetableEntry, SeminarBooking } from '@/types';
-import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc, limit } from 'firebase/firestore';
 import { db } from './firebase';
 
 const handleDbError = (operation: string) => {
@@ -109,6 +110,9 @@ export async function getClubById(id: string): Promise<Club | null> {
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
+        socialLinks: data.socialLinks,
+        gallery: data.gallery,
+        googleDriveFolderId: data.googleDriveFolderId,
       };
       return club;
     } else {
@@ -120,6 +124,23 @@ export async function getClubById(id: string): Promise<Club | null> {
     return null;
   }
 }
+
+export async function getClubByLeadId(leadId: string): Promise<Club | null> {
+    if (handleDbError('getClubByLeadId')) return null;
+    try {
+        const q = query(collection(db, "clubs"), where("leadId", "==", leadId), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const doc = querySnapshot.docs[0];
+            return { id: doc.id, ...doc.data() } as Club;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching club by lead ID:", error);
+        return null;
+    }
+}
+
 
 export async function getClubs(): Promise<Club[]> {
   if (handleDbError('getClubs')) return [];
@@ -139,6 +160,9 @@ export async function getClubs(): Promise<Club[]> {
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
+        socialLinks: data.socialLinks,
+        gallery: data.gallery,
+        googleDriveFolderId: data.googleDriveFolderId,
       };
       return club;
     });
