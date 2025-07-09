@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -23,15 +22,13 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-
+    
     // Main Collections
     
     // Users Collection
     match /users/{userId} {
       allow read: if true;
       allow create: if isAuthenticated();
-      // Users can update their own data. Faculty/Admins can also update.
-      // Users cannot change their own role.
       allow update: if (isOwner(userId) && !('role' in request.resource.data)) || isFaculty() || isAdmin();
       allow delete: if isAdmin();
     }
@@ -47,9 +44,13 @@ service cloud.firestore {
     match /clubs/{clubId} {
       allow read: if true;
       allow create, delete: if isFaculty();
-      // Allow faculty or the assigned club lead to update.
-      // This uses `resource.data` to check the existing document's leadId before the update.
-      allow update: if isFaculty() || (isAuthenticated() && resource.data.leadId == request.auth.uid);
+      // Allow faculty to update.
+      // Also allow a user to update if they are the current lead AND they are not changing the leadId.
+      allow update: if isFaculty() || (
+        isAuthenticated() &&
+        resource.data.leadId == request.auth.uid &&
+        request.resource.data.leadId == resource.data.leadId
+      );
     }
 
 
