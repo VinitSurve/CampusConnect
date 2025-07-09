@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -22,7 +23,7 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
+
     // Main Collections
     
     // Users Collection
@@ -45,16 +46,12 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if isFaculty();
       // Allow faculty to update anything.
-      // Also allow a user to update if they are the current lead AND they are not changing immutable fields.
+      // Allow a club lead to update specific fields of their own club.
       allow update: if isFaculty() || (
         isAuthenticated() &&
         resource.data.leadId == request.auth.uid &&
-        // Ensure immutable fields are not changed by the club lead.
-        request.resource.data.leadId == resource.data.leadId &&
-        request.resource.data.facultyAdvisor == resource.data.facultyAdvisor &&
-        request.resource.data.contactEmail == resource.data.contactEmail &&
-        request.resource.data.createdBy == resource.data.createdBy &&
-        request.resource.data.createdAt == resource.data.createdAt
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'description', 'image', 'socialLinks', 'gallery', 'googleDriveFolderId', 'updatedAt'])
       );
     }
 
