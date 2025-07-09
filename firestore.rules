@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -44,13 +45,18 @@ service cloud.firestore {
     match /clubs/{clubId} {
       allow read: if true;
       allow create, delete: if isFaculty();
-      // Allow faculty to update.
-      // Also allow a user to update if they are the current lead AND they are not changing the leadId.
-      allow update: if isFaculty() || (
-        isAuthenticated() &&
-        resource.data.leadId == request.auth.uid &&
-        request.resource.data.leadId == resource.data.leadId
-      );
+      
+      // A club lead can update specific fields, but not change the leadId.
+      // Faculty can update anything.
+      function canLeadUpdate() {
+        let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+        let allowedKeys = ['name', 'description', 'image', 'socialLinks', 'gallery', 'googleDriveFolderId', 'updatedAt'];
+        return isAuthenticated() &&
+               resource.data.leadId == request.auth.uid &&
+               changedKeys.hasOnly(allowedKeys);
+      }
+      
+      allow update: if isFaculty() || canLeadUpdate();
     }
 
 
