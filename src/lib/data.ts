@@ -13,6 +13,19 @@ const handleDbError = (operation: string) => {
   return false;
 }
 
+export async function getAllUsers(): Promise<User[]> {
+  if (handleDbError('getAllUsers')) return [];
+  try {
+    const q = query(collection(db, "users"));
+    const querySnapshot = await getDocs(q);
+    const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+    return users;
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    return [];
+  }
+}
+
 export async function getEvents(): Promise<Event[]> {
   if (handleDbError('getEvents')) return [];
   try {
@@ -91,7 +104,6 @@ export async function getClubById(id: string): Promise<Club | null> {
         description: data.description,
         image: data.image,
         tags: data.tags,
-        members: data.members,
         contactEmail: data.contactEmail,
         facultyAdvisor: data.facultyAdvisor,
         leadId: data.leadId,
@@ -122,7 +134,6 @@ export async function getClubs(): Promise<Club[]> {
         description: data.description,
         image: data.image,
         tags: data.tags,
-        members: data.members,
         contactEmail: data.contactEmail,
         facultyAdvisor: data.facultyAdvisor,
         leadId: data.leadId,
@@ -236,29 +247,6 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
     return proposals;
   } catch (error) {
     console.error("Error fetching user event proposals:", error);
-    return [];
-  }
-}
-
-export async function getClubMembers(clubId: string): Promise<User[]> {
-  if (handleDbError('getClubMembers')) return [];
-  try {
-    const membersQuery = query(collection(db, 'clubs', clubId, 'members'), orderBy('joinedAt', 'desc'));
-    const querySnapshot = await getDocs(membersQuery);
-    const members = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: data.userId,
-            uid: data.userId,
-            name: data.name,
-            email: data.email,
-            avatar: data.avatar,
-            role: 'student', // Assuming all members are students
-        } as User;
-    });
-    return members;
-  } catch (error) {
-    console.error(`Error fetching members for club ${clubId}:`, error);
     return [];
   }
 }

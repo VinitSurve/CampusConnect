@@ -88,7 +88,7 @@ export function ClubsDisplay({ clubs }: ClubsDisplayProps) {
 
                 <div className="flex items-center text-white/80 text-sm mt-auto pt-3 border-t border-white/10">
                   <Users className="h-4 w-4 mr-2" />
-                  <span>{club.members} Members</span>
+                  <span>{club.facultyAdvisor}</span>
                 </div>
               </div>
             </Link>

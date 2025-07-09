@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { db, auth } from '@/lib/firebase';
 import { collection, doc, updateDoc, addDoc, getDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { deleteFolder } from '@/lib/drive';
-import { sendNewEventNotification } from '@/lib/email';
+import { sendNewEventAnnouncement } from '@/lib/email';
 import {
   Dialog,
   DialogContent,
@@ -200,29 +200,8 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             toast({ title: "Success", description: "Event approved and published successfully!" });
 
             // Send notifications after everything is confirmed
-            if (newEvent.clubId) {
-                const clubRef = doc(db, 'clubs', newEvent.clubId);
-                const clubMembersQuery = query(collection(clubRef, 'members'));
-                const [clubSnap, membersSnap] = await Promise.all([getDoc(clubRef), getDocs(clubMembersQuery)]);
-
-                if (clubSnap.exists() && !membersSnap.empty) {
-                    const clubData = clubSnap.data() as Club;
-                    const members = membersSnap.docs.map(doc => doc.data() as User);
-                    
-                    toast({ title: `Notifying ${members.length} members...`, description: "Emails are being sent in the background." });
-
-                    for (const member of members) {
-                        if (member.email) {
-                            await sendNewEventNotification({
-                                toEmail: member.email,
-                                event: newEvent,
-                                club: clubData,
-                            });
-                        }
-                    }
-                }
-            }
-
+            toast({ title: `Notifying all users...`, description: "Emails are being sent in the background." });
+            await sendNewEventAnnouncement({ event: newEvent });
 
         } catch (error) {
             console.error("Error approving request:", error);

@@ -51,28 +51,8 @@ service cloud.firestore {
     // Clubs Collection
     match /clubs/{clubId} {
       allow read: if true;
-      allow create, delete: if isFaculty();
-      // Allow faculty to update anything.
-      // Allow authenticated users to update ONLY the members count by exactly 1,
-      // and ensure no other sensitive fields are changed.
-      allow update: if isFaculty() || (
-        isAuthenticated() &&
-        request.resource.data.members == (resource.data.members || 0) + 1 &&
-        request.resource.data.name == resource.data.name &&
-        request.resource.data.description == resource.data.description &&
-        request.resource.data.leadId == resource.data.leadId
-      );
-      
-      // Members subcollection for clubs
-      match /members/{userId} {
-        allow read: if isAuthenticated();
-        // A user can create their own membership document when joining a club.
-        allow create: if isOwner(userId);
-        // A user can leave a club, or faculty can remove them.
-        allow delete: if isOwner(userId) || isFaculty();
-        // No updates allowed to a membership record.
-        allow update: if false;
-      }
+      // Only faculty can create, update, or delete clubs.
+      allow write: if isFaculty();
     }
 
 

@@ -1,25 +1,21 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState } from 'react';
 import type { Club, Event, User } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Users, Share2, Tag, CheckCircle2 } from 'lucide-react';
+import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Users, Share2, Tag } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { format } from 'date-fns';
 import { Separator } from './ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from '@/hooks/use-toast';
-import { getMembershipStatus, joinClub } from '@/app/dashboard/clubs/[id]/actions';
-
 
 interface ClubDetailPageProps {
   club: Club;
   events: Event[];
   lead: User | null;
-  members: User[]; 
 }
 
 const Section = ({ title, icon, children, cta }: { title: string; icon?: React.ReactNode; children: React.ReactNode; cta?: React.ReactNode }) => {
@@ -48,47 +44,14 @@ const EventCard = ({ event }: { event: Event }) => (
 );
 
 
-export default function ClubDetailPage({ club, events, lead, members }: ClubDetailPageProps) {
-    const [isMember, setIsMember] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isPending, startTransition] = useTransition();
-    const { toast } = useToast();
-
-    const [memberCount, setMemberCount] = useState(club.members || 0);
+export default function ClubDetailPage({ club, events, lead }: ClubDetailPageProps) {
     const [showAllUpcoming, setShowAllUpcoming] = useState(false);
     const [showAllPast, setShowAllPast] = useState(false);
     const [showAllPhotos, setShowAllPhotos] = useState(false);
 
-    useEffect(() => {
-        const checkStatus = async () => {
-            setIsLoading(true);
-            const status = await getMembershipStatus(club.id);
-            setIsMember(status);
-            setIsLoading(false);
-        };
-        checkStatus();
-    }, [club.id]);
-
-    const handleJoinClub = () => {
-        startTransition(async () => {
-            const result = await joinClub(club.id);
-            if (result.success) {
-                toast({ title: "Success!", description: `You've joined ${club.name}.` });
-                setIsMember(true);
-                setMemberCount(count => count + 1);
-            } else {
-                toast({ title: "Error", description: result.error, variant: "destructive" });
-            }
-        });
-    };
-
     const todayStr = new Date().toISOString().split('T')[0];
     const upcomingEvents = events.filter(e => e.date >= todayStr && e.status === 'upcoming').sort((a, b) => a.date.localeCompare(b.date));
     const pastEvents = events.filter(e => e.date < todayStr).sort((a, b) => b.date.localeCompare(a.date));
-    
-    // Use the real members passed in props
-    const memberDisplayCount = 10;
-    const displayedMembers = members.slice(0, memberDisplayCount);
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -107,21 +70,10 @@ export default function ClubDetailPage({ club, events, lead, members }: ClubDeta
                 <div className="p-6">
                     <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg mb-3">{club.name}</h1>
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-white/80 mb-6">
-                        <span className="flex items-center gap-2"><Users /> {memberCount} Members</span>
                         {club.facultyAdvisor && <span className="flex items-center gap-2"><BookUser /> {club.facultyAdvisor}</span>}
+                        {club.contactEmail && <span className="flex items-center gap-2"><Mail /> {club.contactEmail}</span>}
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-4 items-center">
-                        {isLoading ? (
-                             <Button size="lg" disabled className="w-full sm:w-auto flex-grow sm:flex-grow-0">Loading...</Button>
-                        ) : isMember ? (
-                            <Button size="lg" disabled className="w-full sm:w-auto flex-grow sm:flex-grow-0 bg-green-700 hover:bg-green-700">
-                                <CheckCircle2 className="mr-2"/> You're a Member
-                            </Button>
-                        ) : (
-                            <Button onClick={handleJoinClub} disabled={isPending} size="lg" className="w-full sm:w-auto flex-grow sm:flex-grow-0">
-                                {isPending ? 'Joining...' : 'Join Club'}
-                            </Button>
-                        )}
+                     <div className="flex flex-col sm:flex-row gap-4 items-center">
                         <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 text-white"><Share2 className="mr-2"/> Share</Button>
                     </div>
                 </div>
@@ -234,19 +186,6 @@ export default function ClubDetailPage({ club, events, lead, members }: ClubDeta
                                      </div>
                                  </div>
                              ) : <p className="text-sm text-white/70">Organizer information not available.</p>}
-                        </Section>
-                        <Separator className="my-4 bg-white/10" />
-                        <Section title={`Members (${memberCount})`} cta={memberCount > memberDisplayCount ? <Button variant="link" className="text-blue-400">See all</Button> : null}>
-                             <div className="grid grid-cols-5 gap-3 not-prose">
-                                {displayedMembers.length > 0 ? displayedMembers.map(member => (
-                                    <Avatar key={member.id}>
-                                        <AvatarImage src={member.avatar} alt={member.name} />
-                                        <AvatarFallback>{member.name?.[0] || '?'}</AvatarFallback>
-                                    </Avatar>
-                                )) : (
-                                    <p className="col-span-5 text-sm text-center text-white/70">Be the first to join!</p>
-                                )}
-                             </div>
                         </Section>
                      </div>
                      
