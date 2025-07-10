@@ -265,7 +265,7 @@ export default function AuthenticationForm() {
                         id="email"
                         name="email"
                         type="email"
-                        placeholder="your.email@university.edu"
+                        placeholder="your.email@example.com"
                         value={formData.email}
                         onChange={handleInputChange}
                         className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400"
@@ -362,7 +362,7 @@ export default function AuthenticationForm() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="text-gray-300">
-                      University Email
+                      Email
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -370,7 +370,7 @@ export default function AuthenticationForm() {
                         id="signup-email"
                         name="email"
                         type="email"
-                        placeholder="your.email@university.edu"
+                        placeholder="your.email@example.com"
                         value={formData.email}
                         onChange={handleInputChange}
                         className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400"
@@ -378,9 +378,6 @@ export default function AuthenticationForm() {
                         autoComplete="email"
                       />
                     </div>
-                    <p className="text-xs text-gray-400">
-                      Use your university email to automatically determine your role
-                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password" className="text-gray-300">
