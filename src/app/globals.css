@@ -55,7 +55,7 @@ body {
 
 /* Custom FullCalendar Theming */
 .fc {
-  --fc-border-color: hsl(var(--border));
+  --fc-border-color: hsl(var(--background));
   --fc-daygrid-event-dot-width: 8px;
   --fc-list-event-dot-width: 10px;
   --fc-event-text-color: hsl(var(--foreground));
