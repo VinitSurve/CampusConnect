@@ -141,7 +141,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                             </a>
                         </Button>
                         {registrationLink && (
-                        <Button asChild size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                        <Button asChild size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                             <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
                         </Button>
                         )}
@@ -176,7 +176,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                           ></iframe>
                         </div>
                         <div className="mt-4 flex justify-center">
-                            <Button asChild>
+                            <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                                 <a href="https://maps.app.goo.gl/WZ5m7xgHH4YRyz9D9" target="_blank" rel="noopener noreferrer">
                                     <Map className="mr-2 h-4 w-4" />
                                     View on Google Maps

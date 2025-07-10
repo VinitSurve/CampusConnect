@@ -295,7 +295,7 @@ export default function AuthenticationForm() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0"
                     disabled={isLoading}
                   >
                     {isLoading ? "Signing In..." : "Sign In"}
@@ -419,7 +419,7 @@ export default function AuthenticationForm() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0"
                     disabled={isLoading}
                   >
                     {isLoading ? "Creating Account..." : "Create Account"}

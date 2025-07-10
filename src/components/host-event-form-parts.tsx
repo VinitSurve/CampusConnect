@@ -10,7 +10,7 @@ import { UploadCloud, X, FileEdit, Calendar, Mic, Trophy, Presentation, Hammer, 
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { getDayScheduleForLocation } from "@/lib/data";
@@ -220,7 +220,7 @@ export const ProposalList = ({ list, emptyText, onEdit }: { list: EventProposal[
 export const TemplateCard = ({ icon, title, description, onClick }: { icon: React.ReactNode, title: string, description: string, onClick: () => void }) => (
     <button onClick={onClick} className="text-left w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-6 transition-all hover:border-blue-500/50">
       <div className="flex items-center gap-4 mb-3">
-        <div className="w-10 h-10 bg-blue-600/50 text-white rounded-lg flex items-center justify-center">{icon}</div>
+        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg flex items-center justify-center">{icon}</div>
         <h3 className="text-lg font-semibold text-white">{title}</h3>
       </div>
       <p className="text-sm text-white/70">{description}</p>
@@ -463,7 +463,7 @@ export const TimeSlotSelectionModal = ({ isOpen, onClose, onConfirm, selectedDat
                     </div>
                     <div className="flex gap-2">
                          <Button variant="ghost" onClick={() => setSelection({ start: null, end: null })}>Clear</Button>
-                         <Button onClick={handleConfirm} disabled={!selection.start}>Confirm Selection</Button>
+                         <Button onClick={handleConfirm} disabled={!selection.start} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">Confirm Selection</Button>
                     </div>
                 </DialogFooter>
             </DialogContent>

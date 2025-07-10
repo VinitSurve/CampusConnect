@@ -117,7 +117,7 @@ export default function HomePage() {
                 </Button>
               </Link>
               <Link href="/login">
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
                   Get Started
                 </Button>
               </Link>
@@ -146,7 +146,7 @@ export default function HomePage() {
                 <Link href="/login">
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0"
                   >
                     Join CampusConnect
                     <ArrowRight className="ml-2 w-4 h-4" />

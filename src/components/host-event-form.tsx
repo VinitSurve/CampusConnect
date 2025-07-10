@@ -457,7 +457,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 p-8 max-w-md w-full text-center">
           <h2 className="text-2xl font-bold text-white mb-4">Access Denied</h2>
           <p className="text-white/70 mb-6">Only designated club leads can host events.</p>
-          <Link href="/dashboard/events" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Back to Events</Link>
+          <Link href="/dashboard/events" className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg transition-colors">Back to Events</Link>
         </div>
       </div>
     );
@@ -471,7 +471,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             <h1 className="text-2xl font-bold text-white">My Event Proposals</h1>
             <p className="text-white/70">Create and manage your event proposals.</p>
           </div>
-          <Button onClick={handleNewRequest} className="mt-4 sm:mt-0"><Plus className="mr-2"/> New Event Proposal</Button>
+          <Button onClick={handleNewRequest} className="mt-4 sm:mt-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white"><Plus className="mr-2"/> New Event Proposal</Button>
         </div>
         <Tabs defaultValue="drafts" className="w-full">
           <TabsList className="grid w-full grid-cols-1 md:grid-cols-4">
@@ -523,7 +523,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 {formSteps.map((s, index) => (
                     <React.Fragment key={s.id}>
                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setStep(s.id)}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all ${step >= s.id ? 'bg-blue-600' : 'bg-white/10 border-2 border-white/20'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all ${step >= s.id ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-white/10 border-2 border-white/20'}`}>
                                 {step > s.id ? <Check className="w-5 h-5" /> : s.id}
                             </div>
                             <span className={`text-sm sm:text-base font-medium transition-all hidden sm:block ${step >= s.id ? 'text-white' : 'text-white/50'}`}>{s.name}</span>
@@ -690,12 +690,13 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         {isSubmitting ? 'Saving...' : 'Save Draft'}
                     </Button>
                     <Button type="button" variant="outline" className="bg-white/10" onClick={handlePreview}>Preview</Button>
-                    {step < 3 && <Button type="button" onClick={handleNext}>Next</Button>}
+                    {step < 3 && <Button type="button" onClick={handleNext} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">Next</Button>}
                     {step === 3 && 
                         <Button 
                           type="button" 
                           onClick={() => handleFormSubmit('pending')} 
                           disabled={isSubmitting}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                         >
                           {isSubmitting ? 'Submitting...' : 'Submit Event Request'}
                         </Button>

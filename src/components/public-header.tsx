@@ -14,7 +14,7 @@ export default function PublicHeader() {
           <Button asChild variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
             <Link href="/login">Log In</Link>
           </Button>
-          <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
             <Link href="/login">Register</Link>
           </Button>
         </div>

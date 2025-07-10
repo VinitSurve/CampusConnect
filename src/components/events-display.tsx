@@ -83,7 +83,7 @@ const EventCard = ({ event }: { event: Event }) => {
 
 export function EventsDisplay({ events }: EventsDisplayProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [view, setView] = useState<'grid' | 'list' | 'calendar'>('grid');
+  const [view, setView] = useState<'grid' | 'calendar'>('grid');
 
   const allCategories = ['All Categories', ...Array.from(new Set(events.map(e => e.category).filter(Boolean)))];
   const [filter, setFilter] = useState("All Categories");
@@ -146,9 +146,8 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <div className="bg-slate-800 p-1 rounded-lg border border-slate-700 flex items-center">
-                     <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('list')} className={view === 'list' ? 'bg-blue-600' : ''}><List/></Button>
-                     <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('grid')} className={view === 'grid' ? 'bg-blue-600' : ''}><LayoutGrid/></Button>
-                     <Button variant={view === 'calendar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('calendar')} className={view === 'calendar' ? 'bg-blue-600' : ''}><CalendarIcon/></Button>
+                     <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('grid')} className={view === 'grid' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><LayoutGrid/></Button>
+                     <Button variant={view === 'calendar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('calendar')} className={view === 'calendar' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><CalendarIcon/></Button>
                 </div>
             </div>
       </div>
@@ -164,13 +163,6 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                 </div>
             )}
         </div>
-      )}
-
-      {view === 'list' && (
-          <div className="text-center py-16 bg-slate-900/50 border border-slate-700/50 rounded-lg">
-            <h3 className="text-xl font-semibold text-white mb-2">List View Coming Soon</h3>
-            <p className="text-white/80">This feature is under development.</p>
-          </div>
       )}
 
       {view === 'calendar' && (

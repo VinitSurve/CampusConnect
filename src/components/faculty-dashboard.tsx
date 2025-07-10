@@ -380,7 +380,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <Button onClick={() => setRequestForRejection(selectedRequest)} disabled={isTransitioning} variant="destructive">
                   Reject
                 </Button>
-                <Button onClick={() => handleOpenApprovalModal(selectedRequest)} disabled={isTransitioning} variant="secondary" className="bg-green-600 hover:bg-green-700 text-white">
+                <Button onClick={() => handleOpenApprovalModal(selectedRequest)} disabled={isTransitioning} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                   Approve &amp; Edit
                 </Button>
               </div>
@@ -452,7 +452,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
             <DialogClose asChild>
               <Button variant="ghost">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleApprove} disabled={isTransitioning} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleApprove} disabled={isTransitioning} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               {isTransitioning ? "Publishing..." : "Publish Event"}
             </Button>
           </DialogFooter>
