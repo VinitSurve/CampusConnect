@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Club, Event, User } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Users, Share2, Tag } from 'lucide-react';
+import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Share2, Tag, Link as LinkIcon, Facebook, Twitter, Instagram } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { format } from 'date-fns';
@@ -74,6 +74,14 @@ export default function ClubDetailPage({ club, events, lead }: ClubDetailPagePro
                         {club.contactEmail && <span className="flex items-center gap-2"><Mail /> {club.contactEmail}</span>}
                     </div>
                      <div className="flex flex-col sm:flex-row gap-4 items-center">
+                        {club.whatsAppGroupLink && (
+                             <Button asChild size="lg" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+                                <a href={club.whatsAppGroupLink} target="_blank" rel="noopener noreferrer">
+                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12.016 2.016a3.83 3.83 0 00-2.828 1.137l.033.033-1.33 1.33a1.277 1.277 0 000 1.807l3.886 3.886a1.277 1.277 0 001.807 0l1.33-1.33.033-.033a3.83 3.83 0 00-2.93-6.82zm5.728 2.088a1.277 1.277 0 00-1.807 0l-1.33 1.33-.033.033a3.83 3.83 0 006.82 2.93l-.033.033 1.33 1.33a1.277 1.277 0 001.807 0l-3.886-3.886a1.277 1.277 0 000-1.807zM2.016 12.016a3.83 3.83 0 001.137 2.828l.033-.033 1.33-1.33a1.277 1.277 0 000-1.807L.63 7.8a1.277 1.277 0 00-1.807 0l1.33-1.33.033.033a3.83 3.83 0 002.93 6.82zm14.256 5.728a1.277 1.277 0 000 1.807l1.33 1.33.033.033a3.83 3.83 0 002.93-6.82l-.033-.033-1.33-1.33a1.277 1.277 0 00-1.807 0zM7.8 19.886a1.277 1.277 0 00-1.807 0l-1.33 1.33-.033.033A3.83 3.83 0 007.56 24l.033-.033 1.33-1.33a1.277 1.277 0 000-1.807z"/></svg>
+                                    Join WhatsApp Group
+                                </a>
+                            </Button>
+                        )}
                         <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 text-white"><Share2 className="mr-2"/> Share</Button>
                     </div>
                 </div>
@@ -189,6 +197,17 @@ export default function ClubDetailPage({ club, events, lead }: ClubDetailPagePro
                         </Section>
                      </div>
                      
+                      <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                         <Section title="Find us on">
+                            <div className="flex flex-wrap gap-2 not-prose">
+                                {club.socialLinks?.website && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.website} target="_blank" rel="noopener noreferrer"><LinkIcon /> Website</a></Button>}
+                                {club.socialLinks?.facebook && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.facebook} target="_blank" rel="noopener noreferrer"><Facebook /> Facebook</a></Button>}
+                                {club.socialLinks?.twitter && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.twitter} target="_blank" rel="noopener noreferrer"><Twitter /> Twitter</a></Button>}
+                                {club.socialLinks?.instagram && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.instagram} target="_blank" rel="noopener noreferrer"><Instagram /> Instagram</a></Button>}
+                            </div>
+                         </Section>
+                     </div>
+
                      <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
                          <Section title="Related Topics" icon={<Tag className="w-6 h-6 text-blue-400" />}>
                             <div className="flex flex-wrap gap-2">

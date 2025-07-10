@@ -65,6 +65,7 @@ export type Club = {
   leadId: string;
   createdAt?: string | null;
   updatedAt?: string | null;
+  whatsAppGroupLink?: string;
   // New fields for club management
   socialLinks?: {
     website?: string;

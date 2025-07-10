@@ -36,7 +36,6 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
     { path: '/dashboard/events', label: 'Events', icon: '🎫' },
     { path: '/dashboard/host-event', label: 'Host Event', icon: '🎭' },
     { path: '/dashboard/clubs', label: 'Clubs', icon: '👥' },
-    { path: '/dashboard/manage-club', label: 'Manage Club', icon: '⚙️' },
   ];
 
   const getActiveItem = () => {
