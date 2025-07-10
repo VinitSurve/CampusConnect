@@ -55,7 +55,7 @@ body {
 
 /* Custom FullCalendar Theming */
 .fc {
-  --fc-border-color: hsl(var(--background));
+  --fc-border-color: hsl(var(--border) / 0.5);
   --fc-daygrid-event-dot-width: 8px;
   --fc-list-event-dot-width: 10px;
   --fc-event-text-color: hsl(var(--foreground));
@@ -80,11 +80,18 @@ body {
 
 .fc .fc-button-primary:not(:disabled).fc-button-active,
 .fc .fc-button-primary:not(:disabled):active {
-  @apply bg-primary text-primary-foreground border-primary/80 shadow-inner;
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 text-primary-foreground border-primary/80 shadow-inner;
+}
+
+.fc .fc-daygrid-day-frame,
+.fc .fc-timegrid-slot,
+.fc .fc-timegrid-slot-lane,
+.fc .fc-col-header-cell {
+  @apply border border-border;
 }
 
 .fc .fc-daygrid-day-frame, .fc .fc-timegrid-slot {
-  @apply rounded-lg transition-colors duration-200;
+  @apply rounded-none transition-colors duration-200;
 }
 .fc .fc-daygrid-day-frame:hover, .fc .fc-timegrid-slot-lane:hover {
   @apply bg-white/5;
@@ -136,7 +143,7 @@ body {
   @apply text-white font-semibold;
 }
 .fc .fc-event-time {
-  @apply text-white/70 text-xs;
+  @apply hidden;
 }
 
 /* Category-specific event colors */
