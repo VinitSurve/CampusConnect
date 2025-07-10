@@ -5,7 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import type { Event } from "@/types"
-import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, LayoutGrid, Search } from "lucide-react"
+import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, LayoutGrid, Search, User as UserIcon } from "lucide-react"
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -72,7 +72,7 @@ const EventCard = ({ event }: { event: Event }) => {
                         <span>{event.location}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-slate-500" />
+                        <UserIcon className="w-4 h-4 text-slate-500" />
                         <span>by {event.organizer}</span>
                     </div>
                 </div>
