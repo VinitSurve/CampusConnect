@@ -72,7 +72,7 @@ export default function FacultyNavbar({ user }: FacultyNavbarProps) {
                   href={item.path}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.path)
-                      ? "bg-primary/80 text-primary-foreground"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                       : "text-white/70 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -85,7 +85,7 @@ export default function FacultyNavbar({ user }: FacultyNavbarProps) {
           <div className='flex items-center space-x-2'>
              <div className="hidden md:block relative profile-dropdown-container">
                 <button onClick={() => setIsProfileDropdownOpen(prev => !prev)} className="flex items-center space-x-3 p-2 text-white hover:bg-white/10 rounded-xl transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white font-medium">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-medium">
                       {user.name?.[0]?.toUpperCase() || 'F'}
                     </div>
                 </button>
@@ -134,7 +134,7 @@ export default function FacultyNavbar({ user }: FacultyNavbarProps) {
                 href={item.path}
                 className={`block px-3 py-2 rounded-md text-base font-medium ${
                     isActive(item.path)
-                    ? "bg-primary/80 text-primary-foreground"
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                     : "text-white/70 hover:text-white hover:bg-white/5"
                 }`}
               >
@@ -143,7 +143,7 @@ export default function FacultyNavbar({ user }: FacultyNavbarProps) {
             ))}
             <div className="border-t border-border pt-4 mt-4">
                 <div className="flex items-center px-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white font-medium border-2 border-white/20">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-medium border-2 border-white/20">
                         {user.name?.[0]?.toUpperCase() || 'F'}
                     </div>
                     <div className="ml-3">

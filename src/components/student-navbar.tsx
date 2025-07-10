@@ -54,7 +54,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/dashboard/events" className="flex-shrink-0 flex items-center">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-orange-400 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
                 CC
               </div>
               <span className="ml-2 text-white font-semibold text-lg hidden sm:block">CampusConnect</span>
@@ -67,7 +67,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
                   href={item.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
                     ${activeItem === item.label.toLowerCase()
-                      ? 'bg-primary/80 text-primary-foreground'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                     }`}
                 >
@@ -90,7 +90,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
                 onClick={() => setIsProfileDropdownOpen(prev => !prev)}
                 className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary"
               >
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white font-medium overflow-hidden border-2 border-white/20">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-medium overflow-hidden border-2 border-white/20">
                   {user.name ? user.name[0].toUpperCase() : 'U'}
                 </div>
               </button>
@@ -156,7 +156,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
               href={item.path}
               className={`flex items-center px-3 py-2 rounded-md text-base font-medium ${
                 activeItem === item.label.toLowerCase()
-                  ? 'bg-primary/80 text-primary-foreground' 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
                   : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
