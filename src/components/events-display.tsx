@@ -16,7 +16,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardTitle, CardDescription } from "@/components/ui/card"
 
 interface EventsDisplayProps {
   events: Event[]
@@ -56,7 +56,7 @@ const EventCard = ({ event }: { event: Event }) => {
                     </div>
                  </div>
                 <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{event.title}</h3>
-                <p className="text-slate-400 mt-1 text-sm flex-grow">{event.description}</p>
+                <CardDescription className="text-slate-400 mt-1 text-sm flex-grow">{event.description}</CardDescription>
                 
                 <div className="space-y-2 text-sm text-slate-300 mt-4">
                      <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
     
   const calendarEvents = filteredEvents.map(event => ({
     id: event.id,
-    title: event.title,
+    title: `• ${event.title}`,
     start: `${event.date}T${event.time || '00:00'}`,
     end: event.endTime ? `${event.date}T${event.endTime}` : undefined,
     url: `/dashboard/events/${event.id}`,
@@ -126,7 +126,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
         </div>
       </div>
       
-      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-2 flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
             <div className="relative w-full md:w-auto md:flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
                 <Input 
@@ -184,6 +184,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                 initialView="dayGridMonth"
                 weekends={true}
                 events={calendarEvents}
+                displayEventTime={false}
                 editable={false}
                 selectable={false}
                 dayMaxEvents={true}
@@ -200,3 +201,5 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
     </main>
   )
 }
+
+    
