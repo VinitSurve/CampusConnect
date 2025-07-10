@@ -45,17 +45,12 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if isFaculty();
       // Allow faculty to update anything.
-      // Allow a club lead to update specific fields of their own club,
-      // while protecting fields they should not be able to change.
+      // Allow a club lead to update specific fields of their own club.
+      // This rule ensures that every key in the request is one of the allowed keys.
       allow update: if isFaculty() || (
         isAuthenticated() &&
         resource.data.leadId == request.auth.uid &&
-        // Protect critical fields from being changed by the lead
-        request.resource.data.leadId == resource.data.leadId &&
-        request.resource.data.facultyAdvisor == resource.data.facultyAdvisor &&
-        request.resource.data.createdAt == resource.data.createdAt &&
-        // Allow the server to set the update timestamp
-        request.resource.data.updatedAt == request.time
+        request.resource.data.keys().hasAll(['name', 'description', 'image', 'socialLinks', 'gallery', 'googleDriveFolderId', 'updatedAt'])
       );
     }
 
