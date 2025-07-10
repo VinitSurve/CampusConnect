@@ -15,6 +15,7 @@ import { Calendar as CalendarIcon, Users, MapPin, Clock, ArrowRight, Sparkles } 
 import Link from "next/link"
 import { getEvents } from "@/lib/data"
 import type { Event } from "@/types"
+import Image from "next/image"
 
 const EventCard = ({ event }: { event: Event }) => {
   const getCategoryColor = (category: string) => {
@@ -39,6 +40,16 @@ const EventCard = ({ event }: { event: Event }) => {
       key={event.id}
       className="bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 transition-all duration-300 group flex flex-col"
     >
+      <div className="relative h-48 w-full overflow-hidden">
+        <Image
+          src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
+          alt={event.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          data-ai-hint="event photo"
+        />
+      </div>
       <CardHeader>
         <div className="flex items-start justify-between mb-2">
           <Badge className={getCategoryColor(event.category)}>

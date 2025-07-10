@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -353,7 +354,7 @@ export default function TimetableManagerPage() {
             ) : <div></div>}
             <div className="flex gap-2">
                 <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                <Button onClick={handleSave} disabled={isPending}>
+                <Button onClick={handleSave} disabled={isPending} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                     {isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
             </div>

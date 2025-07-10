@@ -5,7 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import type { Event } from "@/types"
-import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, LayoutGrid, Search, User as UserIcon, List } from "lucide-react"
+import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, LayoutGrid, Search, User as UserIcon } from "lucide-react"
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
@@ -46,7 +45,7 @@ const getCategoryClass = (category: string) => {
 const EventCard = ({ event }: { event: Event }) => {
     return (
         <Card className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all flex flex-col group">
-            <div className="relative h-40 w-full overflow-hidden">
+            <div className="relative h-48 w-full overflow-hidden">
                 <Image
                     src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
                     alt={event.title}
@@ -88,7 +87,7 @@ const EventCard = ({ event }: { event: Event }) => {
             </CardContent>
             <div className="bg-gradient-to-t from-black/20 to-transparent p-4 mt-auto">
                  <Link href={`/dashboard/events/${event.id}`}>
-                    <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0">
+                    <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
                         View Details
                     </Button>
                 </Link>
@@ -193,7 +192,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
       {view === 'calendar' && (
            <div className="bg-white/10 border border-white/10 rounded-xl p-4">
               <FullCalendar
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                plugins={[dayGridPlugin, interactionPlugin]}
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',
