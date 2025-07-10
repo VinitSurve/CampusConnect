@@ -45,7 +45,7 @@ const getCategoryClass = (category: string) => {
 
 const EventCard = ({ event }: { event: Event }) => {
     return (
-        <Card className="bg-white/10 backdrop-blur-xl border border-white/100 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all flex flex-col group">
+        <Card className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all flex flex-col group">
             <div className="relative h-40 w-full overflow-hidden">
                 <Image
                     src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
@@ -191,13 +191,13 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
       )}
 
       {view === 'calendar' && (
-           <div className="bg-white/10 border border-white/100 rounded-xl p-4">
+           <div className="bg-white/10 border border-white/10 rounded-xl p-4">
               <FullCalendar
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
+                    right: 'dayGridMonth'
                 }}
                 initialView="dayGridMonth"
                 weekends={true}
