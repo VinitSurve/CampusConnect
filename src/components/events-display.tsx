@@ -9,6 +9,7 @@ import { Calendar as CalendarIcon, Users, Search, Clock, MapPin, Tag } from "luc
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { CardTitle, CardDescription } from "@/components/ui/card"
 
 interface EventsDisplayProps {
   events: Event[]
