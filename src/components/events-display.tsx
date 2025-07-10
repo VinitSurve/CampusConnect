@@ -5,7 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import type { Event } from "@/types"
-import { Calendar as CalendarIcon, Users, Search, Clock, MapPin, Tag, List, LayoutGrid, User } from "lucide-react"
+import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, List, LayoutGrid, User, Search } from "lucide-react"
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +16,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
 
 interface EventsDisplayProps {
   events: Event[]
@@ -23,37 +24,35 @@ interface EventsDisplayProps {
 
 const getCategoryColor = (category?: string) => {
     switch (category) {
-      case "Technical": return "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-      case "Sports": return "bg-green-500/20 text-green-300 border border-green-500/30"
-      case "Cultural": return "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-      case "Guest Speaker": return "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
-      default: return "bg-gray-500/20 text-gray-300 border border-gray-500/30"
+      case "Technical": return "bg-blue-600/20 text-blue-300 border border-blue-500/50"
+      case "Sports": return "bg-green-600/20 text-green-300 border border-green-500/50"
+      case "Cultural": return "bg-purple-600/20 text-purple-300 border border-purple-500/50"
+      case "Guest Speaker": return "bg-yellow-600/20 text-yellow-300 border border-yellow-500/50"
+      default: return "bg-gray-600/20 text-gray-300 border border-gray-500/50"
     }
 }
 
-const EventListItem = ({ event }: { event: Event }) => {
+const EventCard = ({ event }: { event: Event }) => {
     const progressValue = event.capacity > 0 ? (event.attendees / event.capacity) * 100 : 0;
     
     return (
-        <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg overflow-hidden transition-all hover:border-slate-600">
-            <div className="p-6">
-                <div className="flex justify-between items-start gap-4">
-                    <div>
-                        <Badge className={`${getCategoryColor(event.category)} mb-2`}>{event.category}</Badge>
-                        <h3 className="text-xl font-bold text-white">{event.title}</h3>
-                        <p className="text-slate-400 mt-1 text-sm">{event.description}</p>
+        <Card className="bg-slate-900/50 border border-slate-700/50 rounded-lg overflow-hidden transition-all hover:border-slate-600 flex flex-col group">
+            <div className="relative h-40 w-full bg-slate-800/50 flex items-center justify-center">
+                 <CalendarIcon className="w-16 h-16 text-slate-600" />
+            </div>
+            <CardContent className="p-4 flex flex-col flex-grow">
+                 <div className="flex justify-between items-start mb-2">
+                    <Badge className={`${getCategoryColor(event.category)}`}>{event.category}</Badge>
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                        <Users className="w-4 h-4" />
+                        <span>{event.attendees} / {event.capacity}</span>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                        <div className="flex items-center justify-end gap-2 text-slate-300">
-                            <Users className="w-4 h-4" />
-                            <span className="font-medium">{event.attendees} / {event.capacity}</span>
-                        </div>
-                        <Progress value={progressValue} className="w-24 h-1.5 mt-1 bg-slate-700" />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-slate-300 text-sm mt-4">
-                    <div className="flex items-center gap-2">
+                 </div>
+                <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{event.title}</h3>
+                <p className="text-slate-400 mt-1 text-sm flex-grow">{event.description}</p>
+                
+                <div className="space-y-2 text-sm text-slate-300 mt-4">
+                     <div className="flex items-center gap-2">
                         <CalendarIcon className="w-4 h-4 text-slate-500" />
                         <span>{format(new Date(event.date + 'T00:00:00'), 'EEEE, MMM d, yyyy')}</span>
                     </div>
@@ -70,22 +69,21 @@ const EventListItem = ({ event }: { event: Event }) => {
                         <span>by {event.organizer}</span>
                     </div>
                 </div>
-            </div>
-            <div className="bg-gradient-to-t from-slate-900 to-slate-900/50 px-6 py-3">
+            </CardContent>
+            <div className="bg-gradient-to-t from-slate-900 to-slate-900/50 p-4 mt-auto">
                  <Link href={`/dashboard/events/${event.id}`}>
                     <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0">
                         View Details
                     </Button>
                 </Link>
             </div>
-        </div>
+        </Card>
     );
 };
 
-
 export function EventsDisplay({ events }: EventsDisplayProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [view, setView] = useState<'list' | 'grid' | 'calendar'>('list');
+  const [view, setView] = useState<'grid' | 'list' | 'calendar'>('grid');
 
   const allCategories = ['All Categories', ...Array.from(new Set(events.map(e => e.category).filter(Boolean)))];
   const [filter, setFilter] = useState("All Categories");
@@ -119,46 +117,58 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
           <h1 className="text-3xl font-bold text-white">Events</h1>
           <p className="text-white/70 mt-1">Upcoming events happening on campus</p>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto justify-between bg-slate-800 border-slate-700 hover:bg-slate-700">
-                        <Tag className="mr-2" />
-                        {filter}
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-slate-800 border-slate-700 text-white">
-                    {allCategories.map(category => (
-                        <DropdownMenuItem key={category} onSelect={() => setFilter(category)}>
-                            {category}
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
-            <div className="bg-slate-800 p-1 rounded-lg border border-slate-700 flex items-center">
-                 <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('list')} className={view === 'list' ? 'bg-blue-600' : ''}><List/></Button>
-                 <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('grid')} className={view === 'grid' ? 'bg-blue-600' : ''}><LayoutGrid/></Button>
-                 <Button variant={view === 'calendar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('calendar')} className={view === 'calendar' ? 'bg-blue-600' : ''}><CalendarIcon/></Button>
+      </div>
+      
+      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-2 flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+            <div className="relative w-full md:w-auto md:flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
+                <Input 
+                    placeholder="Search events..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-slate-800/50 border-slate-700/80"
+                />
             </div>
-        </div>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full md:w-auto justify-between bg-slate-800 border-slate-700 hover:bg-slate-700">
+                            <Tag className="mr-2" />
+                            {filter}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-slate-800 border-slate-700 text-white">
+                        {allCategories.map(category => (
+                            <DropdownMenuItem key={category} onSelect={() => setFilter(category)}>
+                                {category}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="bg-slate-800 p-1 rounded-lg border border-slate-700 flex items-center">
+                     <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('list')} className={view === 'list' ? 'bg-blue-600' : ''}><List/></Button>
+                     <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('grid')} className={view === 'grid' ? 'bg-blue-600' : ''}><LayoutGrid/></Button>
+                     <Button variant={view === 'calendar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('calendar')} className={view === 'calendar' ? 'bg-blue-600' : ''}><CalendarIcon/></Button>
+                </div>
+            </div>
       </div>
 
-      {view === 'list' && (
-          <div className="space-y-4 animate-in fade-in-0 duration-300">
-            {filteredEvents.length > 0 ? (
-                filteredEvents.map(event => <EventListItem key={event.id} event={event} />)
+      {view === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in-0 duration-300">
+             {filteredEvents.length > 0 ? (
+                filteredEvents.map(event => <EventCard key={event.id} event={event} />)
             ) : (
-                <div className="text-center py-16 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                <div className="text-center py-16 bg-slate-900/50 border border-slate-700/50 rounded-lg col-span-full">
                     <h3 className="text-xl font-semibold text-white mb-2">No Events Found</h3>
                     <p className="text-white/80">Try adjusting your filters.</p>
                 </div>
             )}
-          </div>
+        </div>
       )}
 
-      {view === 'grid' && (
+      {view === 'list' && (
           <div className="text-center py-16 bg-slate-900/50 border border-slate-700/50 rounded-lg">
-            <h3 className="text-xl font-semibold text-white mb-2">Grid View Coming Soon</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">List View Coming Soon</h3>
             <p className="text-white/80">This feature is under development.</p>
           </div>
       )}

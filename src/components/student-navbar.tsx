@@ -8,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { User } from '@/types';
 import { logout } from '@/app/actions';
 import { Button } from './ui/button';
-import { Search, Bell, User as UserIcon, LogOut, Settings, Menu, X, Club } from 'lucide-react';
+import { Search, Bell, User as UserIcon, LogOut, Settings, Menu, X, Club, Calendar } from 'lucide-react';
 
 interface StudentNavbarProps {
   user: User;
@@ -40,7 +40,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
 
   const getActiveItem = () => {
     // Treat the base dashboard as the "Events" page for active state
-    if (pathname === '/dashboard' || pathname === '/dashboard/events') return 'events';
+    if (pathname === '/dashboard' || pathname.startsWith('/dashboard/events')) return 'events';
     
     const item = navItems.find(item => pathname.startsWith(item.path));
     return item ? item.label.toLowerCase() : '';
