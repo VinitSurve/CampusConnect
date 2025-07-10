@@ -43,38 +43,38 @@ body {
     --sidebar-ring: 214 89% 59%;
   }
   .dark {
-    --background: 233 70% 14%;
-    --foreground: 210 40% 98%;
-    --card: 233 62% 15%;
-    --card-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 232 65% 26%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 224 66% 18%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 221 83% 53%;
-    --accent-foreground: 210 40% 98%;
+    --background: 220 40% 5%;
+    --foreground: 210 20% 98%;
+    --card: 220 25% 10%;
+    --card-foreground: 210 20% 98%;
+    --popover: 220 40% 5%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 35 91% 55%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 35 91% 55%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 220 15% 15%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 35 91% 55%;
+    --accent-foreground: 210 20% 98%;
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 221 83% 30%;
-    --input: 232 65% 20%;
-    --ring: 221 83% 53%;
-    --chart-1: 220 70% 50%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 35 91% 25%;
+    --input: 220 15% 15%;
+    --ring: 35 91% 55%;
+    --chart-1: 35 91% 55%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 233 70% 14%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 232 65% 26%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 221 83% 30%;
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-background: 220 40% 5%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 35 91% 55%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 220 15% 15%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 35 91% 25%;
+    --sidebar-ring: 35 91% 55%;
   }
 }
 
@@ -116,7 +116,7 @@ body {
 
 .fc .fc-button-primary:not(:disabled).fc-button-active,
 .fc .fc-button-primary:not(:disabled):active {
-  @apply bg-blue-600 text-white border-blue-600;
+  @apply bg-primary text-primary-foreground border-primary;
 }
 
 .fc .fc-daygrid-day-frame {

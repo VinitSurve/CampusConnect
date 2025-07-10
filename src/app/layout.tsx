@@ -23,7 +23,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
+      <body className="font-body antialiased bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white">
           <div className="relative flex flex-col min-h-screen">
               {children}
           </div>
