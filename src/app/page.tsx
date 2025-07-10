@@ -11,15 +11,10 @@ import {
   CardDescription
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar as CalendarIcon, Users, MapPin, Clock, ArrowRight, Sparkles, List } from "lucide-react"
+import { Calendar as CalendarIcon, Users, MapPin, Clock, ArrowRight, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { getEvents } from "@/lib/data"
 import type { Event } from "@/types"
-import FullCalendar from '@fullcalendar/react'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import { useRouter } from "next/navigation"
 
 const EventCard = ({ event }: { event: Event }) => {
   const getCategoryColor = (category: string) => {
@@ -91,8 +86,6 @@ const EventCard = ({ event }: { event: Event }) => {
 
 export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
-  const [view, setView] = useState<'list' | 'calendar'>('list');
-  const router = useRouter();
 
   React.useEffect(() => {
     async function fetchEvents() {
@@ -105,22 +98,6 @@ export default function HomePage() {
 
   const upcomingEventsForList = events.slice(0, 3);
   
-  const calendarEvents = events.map(event => ({
-    id: event.id,
-    title: event.title,
-    start: `${event.date}T${event.time || '00:00:00'}`,
-    end: event.endTime ? `${event.date}T${event.endTime}:00` : undefined,
-    allDay: !event.time,
-    url: `/dashboard/events/${event.id}`,
-    className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary cursor-pointer'
-  }));
-
-  const handleEventClick = (info: any) => {
-    info.jsEvent.preventDefault();
-    // Use login redirect for public page
-    router.push('/login');
-  };
-
   return (
     <>
       {/* Navigation */}
@@ -194,59 +171,16 @@ export default function HomePage() {
               <h2 className="text-3xl font-bold text-white mb-4">
                 Upcoming Events
               </h2>
-               <div className="flex justify-center items-center gap-4">
-                <p className="text-gray-300">
-                  Don't miss out on these exciting campus activities
-                </p>
-                <div className="flex-shrink-0 bg-white/10 p-1 rounded-xl flex">
-                  <button 
-                      onClick={() => setView('list')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${view === 'list' ? 'bg-blue-600 text-white' : 'text-white/70 hover:text-white'}`}
-                  >
-                      <List className="h-4 w-4"/> List
-                  </button>
-                  <button 
-                      onClick={() => setView('calendar')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${view === 'calendar' ? 'bg-blue-600 text-white' : 'text-white/70 hover:text-white'}`}
-                  >
-                      <CalendarIcon className="h-4 w-4"/> Calendar
-                  </button>
-                </div>
-              </div>
+              <p className="text-gray-300">
+                Don't miss out on these exciting campus activities
+              </p>
             </div>
             
-            {view === 'list' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {upcomingEventsForList.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                ))}
-                </div>
-            ) : (
-                <div className="backdrop-blur-none bg-white/10 rounded-xl border border-white/10 p-4 md:p-6 animate-in fade-in-0 duration-300">
-                    <FullCalendar
-                        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                        headerToolbar={{
-                            left: 'prev,next today',
-                            center: 'title',
-                            right: 'dayGridMonth,timeGridWeek'
-                        }}
-                        initialView="dayGridMonth"
-                        weekends={true}
-                        events={calendarEvents}
-                        eventClick={handleEventClick}
-                        editable={false}
-                        selectable={false}
-                        selectMirror={false}
-                        dayMaxEvents={true}
-                        height="auto"
-                        eventTimeFormat={{
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            meridiem: 'short'
-                        }}
-                    />
-                </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {upcomingEventsForList.map((event) => (
+                <EventCard key={event.id} event={event} />
+            ))}
+            </div>
 
             <div className="text-center mt-12">
               <Link href="/login">
