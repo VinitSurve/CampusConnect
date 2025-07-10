@@ -5,7 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import type { Event } from "@/types"
-import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, List, LayoutGrid, User, Search } from "lucide-react"
+import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, LayoutGrid, Search } from "lucide-react"
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -36,9 +36,16 @@ const EventCard = ({ event }: { event: Event }) => {
     const progressValue = event.capacity > 0 ? (event.attendees / event.capacity) * 100 : 0;
     
     return (
-        <Card className="bg-slate-900/50 border border-slate-700/50 rounded-lg overflow-hidden transition-all hover:border-slate-600 flex flex-col group">
-            <div className="relative h-40 w-full bg-slate-800/50 flex items-center justify-center">
-                 <CalendarIcon className="w-16 h-16 text-slate-600" />
+        <Card className="bg-slate-900/50 border border-slate-700/50 rounded-lg overflow-hidden transition-all hover:border-blue-500/50 flex flex-col group">
+            <div className="relative h-40 w-full bg-slate-800/50">
+                <Image
+                    src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
+                    alt={event.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover"
+                    data-ai-hint="event photo"
+                />
             </div>
             <CardContent className="p-4 flex flex-col flex-grow">
                  <div className="flex justify-between items-start mb-2">
