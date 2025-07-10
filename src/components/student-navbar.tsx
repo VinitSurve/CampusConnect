@@ -49,12 +49,12 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
   const activeItem = getActiveItem();
   
   return (
-    <nav className="sticky top-0 z-40 w-full bg-blue-900/90 backdrop-blur-md shadow-md">
+    <nav className="sticky top-0 z-40 w-full bg-card/80 backdrop-blur-md shadow-md border-b border-border">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/dashboard/events" className="flex-shrink-0 flex items-center">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-orange-400 flex items-center justify-center text-white font-bold text-lg">
                 CC
               </div>
               <span className="ml-2 text-white font-semibold text-lg hidden sm:block">CampusConnect</span>
@@ -67,7 +67,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
                   href={item.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
                     ${activeItem === item.label.toLowerCase()
-                      ? 'bg-blue-700/50 text-white'
+                      ? 'bg-primary/80 text-primary-foreground'
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                     }`}
                 >
@@ -88,16 +88,16 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
             <div className="relative profile-dropdown-container">
               <button 
                 onClick={() => setIsProfileDropdownOpen(prev => !prev)}
-                className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-800 focus:ring-white"
+                className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary"
               >
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium overflow-hidden border-2 border-white/20">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white font-medium overflow-hidden border-2 border-white/20">
                   {user.name ? user.name[0].toUpperCase() : 'U'}
                 </div>
               </button>
               
               {isProfileDropdownOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg backdrop-blur-xl bg-white/10 border border-white/10 py-1 z-10">
-                  <div className="px-4 py-2 border-b border-white/10">
+                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg backdrop-blur-xl bg-card/90 border border-border py-1 z-10">
+                  <div className="px-4 py-2 border-b border-border">
                     <p className="text-sm font-medium text-white truncate">
                       {user.name || "Student"}
                     </p>
@@ -138,13 +138,13 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
       </div>
       
       <div className={`md:hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-96' : 'max-h-0 overflow-hidden'}`}>
-        <div className="backdrop-blur-md bg-blue-900/90 shadow-lg border-t border-white/10 px-2 pt-2 pb-3 space-y-1">
+        <div className="backdrop-blur-md bg-card/90 shadow-lg border-t border-border px-2 pt-2 pb-3 space-y-1">
           <div className="px-3 py-2">
             <div className="relative">
               <input 
                 type="text"
                 placeholder="Search..."
-                className="bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-full"
+                className="bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 w-full"
               />
               <Search className="h-4 w-4 text-white/50 absolute left-3 top-2.5" />
             </div>
@@ -156,7 +156,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
               href={item.path}
               className={`flex items-center px-3 py-2 rounded-md text-base font-medium ${
                 activeItem === item.label.toLowerCase()
-                  ? 'bg-blue-700/50 text-white' 
+                  ? 'bg-primary/80 text-primary-foreground' 
                   : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
