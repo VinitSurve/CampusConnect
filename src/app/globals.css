@@ -95,7 +95,7 @@ body {
 }
 
 .fc .fc-daygrid-day-number {
-  @apply p-2 text-sm text-white/70;
+  @apply p-2 text-base text-white/70;
 }
 
 .fc .fc-col-header-cell-cushion {

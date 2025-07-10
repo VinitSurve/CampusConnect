@@ -5,7 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import type { Event } from "@/types"
-import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, LayoutGrid, Search, User as UserIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Users, Clock, MapPin, Tag, LayoutGrid, Search, User as UserIcon, List } from "lucide-react"
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,7 @@ const getCategoryColor = (category?: string) => {
       case "Sports": return "bg-green-600/20 text-green-300 border border-green-500/50"
       case "Cultural": return "bg-purple-600/20 text-purple-300 border border-purple-500/50"
       case "Guest Speaker": return "bg-yellow-600/20 text-yellow-300 border border-yellow-500/50"
+      case "Workshop": return 'bg-orange-600/20 text-orange-300 border border-orange-500/50'
       default: return "bg-gray-600/20 text-gray-300 border border-gray-500/50"
     }
 }
@@ -130,7 +131,6 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
     return (
       <div className="fc-event-main-wrapper">
         <b className="fc-event-title">{eventInfo.event.title}</b>
-        {!eventInfo.event.allDay && <p className="fc-event-time">{eventInfo.timeText}</p>}
       </div>
     )
   }
