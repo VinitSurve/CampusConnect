@@ -50,7 +50,7 @@ service cloud.firestore {
       allow update: if isFaculty() || (
         isAuthenticated() &&
         resource.data.leadId == request.auth.uid &&
-        request.resource.data.keys().hasAll(['name', 'description', 'image', 'socialLinks', 'gallery', 'googleDriveFolderId', 'updatedAt'])
+        request.resource.data.keys().hasOnly(['name', 'description', 'image', 'socialLinks', 'gallery', 'googleDriveFolderId', 'updatedAt'])
       );
     }
 
