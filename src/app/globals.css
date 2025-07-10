@@ -8,41 +8,6 @@ body {
 
 @layer base {
   :root {
-    --background: 207 90% 94%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 214 89% 59%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 211 69% 47%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 214 89% 59%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 214 89% 59%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 214 89% 59%;
-  }
-  .dark {
     --background: 220 40% 5%;
     --foreground: 210 20% 98%;
     --card: 220 25% 10%;
@@ -60,7 +25,7 @@ body {
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 20% 98%;
     --border: 220 20% 20%;
-    --input: 220 15% 15%;
+    --input: 220 20% 20%;
     --ring: 214 89% 59%;
     --chart-1: 214 89% 59%;
     --chart-2: 160 60% 45%;
@@ -75,6 +40,7 @@ body {
     --sidebar-accent-foreground: 210 20% 98%;
     --sidebar-border: 220 20% 20%;
     --sidebar-ring: 214 89% 59%;
+    --radius: 0.5rem;
   }
 }
 
@@ -89,21 +55,19 @@ body {
 
 /* Custom FullCalendar Theming */
 .fc {
-  --fc-border-color: hsl(var(--border) / 0.5);
+  --fc-border-color: hsl(var(--border) / 0.2);
   --fc-daygrid-event-dot-width: 8px;
   --fc-list-event-dot-width: 10px;
-  --fc-event-border-color: hsl(var(--primary));
-  --fc-event-text-color: hsl(var(--primary-foreground));
-  --fc-event-bg-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--foreground));
   --fc-today-bg-color: hsl(var(--muted) / 0.5);
   --fc-page-bg-color: transparent;
   --fc-neutral-bg-color: hsl(var(--muted));
   --fc-list-event-hover-bg-color: hsl(var(--muted));
-  --fc-highlight-color: hsl(var(--accent) / 0.3);
+  --fc-highlight-color: hsl(var(--accent) / 0.2);
 }
 
 .fc .fc-toolbar.fc-header-toolbar {
-  @apply mb-4;
+  @apply mb-6;
 }
 
 .fc .fc-toolbar-title {
@@ -111,20 +75,23 @@ body {
 }
 
 .fc .fc-button {
-  @apply bg-white/10 text-white border-white/20 hover:bg-white/20;
+  @apply bg-white/5 text-white/80 border-white/10 hover:bg-white/10 hover:text-white transition-colors duration-200 shadow-sm;
 }
 
 .fc .fc-button-primary:not(:disabled).fc-button-active,
 .fc .fc-button-primary:not(:disabled):active {
-  @apply bg-primary text-primary-foreground border-primary;
+  @apply bg-primary text-primary-foreground border-primary/80 shadow-inner;
 }
 
-.fc .fc-daygrid-day-frame {
-  @apply rounded-lg;
+.fc .fc-daygrid-day-frame, .fc .fc-timegrid-slot {
+  @apply rounded-lg transition-colors duration-200;
+}
+.fc .fc-daygrid-day-frame:hover, .fc .fc-timegrid-slot-lane:hover {
+  @apply bg-white/5;
 }
 
-.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-frame {
-    @apply bg-white/5;
+.fc .fc-day-today .fc-daygrid-day-frame {
+    @apply bg-primary/10 border border-primary/20;
 }
 
 .fc .fc-daygrid-day-number {
@@ -132,57 +99,57 @@ body {
 }
 
 .fc .fc-col-header-cell-cushion {
-  @apply p-2 text-sm text-white/80;
+  @apply p-2 text-sm text-white/80 font-medium;
 }
 
 .fc .fc-timegrid-slot-label-cushion {
   @apply text-sm text-white/70;
-  line-height: 1.5; /* Adjust for better vertical alignment */
-}
-
-.fc .fc-event {
-  /* Let utility classes control styling */
-  background-color: transparent;
-  border: none;
-  @apply rounded-lg text-sm font-medium shadow-lg overflow-hidden;
-}
-
-.fc-v-event .fc-event-main {
-    @apply p-2 h-full flex flex-col justify-center;
 }
 
 .fc .fc-timegrid-slot-lane {
-    @apply hover:bg-white/5 transition-colors duration-200 border-white/10;
-    min-height: 100px;
+    min-height: 80px;
 }
-
-.fc .fc-timegrid-event-harness {
-    @apply p-0.5; /* Add a little gap between events */
-}
-
-/* Make time grid lines more visible */
 .fc .fc-timegrid-slots tr {
-    border-color: hsl(var(--border) / 0.2);
+    border-color: hsl(var(--border) / 0.1);
 }
 
-/* Style the selection box */
+/* Base Event Styling */
+.fc .fc-event {
+  @apply rounded-md text-sm font-medium shadow-lg overflow-hidden cursor-pointer transition-all duration-200 border-l-4;
+  background-color: hsl(var(--muted) / 0.5) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+.fc .fc-event:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px hsl(var(--primary) / 0.1);
+    background-color: hsl(var(--muted) / 0.8) !important;
+}
+
+.fc-v-event .fc-event-main-wrapper {
+    @apply p-2 h-full flex flex-col justify-center;
+}
+.fc-daygrid-event .fc-event-main-wrapper {
+  @apply px-2 py-1 flex items-center gap-2;
+}
+.fc .fc-event-title {
+  @apply text-white font-semibold;
+}
+.fc .fc-event-time {
+  @apply text-white/70 text-xs;
+}
+
+/* Category-specific event colors */
+.fc .event-technical { border-color: #3b82f6 !important; }
+.fc .event-sports { border-color: #22c55e !important; }
+.fc .event-cultural { border-color: #a855f7 !important; }
+.fc .event-speaker { border-color: #eab308 !important; }
+.fc .event-workshop { border-color: #f97316 !important; }
+.fc .event-default { border-color: #64748b !important; }
+
+/* Selection highlight */
 .fc .fc-highlight {
   background: hsl(var(--primary) / 0.2) !important;
-  border: 1px dashed hsl(var(--primary)) !important;
-  opacity: 1 !important;
   position: relative;
   z-index: 5;
-}
-
-/* Add a plus icon to the selection highlight */
-.fc .fc-highlight::after {
-    content: '+';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 3rem;
-    font-weight: 200;
-    color: hsl(var(--primary-foreground) / 0.5);
-    z-index: 10;
 }

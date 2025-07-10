@@ -10,13 +10,12 @@ import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
 interface EventsDisplayProps {
   events: Event[]
@@ -32,52 +31,61 @@ const getCategoryColor = (category?: string) => {
     }
 }
 
+const getCategoryClass = (category: string) => {
+    switch (category) {
+        case "Technical": return 'event-technical';
+        case "Sports": return 'event-sports';
+        case "Cultural": return 'event-cultural';
+        case "Guest Speaker": return 'event-speaker';
+        case "Workshop": return 'event-workshop';
+        default: return 'event-default';
+    }
+}
+
 const EventCard = ({ event }: { event: Event }) => {
-    const progressValue = event.capacity > 0 ? (event.attendees / event.capacity) * 100 : 0;
-    
     return (
-        <Card className="bg-slate-900/50 border border-slate-700/50 rounded-lg overflow-hidden transition-all hover:border-blue-500/50 flex flex-col group">
-            <div className="relative h-40 w-full bg-slate-800/50">
+        <Card className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all flex flex-col group">
+            <div className="relative h-40 w-full overflow-hidden">
                 <Image
                     src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
                     alt={event.title}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                     data-ai-hint="event photo"
                 />
             </div>
             <CardContent className="p-4 flex flex-col flex-grow">
                  <div className="flex justify-between items-start mb-2">
                     <Badge className={`${getCategoryColor(event.category)}`}>{event.category}</Badge>
-                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <div className="flex items-center gap-2 text-white/70 text-sm">
                         <Users className="w-4 h-4" />
                         <span>{event.attendees} / {event.capacity}</span>
                     </div>
                  </div>
                 <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{event.title}</h3>
-                <CardDescription className="text-slate-400 mt-1 text-sm flex-grow">{event.description}</CardDescription>
+                <CardDescription className="text-white/70 mt-1 text-sm flex-grow">{event.description}</CardDescription>
                 
-                <div className="space-y-2 text-sm text-slate-300 mt-4">
+                <div className="space-y-2 text-sm text-white/80 mt-4">
                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="w-4 h-4 text-slate-500" />
+                        <CalendarIcon className="w-4 h-4 text-white/50" />
                         <span>{format(new Date(event.date + 'T00:00:00'), 'EEEE, MMM d, yyyy')}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-slate-500" />
+                        <Clock className="w-4 h-4 text-white/50" />
                         <span>{event.time}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-slate-500" />
+                        <MapPin className="w-4 h-4 text-white/50" />
                         <span>{event.location}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <UserIcon className="w-4 h-4 text-slate-500" />
+                        <UserIcon className="w-4 h-4 text-white/50" />
                         <span>by {event.organizer}</span>
                     </div>
                 </div>
             </CardContent>
-            <div className="bg-gradient-to-t from-slate-900 to-slate-900/50 p-4 mt-auto">
+            <div className="bg-gradient-to-t from-black/20 to-transparent p-4 mt-auto">
                  <Link href={`/dashboard/events/${event.id}`}>
                     <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0">
                         View Details
@@ -110,12 +118,22 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
     
   const calendarEvents = filteredEvents.map(event => ({
     id: event.id,
-    title: `• ${event.title}`,
+    title: event.title,
     start: `${event.date}T${event.time || '00:00'}`,
     end: event.endTime ? `${event.date}T${event.endTime}` : undefined,
     url: `/dashboard/events/${event.id}`,
-    className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary'
+    allDay: !event.time,
+    className: getCategoryClass(event.category)
   }));
+  
+  const renderEventContent = (eventInfo: any) => {
+    return (
+      <div className="fc-event-main-wrapper">
+        <b className="fc-event-title">{eventInfo.event.title}</b>
+        {!eventInfo.event.allDay && <p className="fc-event-time">{eventInfo.timeText}</p>}
+      </div>
+    )
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -133,18 +151,18 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                     placeholder="Search events..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-slate-800/50 border-slate-700/80"
+                    className="pl-10"
                 />
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full md:w-auto justify-between bg-slate-800 border-slate-700 hover:bg-slate-700">
+                        <Button variant="outline" className="w-full md:w-auto justify-between">
                             <Tag className="mr-2" />
                             {filter}
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-slate-800 border-slate-700 text-white">
+                    <DropdownMenuContent>
                         {allCategories.map(category => (
                             <DropdownMenuItem key={category} onSelect={() => setFilter(category)}>
                                 {category}
@@ -152,7 +170,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                         ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <div className="bg-slate-800 p-1 rounded-lg border border-slate-700 flex items-center">
+                <div className="bg-white/10 p-1 rounded-lg flex items-center">
                      <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('grid')} className={view === 'grid' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><LayoutGrid/></Button>
                      <Button variant={view === 'calendar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('calendar')} className={view === 'calendar' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><CalendarIcon/></Button>
                 </div>
@@ -164,7 +182,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
              {filteredEvents.length > 0 ? (
                 filteredEvents.map(event => <EventCard key={event.id} event={event} />)
             ) : (
-                <div className="text-center py-16 bg-slate-900/50 border border-slate-700/50 rounded-lg col-span-full">
+                <div className="text-center py-16 bg-white/10 rounded-lg col-span-full">
                     <h3 className="text-xl font-semibold text-white mb-2">No Events Found</h3>
                     <p className="text-white/80">Try adjusting your filters.</p>
                 </div>
@@ -173,7 +191,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
       )}
 
       {view === 'calendar' && (
-           <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+           <div className="bg-white/10 border border-white/10 rounded-xl p-4">
               <FullCalendar
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 headerToolbar={{
@@ -184,13 +202,13 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
                 initialView="dayGridMonth"
                 weekends={true}
                 events={calendarEvents}
-                displayEventTime={false}
+                eventContent={renderEventContent}
                 editable={false}
                 selectable={false}
                 dayMaxEvents={true}
                 height="auto"
                 eventClick={(info) => {
-                    info.jsEvent.preventDefault(); // prevent the browser from navigating
+                    info.jsEvent.preventDefault();
                     if (info.event.url) {
                         window.location.href = info.event.url;
                     }
