@@ -16,7 +16,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { Card, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
 
 interface EventsDisplayProps {
   events: Event[]
@@ -201,5 +201,3 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
     </main>
   )
 }
-
-    
