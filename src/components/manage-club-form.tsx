@@ -140,7 +140,7 @@ export default function ManageClubForm({ club: initialClub, user }: ManageClubFo
                <Label>Cover Image</Label>
                <div className="w-full bg-black/20 border-2 border-dashed border-white/20 rounded-xl p-4 text-center">
                     <div className="relative group aspect-video">
-                        <Image src={newCoverPreview || club.image} alt="Cover preview" fill className="object-cover rounded-lg" />
+                        <Image src={newCoverPreview || club.image} alt="Cover preview" fill className="object-cover rounded-lg" data-ai-hint="club banner" />
                     </div>
                     <label htmlFor="cover-image-upload" className="relative cursor-pointer mt-4 inline-block">
                         <div className="text-blue-400 font-semibold hover:underline">Change Cover Image</div>
@@ -158,7 +158,7 @@ export default function ManageClubForm({ club: initialClub, user }: ManageClubFo
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="flex items-center gap-3">
-                <Link className="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-white/10 rounded-md"/>
+                <Link className="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-white/10 rounded-md p-2" href={club.socialLinks?.website || '#'} target="_blank"/>
                 <Input name="socialLinks.website" value={club.socialLinks?.website || ''} onChange={handleFormChange} placeholder="https://yourclub.com" />
              </div>
              <div className="flex items-center gap-3">
@@ -186,7 +186,7 @@ export default function ManageClubForm({ club: initialClub, user }: ManageClubFo
                     {/* Display existing photos */}
                     {(club.gallery || []).filter(url => !galleryUrlsToDelete.includes(url)).map((url, index) => (
                         <div key={`existing-${index}`} className="relative group aspect-square">
-                            <Image src={url} alt={`Gallery photo ${index + 1}`} fill className="object-cover rounded-lg" />
+                            <Image src={url} alt={`Gallery photo ${index + 1}`} fill className="object-cover rounded-lg" data-ai-hint="event photo" />
                             <Button type="button" size="icon" variant="destructive" className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeExistingGalleryImage(url)}>
                                 <Trash2 className="w-4 h-4" />
                             </Button>
@@ -195,7 +195,7 @@ export default function ManageClubForm({ club: initialClub, user }: ManageClubFo
                     {/* Display new photo previews */}
                     {galleryPreviews.map((previewUrl, index) => (
                          <div key={`new-${index}`} className="relative group aspect-square">
-                            <Image src={previewUrl} alt={`New photo preview ${index + 1}`} fill className="object-cover rounded-lg" />
+                            <Image src={previewUrl} alt={`New photo preview ${index + 1}`} fill className="object-cover rounded-lg" data-ai-hint="event photo" />
                              <Button type="button" size="icon" variant="destructive" className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeNewGalleryImage(index)}>
                                 <X className="w-4 h-4" />
                             </Button>
