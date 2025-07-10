@@ -5,204 +5,141 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import type { Event } from "@/types"
-import { Calendar as CalendarIcon, List } from "lucide-react"
+import { Calendar as CalendarIcon, Users, Search, Clock, MapPin, Tag } from "lucide-react"
 import { format } from 'date-fns'
-import FullCalendar from '@fullcalendar/react'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import { useRouter } from "next/navigation"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 
 interface EventsDisplayProps {
   events: Event[]
 }
 
-export function EventsDisplay({ events }: EventsDisplayProps) {
-  const [filter, setFilter] = useState("all")
-  const [view, setView] = useState<'list' | 'calendar'>('list');
-  const router = useRouter();
-
-  const allCategories = ['all', ...Array.from(new Set(events.map(e => e.category)))]
-
-  const categoryMap: { [key: string]: { name: string; icon: string } } = {
-    'all': { name: "All Events", icon: "🎯" },
-    'Technology': { name: "Technology", icon: "💻" },
-    'Music': { name: "Music", icon: "🎵" },
-    'Career': { name: "Career", icon: "💼" },
-    'Academic': { name: "Academic", icon: "📚" },
-    'Social': { name: "Social", icon: "🎉" },
-    'Arts': { name: "Arts & Culture", icon: "🎭" },
-    'Sports': { name: "Sports & Recreation", icon: "⚽" },
-    'Guest Speaker': { name: "Guest Speaker", icon: "⭐" },
-    'Technical': { name: "Technical", icon: "💻" },
-    'Workshop': { name: "Workshop", icon: "🛠️" },
-    'Networking': { name: "Networking", icon: "🤝" },
-  };
-
-  const displayCategories = allCategories.map(cat => ({
-    id: cat,
-    name: categoryMap[cat]?.name || cat,
-    icon: categoryMap[cat]?.icon || "⭐"
-  })).filter((value, index, self) => index === self.findIndex((t) => t.id === value.id));
-
-
-  const filteredEvents =
-    filter === "all"
-      ? events
-      : events.filter(
-          (event) => event.category === filter
-        )
-
-  const calendarEvents = filteredEvents.map(event => ({
-    id: event.id,
-    title: event.title,
-    start: `${event.date}T${event.time || '00:00:00'}`,
-    end: event.endTime ? `${event.date}T${event.endTime}:00` : undefined,
-    allDay: !event.time,
-    url: `/dashboard/events/${event.id}`,
-    className: 'bg-primary/30 text-primary-foreground border-l-4 border-primary cursor-pointer'
-  }));
-
-  const handleEventClick = (info: any) => {
-    info.jsEvent.preventDefault(); // Prevent the default browser redirect
-    if (info.event.url) {
-      router.push(info.event.url); // Use Next.js router for navigation
+const getCategoryColor = (category?: string) => {
+    switch (category) {
+      case "Technical":
+        return "bg-blue-500/20 text-blue-300 border-blue-500/30"
+      case "Sports":
+        return "bg-green-500/20 text-green-300 border-green-500/30"
+      case "Cultural":
+         return "bg-purple-500/20 text-purple-300 border-purple-500/30"
+      case "Guest Speaker":
+        return "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+      default:
+        return "bg-gray-500/20 text-gray-300 border-gray-500/30"
     }
-  };
+}
 
+const EventCard = ({ event, index }: { event: Event, index: number }) => (
+    <Link href={`/dashboard/events/${event.id}`} className="block bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 hover:border-blue-400/50 transition-all duration-300 group rounded-xl flex flex-col">
+        <div className="relative h-48 w-full overflow-hidden">
+            <Image
+                src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
+                alt={event.title}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                data-ai-hint="event photo"
+                priority={index < 6} // Prioritize loading for the first few cards
+            />
+            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 text-xs text-white flex items-center gap-1.5">
+                <Users className="w-3 h-3"/>
+                {event.attendees || 0}
+            </div>
+             <div className="absolute top-3 left-3">
+                <Badge className={getCategoryColor(event.category)}>{event.category}</Badge>
+            </div>
+        </div>
+        <div className="p-4 flex flex-col flex-grow">
+            <CardTitle className="text-white text-lg font-semibold group-hover:text-blue-300 transition-colors mb-2">{event.title}</CardTitle>
+            <CardDescription className="text-gray-300/80 text-sm mb-4 flex-grow">{event.description}</CardDescription>
+            <div className="mt-auto space-y-2 text-sm text-gray-300/90">
+                <div className="flex items-center">
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    {format(new Date(event.date + 'T00:00:00'), 'EEEE, MMMM d, yyyy')}
+                </div>
+                 <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2" />
+                    {event.time} {event.endTime && ` - ${event.endTime}`}
+                </div>
+                <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    {event.location}
+                </div>
+            </div>
+        </div>
+    </Link>
+)
+
+export function EventsDisplay({ events }: EventsDisplayProps) {
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const allCategories = ['All', ...Array.from(new Set(events.map(e => e.category).filter(Boolean)))];
+  const [filter, setFilter] = useState("All");
+
+  const filteredEvents = events
+    .filter(event => {
+        const lowerSearch = searchTerm.toLowerCase();
+        const searchMatch = !searchTerm || 
+            event.title.toLowerCase().includes(lowerSearch) ||
+            event.description.toLowerCase().includes(lowerSearch) ||
+            event.organizer.toLowerCase().includes(lowerSearch) ||
+            event.tags?.some(tag => tag.toLowerCase().includes(lowerSearch));
+        const categoryMatch = filter === 'All' || event.category === filter;
+
+        return searchMatch && categoryMatch;
+    });
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Categories and View Toggle */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div className="flex overflow-x-auto pb-4 gap-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {displayCategories.map(category => (
-            <button
-              key={category.id}
-              onClick={() => setFilter(category.id)}
-              className={`flex items-center px-6 py-3 rounded-xl whitespace-nowrap transition-all text-white ${
-                filter === category.id
-                  ? "bg-blue-600"
-                  : "bg-white/10 hover:bg-white/20"
-              }`}
-            >
-              <span className="mr-2 text-lg">{category.icon}</span>
-              <span className="text-white font-medium">{category.name}</span>
-            </button>
-          ))}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Discover Events</h1>
+          <p className="text-white/70 mt-1">Find activities and gatherings hosted by campus clubs and organizations.</p>
         </div>
-        <div className="flex-shrink-0 bg-white/10 p-1 rounded-xl flex">
-            <button 
-                onClick={() => setView('list')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${view === 'list' ? 'bg-blue-600 text-white' : 'text-white/70 hover:text-white'}`}
-            >
-                <List className="h-4 w-4"/> List
-            </button>
-            <button 
-                onClick={() => setView('calendar')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${view === 'calendar' ? 'bg-blue-600 text-white' : 'text-white/70 hover:text-white'}`}
-            >
-                <CalendarIcon className="h-4 w-4"/> Calendar
-            </button>
+        <div className="relative w-full md:w-72">
+          <Input 
+            placeholder="Search events, clubs, tags..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-11 bg-white/5 border-white/20 placeholder:text-white/50"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
         </div>
       </div>
-      
 
-      {/* Conditional Rendering based on view */}
-      {view === 'list' ? (
-        // List View
-        filteredEvents.length > 0 ? (
+       <div className="flex overflow-x-auto pb-4 mb-8 gap-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {allCategories.map(category => (
+          <button
+            key={category}
+            onClick={() => setFilter(category)}
+            className={`flex items-center px-4 py-2 rounded-lg whitespace-nowrap transition-all text-sm font-medium ${
+              filter === category
+                ? "bg-blue-600 text-white"
+                : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white"
+            }`}
+          >
+            <span className="text-white">{category}</span>
+          </button>
+        ))}
+      </div>
+      
+      {filteredEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in-0 duration-300">
             {filteredEvents.map((event, index) => (
-              <div
-                key={event.id}
-                className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col group"
-              >
-                <div className="relative h-40 w-full overflow-hidden">
-                  <Image
-                    src={event.headerImage || event.image || 'https://placehold.co/600x400.png'}
-                    alt={event.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    data-ai-hint="event photo"
-                    priority={index < 3}
-                  />
-                </div>
-                <div className="p-4 flex-grow flex flex-col">
-                  <h3 className="text-xl font-semibold text-white mb-2">{event.title}</h3>
-                  <p className="text-white/80 mb-4 text-sm flex-grow">{event.description}</p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {event.tags?.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-2 py-1 text-xs bg-white/20 text-white rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  
-                  <div className="flex items-center text-white/80 text-sm mt-auto pt-3 border-t border-white/10">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    <span>
-                      {format(new Date(`${event.date}T00:00:00`), 'EEE, MMM d, yyyy')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4 border-t border-white/10 bg-black/10">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/80 text-sm">{event.location}</span>
-                    <Link
-                      href={`/dashboard/events/${event.id}`}
-                      className="text-white hover:text-blue-300 text-sm font-medium"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                </div>
-              </div>
+              <EventCard key={event.id} event={event} index={index} />
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-16">
             <div className="bg-white/10 backdrop-blur-xl rounded-xl p-8 max-w-md mx-auto">
               <h3 className="text-xl font-semibold text-white mb-2">No Events Found</h3>
               <p className="text-white/80">
-                There are no events matching the "{filter}" category right now.
+                Your search for "{searchTerm}" in the "{filter}" category yielded no results. Try a different search!
               </p>
             </div>
           </div>
         )
-      ) : (
-        // Calendar View
-        <div className="backdrop-blur-none bg-white/10 rounded-xl border border-white/10 p-4 md:p-6 animate-in fade-in-0 duration-300">
-            <FullCalendar
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
-                }}
-                initialView="dayGridMonth"
-                weekends={true}
-                events={calendarEvents}
-                eventClick={handleEventClick}
-                editable={false}
-                selectable={false}
-                selectMirror={false}
-                dayMaxEvents={true}
-                height="auto"
-                eventTimeFormat={{
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    meridiem: 'short'
-                }}
-            />
-        </div>
-      )}
+      }
     </main>
   )
 }

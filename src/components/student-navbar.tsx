@@ -79,14 +79,6 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <div className="hidden md:flex items-center relative">
-              <input 
-                type="text"
-                placeholder="Search..."
-                className="bg-white/10 border border-white/20 rounded-full pl-10 pr-4 py-1.5 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-40 lg:w-60"
-              />
-              <Search className="h-4 w-4 text-white/50 absolute left-3" />
-            </div>
             
             <Button variant="ghost" size="icon" className="p-1.5 rounded-full bg-white/10 text-white hover:bg-white/20 relative">
               <Bell className="h-5 w-5" />
