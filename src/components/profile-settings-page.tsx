@@ -12,10 +12,25 @@ import { useToast } from '@/hooks/use-toast';
 import { updateUserProfile } from '@/app/settings/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
+import { Switch } from './ui/switch';
+
 
 interface ProfileSettingsPageProps {
   user: UserType;
 }
+
+const ServiceIcon = ({ provider, letter }: { provider: 'google' | 'apple', letter: string }) => {
+    const baseClasses = "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg";
+    const providerClasses = {
+        google: "bg-red-600 text-white",
+        apple: "bg-white text-black"
+    };
+    return (
+        <div className={cn(baseClasses, providerClasses[provider])}>
+            {letter}
+        </div>
+    );
+};
 
 export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
   const [activeTab, setActiveTab] = useState('profile');
@@ -183,7 +198,77 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
           </div>
         )}
 
-        {(activeTab === 'preferences' || activeTab === 'data') && (
+        {activeTab === 'data' && (
+          <div>
+            <h3 className="text-2xl font-semibold mb-1">Data & Privacy</h3>
+            <p className="text-white/60 mb-8">Manage your data and privacy settings</p>
+            <div className="space-y-8">
+              {/* Data Export */}
+              <div>
+                <h4 className="font-semibold text-lg text-white mb-2">Data Export</h4>
+                <div className="bg-black/20 p-6 rounded-lg">
+                  <h5 className="font-semibold text-white">Export Your Data</h5>
+                  <p className="text-white/70 mb-4 mt-1">Download a copy of all your financial records.</p>
+                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base">
+                    Export Data
+                  </Button>
+                </div>
+              </div>
+
+              {/* Data Settings */}
+              <div>
+                <h4 className="font-semibold text-lg text-white mb-4">Data Settings</h4>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="font-semibold text-white">Data Analytics</h5>
+                      <p className="text-white/70 text-sm">Allow app to analyze your spending patterns</p>
+                    </div>
+                    <Switch id="data-analytics-switch" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="font-semibold text-white">Personalization</h5>
+                      <p className="text-white/70 text-sm">Receive personalized financial insights</p>
+                    </div>
+                    <Switch id="personalization-switch" />
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="bg-white/10" />
+
+              {/* Connected Services */}
+              <div>
+                <h4 className="font-semibold text-lg text-white mb-4">Connected Services</h4>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-black/20 p-4 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <ServiceIcon provider="google" letter="G" />
+                      <div>
+                        <h5 className="font-semibold text-white">Google</h5>
+                        <p className="text-sm text-green-400">Connected</p>
+                      </div>
+                    </div>
+                    <Button variant="link" className="text-purple-400 hover:text-purple-300">Disconnect</Button>
+                  </div>
+                  <div className="flex items-center justify-between bg-black/20 p-4 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <ServiceIcon provider="apple" letter="A" />
+                      <div>
+                        <h5 className="font-semibold text-white">Apple</h5>
+                        <p className="text-sm text-white/60">Not connected</p>
+                      </div>
+                    </div>
+                    <Button variant="link" className="text-purple-400 hover:text-purple-300">Connect</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'preferences' && (
           <div className="text-center py-12">
             <h3 className="text-xl font-semibold text-white mb-2 capitalize">{activeTab} Settings</h3>
             <p className="text-white/70">This feature is coming soon.</p>
