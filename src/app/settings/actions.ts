@@ -28,19 +28,21 @@ export async function updateUserProfile(data: UpdateProfileData) {
   try {
     const userRef = doc(db, 'users', user.id);
     
-    // Create a complete data object for updating.
-    // This ensures all existing fields are preserved and only the changed ones are updated.
+    // The data object to be saved.
+    // This only contains the fields that can be edited from the settings page.
     const dataToSave = {
         name: data.name,
-        fullName: data.name, // Keep fullName in sync with name
+        fullName: data.name, // Keep fullName in sync with name for consistency
         email: data.email,
         username: data.username,
         mobile: data.mobile,
     };
 
+    // Use updateDoc to merge the new data with the existing document.
+    // This will only change the specified fields and leave others untouched.
     await updateDoc(userRef, dataToSave);
     
-    // Revalidate paths where user data is displayed
+    // Revalidate paths where user data is displayed to reflect changes immediately
     revalidatePath('/admin/settings');
     revalidatePath('/dashboard/settings');
     revalidatePath('/admin');
@@ -48,7 +50,9 @@ export async function updateUserProfile(data: UpdateProfileData) {
 
   } catch (error) {
     console.error("Error updating profile:", error);
-    throw new Error('Failed to update profile. Please try again.');
+    // Provide a more specific error message if possible
+    const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
+    throw new Error(`Failed to update profile. ${errorMessage}`);
   }
 }
 
