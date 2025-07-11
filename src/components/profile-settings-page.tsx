@@ -1,18 +1,23 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
-import { User, Settings, Lock, BarChartHorizontal, Bell } from 'lucide-react';
-import type { User as UserType } from '@/types';
+import { useState, useTransition, useEffect } from 'react';
+import { User, Settings, Lock, BarChartHorizontal, AlertTriangle } from 'lucide-react';
+import type { User as UserType, UserPreferences } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { updateUserProfile } from '@/app/settings/actions';
+import { updateUserProfile, updateUserPreferences } from '@/app/settings/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { Switch } from './ui/switch';
+import { auth, db } from '@/lib/firebase';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser } from 'firebase/auth';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { useRouter } from 'next/navigation';
 
 
 interface ProfileSettingsPageProps {
@@ -36,10 +41,36 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
   const [activeTab, setActiveTab] = useState('profile');
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [reauthPassword, setReauthPassword] = useState('');
+  
+  const [preferences, setPreferences] = useState<UserPreferences>(user.preferences || {
+    emailNotifications: true,
+    weeklyDigest: false,
+    clubUpdates: true,
+    dataAnalytics: false,
+    personalization: false,
+  });
+  
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
 
-  const handleSave = () => {
+  useEffect(() => {
+    // If user object from server changes, update local state
+    setName(user.name);
+    setEmail(user.email);
+    setPreferences(user.preferences || {
+      emailNotifications: true,
+      weeklyDigest: false,
+      clubUpdates: true,
+      dataAnalytics: false,
+      personalization: false,
+    });
+  }, [user]);
+
+  const handleProfileSave = () => {
     startTransition(async () => {
       try {
         await updateUserProfile({ name, email });
@@ -56,6 +87,96 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
       }
     });
   };
+
+  const handlePreferenceChange = (key: keyof UserPreferences, value: boolean) => {
+    const newPreferences = { ...preferences, [key]: value };
+    setPreferences(newPreferences);
+    startTransition(async () => {
+        try {
+            await updateUserPreferences(newPreferences);
+            toast({
+                title: "Preferences saved",
+                description: "Your settings have been updated.",
+            });
+        } catch (error) {
+             toast({
+                title: 'Error Saving Preferences',
+                description: (error as Error).message,
+                variant: 'destructive',
+            });
+            // Revert optimistic UI update on failure
+            setPreferences(prev => ({...prev, [key]: !value}));
+        }
+    });
+  };
+
+  const handleChangePassword = () => {
+      if (!currentPassword || !newPassword) {
+          toast({ title: 'Error', description: 'Please fill all password fields.', variant: 'destructive' });
+          return;
+      }
+      startTransition(async () => {
+          const currentUser = auth.currentUser;
+          if (!currentUser || !currentUser.email) {
+              toast({ title: 'Error', description: 'Not logged in or email not found.', variant: 'destructive' });
+              return;
+          }
+          const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+          try {
+              await reauthenticateWithCredential(currentUser, credential);
+              await updatePassword(currentUser, newPassword);
+              toast({ title: 'Success', description: 'Password updated successfully.' });
+              setCurrentPassword('');
+              setNewPassword('');
+          } catch (error) {
+              toast({ title: 'Error updating password', description: (error as Error).message, variant: 'destructive' });
+          }
+      });
+  };
+  
+  const handleAccountDelete = () => {
+    startTransition(async () => {
+        const currentUser = auth.currentUser;
+        if (!currentUser || !currentUser.email) {
+            toast({ title: 'Error', description: 'Could not find authenticated user.', variant: 'destructive' });
+            return;
+        }
+        
+        const credential = EmailAuthProvider.credential(currentUser.email, reauthPassword);
+        
+        try {
+            await reauthenticateWithCredential(currentUser, credential);
+
+            // First, delete Firestore document
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await deleteDoc(userDocRef);
+
+            // Then, delete Firebase Auth user
+            await deleteUser(currentUser);
+            
+            toast({ title: 'Account Deleted', description: 'Your account has been permanently deleted. You will be logged out.' });
+            
+            // Redirect to home/login page after successful deletion
+            router.push('/');
+            
+        } catch (error) {
+            toast({ title: 'Error deleting account', description: (error as Error).message, variant: 'destructive' });
+        }
+    });
+  };
+  
+  const handleExportData = () => {
+    const data = JSON.stringify(user, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'campus-connect-data.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Data Exported', description: 'Your data has been downloaded as a JSON file.' });
+  };
+
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" /> },
@@ -132,7 +253,7 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
               </div>
               <div className="pt-4">
                 <Button
-                  onClick={handleSave}
+                  onClick={handleProfileSave}
                   disabled={isPending}
                   size="lg"
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base"
@@ -148,51 +269,54 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
           <div>
              <h3 className="text-2xl font-semibold mb-1">Security</h3>
             <p className="text-white/60 mb-8">Manage your account security settings</p>
-
             <div className="space-y-8">
-                {/* Change Password Section */}
                 <div>
                     <h4 className="font-semibold text-lg text-white mb-4">Password</h4>
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="currentPassword">Current Password</Label>
-                            <Input id="currentPassword" type="password" placeholder="••••••••" className="bg-white/5 border-white/20 h-12"/>
+                            <Input id="currentPassword" type="password" placeholder="••••••••" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="bg-white/5 border-white/20 h-12"/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="newPassword">New Password</Label>
-                            <Input id="newPassword" type="password" placeholder="••••••••" className="bg-white/5 border-white/20 h-12"/>
-                        </div>
-                        <div>
-                            <p className="text-sm text-white/70 mb-2">Password must include:</p>
-                            <ul className="list-disc list-inside text-sm text-white/70 space-y-1">
-                                <li>At least 8 characters</li>
-                                <li>At least one uppercase letter</li>
-                                <li>At least one number</li>
-                                <li>At least one special character</li>
-                            </ul>
+                            <Input id="newPassword" type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="bg-white/5 border-white/20 h-12"/>
                         </div>
                         <div className="pt-2">
-                             <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base">Update Password</Button>
+                             <Button onClick={handleChangePassword} disabled={isPending} size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base">
+                                {isPending ? 'Updating...' : 'Update Password'}
+                             </Button>
                         </div>
                     </div>
                 </div>
 
                 <Separator className="bg-white/10"/>
 
-                {/* Two-Factor Authentication Section */}
-                <div>
-                    <h4 className="font-semibold text-lg text-white mb-2">Two-Factor Authentication</h4>
-                     <p className="text-white/60 mb-4">Add an extra layer of security to your account.</p>
-                     <Button variant="outline" size="lg" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 bg-transparent text-base">Setup 2FA</Button>
-                </div>
-
-                <Separator className="bg-white/10"/>
-
-                {/* Danger Zone */}
                 <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6">
                     <h4 className="font-semibold text-lg text-red-300 mb-2">Danger Zone</h4>
-                    <p className="text-red-300/80 mb-4">Permanently delete your account and all data.</p>
-                    <Button variant="destructive" size="lg" className="w-full sm:w-auto text-base">Delete Account</Button>
+                    <p className="text-red-300/80 mb-4">Permanently delete your account and all associated data.</p>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="lg" className="w-full sm:w-auto text-base">Delete Account</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete your account. To confirm, please enter your password.
+                                </AlertDialogDescription>
+                                <div className="pt-4">
+                                     <Label htmlFor="reauth-password">Password</Label>
+                                     <Input id="reauth-password" type="password" value={reauthPassword} onChange={(e) => setReauthPassword(e.target.value)} placeholder="Enter your password to confirm" />
+                                </div>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setReauthPassword('')}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleAccountDelete} disabled={isPending || !reauthPassword} className="bg-red-600 hover:bg-red-700">
+                                    {isPending ? 'Deleting...' : 'Delete My Account'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
           </div>
@@ -211,33 +335,22 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
                                     <h5 className="font-semibold text-white">Email Notifications</h5>
                                     <p className="text-white/70 text-sm">Receive emails about new events and important updates.</p>
                                 </div>
-                                <Switch id="email-notifications" defaultChecked />
+                                <Switch id="email-notifications" checked={preferences.emailNotifications} onCheckedChange={(val) => handlePreferenceChange('emailNotifications', val)} />
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h5 className="font-semibold text-white">Weekly Digest</h5>
                                     <p className="text-white/70 text-sm">Get a summary of upcoming events every Monday.</p>
                                 </div>
-                                <Switch id="weekly-digest" />
+                                <Switch id="weekly-digest" checked={preferences.weeklyDigest} onCheckedChange={(val) => handlePreferenceChange('weeklyDigest', val)} />
                             </div>
                              <div className="flex items-center justify-between">
                                 <div>
                                     <h5 className="font-semibold text-white">Club Updates</h5>
                                     <p className="text-white/70 text-sm">Get notified about activity from clubs you've joined.</p>
                                 </div>
-                                <Switch id="club-updates" defaultChecked />
+                                <Switch id="club-updates" checked={preferences.clubUpdates} onCheckedChange={(val) => handlePreferenceChange('clubUpdates', val)} />
                             </div>
-                        </div>
-                    </div>
-                    <Separator className="bg-white/10"/>
-                    <div>
-                        <h4 className="font-semibold text-lg text-white mb-4">Appearance</h4>
-                         <div className="flex items-center justify-between">
-                            <div>
-                                <h5 className="font-semibold text-white">Theme</h5>
-                                <p className="text-white/70 text-sm">Current theme: Dark</p>
-                            </div>
-                            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">Change Theme</Button>
                         </div>
                     </div>
                 </div>
@@ -249,67 +362,37 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
             <h3 className="text-2xl font-semibold mb-1">Data & Privacy</h3>
             <p className="text-white/60 mb-8">Manage your data and privacy settings</p>
             <div className="space-y-8">
-              {/* Data Export */}
               <div>
                 <h4 className="font-semibold text-lg text-white mb-2">Data Export</h4>
                 <div className="bg-black/20 p-6 rounded-lg">
                   <h5 className="font-semibold text-white">Export Your Data</h5>
-                  <p className="text-white/70 mb-4 mt-1">Download a copy of all your financial records.</p>
-                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base">
+                  <p className="text-white/70 mb-4 mt-1">Download a copy of your user profile data.</p>
+                  <Button onClick={handleExportData} size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base">
                     Export Data
                   </Button>
                 </div>
               </div>
 
-              {/* Data Settings */}
               <div>
                 <h4 className="font-semibold text-lg text-white mb-4">Data Settings</h4>
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h5 className="font-semibold text-white">Data Analytics</h5>
-                      <p className="text-white/70 text-sm">Allow app to analyze your spending patterns</p>
+                      <p className="text-white/70 text-sm">Allow app to analyze your usage patterns to improve the service.</p>
                     </div>
-                    <Switch id="data-analytics-switch" />
+                    <Switch id="data-analytics-switch" checked={preferences.dataAnalytics} onCheckedChange={(val) => handlePreferenceChange('dataAnalytics', val)} />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <h5 className="font-semibold text-white">Personalization</h5>
-                      <p className="text-white/70 text-sm">Receive personalized financial insights</p>
+                      <p className="text-white/70 text-sm">Receive personalized event and club recommendations.</p>
                     </div>
-                    <Switch id="personalization-switch" />
+                    <Switch id="personalization-switch" checked={preferences.personalization} onCheckedChange={(val) => handlePreferenceChange('personalization', val)} />
                   </div>
                 </div>
               </div>
 
-              <Separator className="bg-white/10" />
-
-              {/* Connected Services */}
-              <div>
-                <h4 className="font-semibold text-lg text-white mb-4">Connected Services</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between bg-black/20 p-4 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <ServiceIcon provider="google" letter="G" />
-                      <div>
-                        <h5 className="font-semibold text-white">Google</h5>
-                        <p className="text-sm text-green-400">Connected</p>
-                      </div>
-                    </div>
-                    <Button variant="link" className="text-purple-400 hover:text-purple-300">Disconnect</Button>
-                  </div>
-                  <div className="flex items-center justify-between bg-black/20 p-4 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <ServiceIcon provider="apple" letter="A" />
-                      <div>
-                        <h5 className="font-semibold text-white">Apple</h5>
-                        <p className="text-sm text-white/60">Not connected</p>
-                      </div>
-                    </div>
-                    <Button variant="link" className="text-purple-400 hover:text-purple-300">Connect</Button>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}

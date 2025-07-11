@@ -5,6 +5,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import type { UserPreferences } from '@/types';
 
 interface UpdateProfileData {
   name: string;
@@ -26,11 +27,10 @@ export async function updateUserProfile(data: UpdateProfileData) {
     const userRef = doc(db, 'users', user.id);
     await updateDoc(userRef, {
       name: data.name,
-      fullName: data.name, // Ensure both name fields are updated
+      fullName: data.name,
       email: data.email,
     });
     
-    // Revalidate paths where user data is displayed to reflect changes immediately
     revalidatePath('/admin/settings');
     revalidatePath('/dashboard/settings');
 
@@ -38,4 +38,27 @@ export async function updateUserProfile(data: UpdateProfileData) {
     console.error("Error updating profile:", error);
     throw new Error('Failed to update profile. Please try again.');
   }
+}
+
+export async function updateUserPreferences(preferences: Partial<UserPreferences>) {
+    const user = await getCurrentUser();
+
+    if (!user) {
+        throw new Error('You must be logged in to update your preferences.');
+    }
+
+    try {
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, {
+            preferences: preferences,
+        });
+
+        // Revalidate paths where user data might affect UI
+        revalidatePath('/admin/settings');
+        revalidatePath('/dashboard/settings');
+
+    } catch (error) {
+        console.error("Error updating preferences:", error);
+        throw new Error('Failed to update preferences. Please try again.');
+    }
 }

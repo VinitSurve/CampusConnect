@@ -1,6 +1,6 @@
 
 import { cookies } from 'next/headers'
-import type { User } from '@/types'
+import type { User, UserPreferences } from '@/types'
 import { getDoc, doc } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -28,6 +28,14 @@ export async function getCurrentUser(): Promise<User | null> {
   }
   
   const data = userDoc.data();
+  const defaultPreferences: UserPreferences = {
+    emailNotifications: true,
+    weeklyDigest: false,
+    clubUpdates: true,
+    dataAnalytics: false,
+    personalization: false,
+  };
+
   // Map Firestore data to our User type, providing defaults for compatibility
   return {
     id: userDoc.id,
@@ -43,5 +51,6 @@ export async function getCurrentUser(): Promise<User | null> {
     avatar: data.avatar || 'https://placehold.co/100x100.png',
     department: data.department,
     interests: data.interests || [],
+    preferences: { ...defaultPreferences, ...data.preferences },
   } as User;
 }

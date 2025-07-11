@@ -1,5 +1,13 @@
 
 
+export type UserPreferences = {
+  emailNotifications: boolean;
+  weeklyDigest: boolean;
+  clubUpdates: boolean;
+  dataAnalytics: boolean;
+  personalization: boolean;
+};
+
 export type User = {
   id: string; // Document ID from Firestore, same as uid
   uid: string; // Firebase Auth User ID
@@ -16,6 +24,8 @@ export type User = {
   interests?: string[];
   // Faculty-specific
   department?: string;
+  // New preferences object
+  preferences?: UserPreferences;
 };
 
 export type Event = {
