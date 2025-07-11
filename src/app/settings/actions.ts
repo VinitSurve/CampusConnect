@@ -29,6 +29,7 @@ export async function updateUserProfile(data: UpdateProfileData) {
       name: data.name,
       fullName: data.name,
       email: data.email,
+      preferences: user.preferences || {}, // Ensure preferences object exists
     });
     
     revalidatePath('/admin/settings');
