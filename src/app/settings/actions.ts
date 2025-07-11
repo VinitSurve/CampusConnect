@@ -1,7 +1,7 @@
 
 'use server';
 
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -27,7 +27,17 @@ export async function updateUserProfile(data: UpdateProfileData) {
 
   try {
     const userRef = doc(db, 'users', user.id);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+        throw new Error('User document not found.');
+    }
     
+    // Security check: Ensure the authenticated user is the owner of the document.
+    if (userDoc.data().uid !== user.uid) {
+        throw new Error('Permission denied: You can only update your own profile.');
+    }
+
     // The data object to be saved.
     // This only contains the fields that can be edited from the settings page.
     const dataToSave = {
@@ -51,6 +61,9 @@ export async function updateUserProfile(data: UpdateProfileData) {
   } catch (error) {
     console.error("Error updating profile:", error);
     // Provide a more specific error message if possible
+    if ((error as any).code === 7) {
+       throw new Error(`Permission Denied: You do not have permission to perform this action.`);
+    }
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
     throw new Error(`Failed to update profile. ${errorMessage}`);
   }
@@ -65,6 +78,16 @@ export async function updateUserPreferences(preferences: Partial<UserPreferences
 
     try {
         const userRef = doc(db, 'users', user.id);
+        const userDoc = await getDoc(userRef);
+
+        if (!userDoc.exists()) {
+            throw new Error('User document not found.');
+        }
+
+        // Security check: Ensure the authenticated user is the owner of the document.
+        if (userDoc.data().uid !== user.uid) {
+            throw new Error('Permission denied: You can only update your own preferences.');
+        }
         
         // Merge with existing preferences to ensure no data is lost
         const newPreferences = {
