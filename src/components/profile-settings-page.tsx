@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserProfile } from '@/app/settings/actions';
 import { cn } from '@/lib/utils';
+import { Separator } from './ui/separator';
 
 interface ProfileSettingsPageProps {
   user: UserType;
@@ -128,7 +129,61 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
           </div>
         )}
 
-        {activeTab !== 'profile' && (
+        {activeTab === 'security' && (
+          <div>
+             <h3 className="text-2xl font-semibold mb-1">Security</h3>
+            <p className="text-white/60 mb-8">Manage your account security settings</p>
+
+            <div className="space-y-8">
+                {/* Change Password Section */}
+                <div>
+                    <h4 className="font-semibold text-lg text-white mb-4">Password</h4>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="currentPassword">Current Password</Label>
+                            <Input id="currentPassword" type="password" placeholder="••••••••" className="bg-white/5 border-white/20 h-12"/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="newPassword">New Password</Label>
+                            <Input id="newPassword" type="password" placeholder="••••••••" className="bg-white/5 border-white/20 h-12"/>
+                        </div>
+                        <div>
+                            <p className="text-sm text-white/70 mb-2">Password must include:</p>
+                            <ul className="list-disc list-inside text-sm text-white/70 space-y-1">
+                                <li>At least 8 characters</li>
+                                <li>At least one uppercase letter</li>
+                                <li>At least one number</li>
+                                <li>At least one special character</li>
+                            </ul>
+                        </div>
+                        <div className="pt-2">
+                             <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base">Update Password</Button>
+                        </div>
+                    </div>
+                </div>
+
+                <Separator className="bg-white/10"/>
+
+                {/* Two-Factor Authentication Section */}
+                <div>
+                    <h4 className="font-semibold text-lg text-white mb-2">Two-Factor Authentication</h4>
+                     <p className="text-white/60 mb-4">Add an extra layer of security to your account.</p>
+                     <Button variant="outline" size="lg" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 bg-transparent text-base">Setup 2FA</Button>
+                </div>
+
+                <Separator className="bg-white/10"/>
+
+                {/* Danger Zone */}
+                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6">
+                    <h4 className="font-semibold text-lg text-red-300 mb-2">Danger Zone</h4>
+                    <p className="text-red-300/80 mb-4">Permanently delete your account and all data.</p>
+                    <Button variant="destructive" size="lg" className="w-full sm:w-auto text-base">Delete Account</Button>
+                </div>
+            </div>
+          </div>
+        )}
+
+        {(activeTab === 'preferences' || activeTab === 'data') && (
           <div className="text-center py-12">
             <h3 className="text-xl font-semibold text-white mb-2 capitalize">{activeTab} Settings</h3>
             <p className="text-white/70">This feature is coming soon.</p>
