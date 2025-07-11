@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { User, Settings, Lock, BarChartHorizontal, AlertTriangle } from 'lucide-react';
+import { User, Settings, Lock, BarChartHorizontal, AlertTriangle, Phone, AtSign, Building } from 'lucide-react';
 import type { User as UserType, UserPreferences } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,8 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
   const [activeTab, setActiveTab] = useState('profile');
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
+  const [username, setUsername] = useState(user.username || '');
+  const [mobile, setMobile] = useState(user.mobile || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [reauthPassword, setReauthPassword] = useState('');
@@ -61,6 +63,8 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
     // If user object from server changes, update local state
     setName(user.name);
     setEmail(user.email);
+    setUsername(user.username || '');
+    setMobile(user.mobile || '');
     setPreferences(user.preferences || {
       emailNotifications: true,
       weeklyDigest: false,
@@ -73,7 +77,7 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
   const handleProfileSave = () => {
     startTransition(async () => {
       try {
-        await updateUserProfile({ name, email });
+        await updateUserProfile({ name, email, username, mobile });
         toast({
           title: 'Success',
           description: 'Your profile has been updated successfully.',
@@ -232,32 +236,49 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
             <h3 className="text-2xl font-semibold mb-1">Profile Settings</h3>
             <p className="text-white/60 mb-8">Manage your personal information</p>
             <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-white/5 border-white/20 h-12"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input id="fullName" value={name} onChange={(e) => setName(e.target.value)} className="bg-white/5 border-white/20 h-12" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} className="bg-white/5 border-white/20 h-12" placeholder="e.g. jane_doe" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-white/5 border-white/20 h-12"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/5 border-white/20 h-12" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mobile">Mobile Number</Label>
+                  <Input id="mobile" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} className="bg-white/5 border-white/20 h-12" placeholder="e.g. 9876543210" />
+                </div>
               </div>
+
+               {user.role === 'faculty' && user.department && (
+                  <div className="space-y-2">
+                      <Label htmlFor="department">Department</Label>
+                      <Input id="department" value={user.department} className="bg-black/20 border-white/10 h-12 cursor-not-allowed" readOnly disabled/>
+                  </div>
+               )}
+
+               {user.role === 'student' && user.course && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="course">Course</Label>
+                      <Input id="course" value={user.course} className="bg-black/20 border-white/10 h-12 cursor-not-allowed" readOnly disabled />
+                    </div>
+                     <div className="space-y-2">
+                      <Label htmlFor="year">Year</Label>
+                      <Input id="year" value={user.year} className="bg-black/20 border-white/10 h-12 cursor-not-allowed" readOnly disabled />
+                    </div>
+                  </div>
+               )}
+              
               <div className="pt-4">
-                <Button
-                  onClick={handleProfileSave}
-                  disabled={isPending}
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base"
-                >
+                <Button onClick={handleProfileSave} disabled={isPending} size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white text-base">
                   {isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
@@ -392,6 +413,32 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
                   </div>
                 </div>
               </div>
+                <Separator className="bg-white/10"/>
+                <div>
+                     <h4 className="font-semibold text-lg text-white mb-4">Connected Services</h4>
+                     <div className="space-y-4">
+                        <div className="flex items-center justify-between bg-black/20 p-4 rounded-lg">
+                           <div className="flex items-center gap-4">
+                             <ServiceIcon provider="google" letter="G"/>
+                             <div>
+                                <p className="font-semibold text-white">Google</p>
+                                <p className="text-sm text-white/60">Connected</p>
+                             </div>
+                           </div>
+                           <Button variant="outline" size="sm" className="bg-white/10 text-white" disabled>Disconnect</Button>
+                        </div>
+                         <div className="flex items-center justify-between bg-black/20 p-4 rounded-lg">
+                           <div className="flex items-center gap-4">
+                             <ServiceIcon provider="apple" letter="A"/>
+                             <div>
+                                <p className="font-semibold text-white">Apple</p>
+                                <p className="text-sm text-white/60">Not Connected</p>
+                             </div>
+                           </div>
+                           <Button variant="outline" size="sm" className="bg-white/10 text-white">Connect</Button>
+                        </div>
+                     </div>
+                </div>
 
             </div>
           </div>

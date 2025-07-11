@@ -10,6 +10,8 @@ import type { UserPreferences } from '@/types';
 interface UpdateProfileData {
   name: string;
   email: string;
+  username: string;
+  mobile: string;
 }
 
 export async function updateUserProfile(data: UpdateProfileData) {
@@ -32,6 +34,8 @@ export async function updateUserProfile(data: UpdateProfileData) {
         name: data.name,
         fullName: data.name, // Keep fullName in sync with name
         email: data.email,
+        username: data.username,
+        mobile: data.mobile,
     };
 
     await updateDoc(userRef, dataToSave);
