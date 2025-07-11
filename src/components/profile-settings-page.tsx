@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { User, Settings, Lock, BarChartHorizontal } from 'lucide-react';
+import { User, Settings, Lock, BarChartHorizontal, Bell } from 'lucide-react';
 import type { User as UserType } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -197,6 +197,52 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
             </div>
           </div>
         )}
+        
+        {activeTab === 'preferences' && (
+            <div>
+                <h3 className="text-2xl font-semibold mb-1">Preferences</h3>
+                <p className="text-white/60 mb-8">Tailor your CampusConnect experience.</p>
+                <div className="space-y-8">
+                    <div>
+                        <h4 className="font-semibold text-lg text-white mb-4">Notifications</h4>
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h5 className="font-semibold text-white">Email Notifications</h5>
+                                    <p className="text-white/70 text-sm">Receive emails about new events and important updates.</p>
+                                </div>
+                                <Switch id="email-notifications" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h5 className="font-semibold text-white">Weekly Digest</h5>
+                                    <p className="text-white/70 text-sm">Get a summary of upcoming events every Monday.</p>
+                                </div>
+                                <Switch id="weekly-digest" />
+                            </div>
+                             <div className="flex items-center justify-between">
+                                <div>
+                                    <h5 className="font-semibold text-white">Club Updates</h5>
+                                    <p className="text-white/70 text-sm">Get notified about activity from clubs you've joined.</p>
+                                </div>
+                                <Switch id="club-updates" defaultChecked />
+                            </div>
+                        </div>
+                    </div>
+                    <Separator className="bg-white/10"/>
+                    <div>
+                        <h4 className="font-semibold text-lg text-white mb-4">Appearance</h4>
+                         <div className="flex items-center justify-between">
+                            <div>
+                                <h5 className="font-semibold text-white">Theme</h5>
+                                <p className="text-white/70 text-sm">Current theme: Dark</p>
+                            </div>
+                            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">Change Theme</Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {activeTab === 'data' && (
           <div>
@@ -265,13 +311,6 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'preferences' && (
-          <div className="text-center py-12">
-            <h3 className="text-xl font-semibold text-white mb-2 capitalize">{activeTab} Settings</h3>
-            <p className="text-white/70">This feature is coming soon.</p>
           </div>
         )}
       </div>
