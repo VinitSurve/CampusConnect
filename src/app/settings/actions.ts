@@ -9,7 +9,7 @@ import type { UserPreferences } from '@/types';
 
 interface UpdateProfileData {
   name: string;
-  email: string;
+  // Email is handled by Firebase Auth, not direct DB updates
   username: string;
   mobile: string;
 }
@@ -21,35 +21,27 @@ export async function updateUserProfile(data: UpdateProfileData) {
     throw new Error('You must be logged in to update your profile.');
   }
 
-  if (!data.name || !data.email) {
-    throw new Error('Name and email cannot be empty.');
+  if (!data.name) {
+    throw new Error('Name cannot be empty.');
   }
 
   try {
     const userRef = doc(db, 'users', user.id);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists()) {
-        throw new Error('User document not found.');
-    }
     
-    // Security check: Ensure the authenticated user is the owner of the document.
-    if (userDoc.data().uid !== user.uid) {
-        throw new Error('Permission denied: You can only update your own profile.');
-    }
+    // Security check is implicitly handled by `getCurrentUser`. 
+    // If we want to be extra sure, we can check `user.id` against a passed `userId`.
+    // But since we get the user from the secure cookie, we can trust `user.id`.
 
-    // The data object to be saved.
-    // This only contains the fields that can be edited from the settings page.
+    // Create a clean object with ONLY the fields that should be updated.
+    // This prevents accidentally trying to write to protected fields like 'role' or 'email'.
     const dataToSave = {
         name: data.name,
-        fullName: data.name, // Keep fullName in sync with name for consistency
-        email: data.email,
+        fullName: data.name, // Keep fullName in sync with name
         username: data.username,
         mobile: data.mobile,
     };
 
     // Use updateDoc to merge the new data with the existing document.
-    // This will only change the specified fields and leave others untouched.
     await updateDoc(userRef, dataToSave);
     
     // Revalidate paths where user data is displayed to reflect changes immediately
@@ -60,8 +52,7 @@ export async function updateUserProfile(data: UpdateProfileData) {
 
   } catch (error) {
     console.error("Error updating profile:", error);
-    // Provide a more specific error message if possible
-    if ((error as any).code === 7) {
+    if ((error as any).code === 'permission-denied' || (error as any).code === 7) {
        throw new Error(`Permission Denied: You do not have permission to perform this action.`);
     }
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';

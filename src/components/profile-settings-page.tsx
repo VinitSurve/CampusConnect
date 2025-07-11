@@ -77,7 +77,7 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
   const handleProfileSave = () => {
     startTransition(async () => {
       try {
-        await updateUserProfile({ name, email, username, mobile });
+        await updateUserProfile({ name, username, mobile });
         toast({
           title: 'Success',
           description: 'Your profile has been updated successfully.',
@@ -249,7 +249,7 @@ export function ProfileSettingsPage({ user }: ProfileSettingsPageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/5 border-white/20 h-12" />
+                  <Input id="email" type="email" value={email} className="bg-black/20 border-white/10 h-12 cursor-not-allowed" readOnly disabled />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="mobile">Mobile Number</Label>
