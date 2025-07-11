@@ -25,15 +25,22 @@ export async function updateUserProfile(data: UpdateProfileData) {
 
   try {
     const userRef = doc(db, 'users', user.id);
-    await updateDoc(userRef, {
-      name: data.name,
-      fullName: data.name,
-      email: data.email,
-      preferences: user.preferences || {}, // Ensure preferences object exists
-    });
     
+    // Create a complete data object for updating.
+    // This ensures all existing fields are preserved and only the changed ones are updated.
+    const dataToSave = {
+        name: data.name,
+        fullName: data.name, // Keep fullName in sync with name
+        email: data.email,
+    };
+
+    await updateDoc(userRef, dataToSave);
+    
+    // Revalidate paths where user data is displayed
     revalidatePath('/admin/settings');
     revalidatePath('/dashboard/settings');
+    revalidatePath('/admin');
+    revalidatePath('/dashboard');
 
   } catch (error) {
     console.error("Error updating profile:", error);
@@ -50,8 +57,15 @@ export async function updateUserPreferences(preferences: Partial<UserPreferences
 
     try {
         const userRef = doc(db, 'users', user.id);
+        
+        // Merge with existing preferences to ensure no data is lost
+        const newPreferences = {
+            ...user.preferences,
+            ...preferences
+        };
+
         await updateDoc(userRef, {
-            preferences: preferences,
+            preferences: newPreferences,
         });
 
         // Revalidate paths where user data might affect UI
