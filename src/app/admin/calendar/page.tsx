@@ -235,10 +235,14 @@ export default function TimetableManagerPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-white mb-4">Lab Timetable Manager</h1>
+      <div className="print-header hidden print:block mb-4">
+        <h1 className="text-2xl font-bold text-white">CampusConnect Timetable</h1>
+        <p className="text-white/80">{new Date().toLocaleDateString()}</p>
+      </div>
+      <h1 className="text-2xl font-bold text-white mb-4 print:hidden">Lab Timetable Manager</h1>
       
       <div className="backdrop-blur-xl bg-white/10 rounded-xl border border-white/10 p-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 print:hidden">
           <div className="flex flex-col sm:flex-row gap-4">
             <Select value={selectedCourse} onValueChange={val => { setSelectedCourse(val); setSelectedYear(''); }}>
               <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Course..." /></SelectTrigger>
@@ -252,13 +256,6 @@ export default function TimetableManagerPage() {
               <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select Division..." /></SelectTrigger>
               <SelectContent>{divisions.map(d => <SelectItem key={d} value={d}>Division {d}</SelectItem>)}</SelectContent>
             </Select>
-          </div>
-          
-          <div className="flex gap-2 justify-start md:justify-end flex-wrap">
-            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
-            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Download className="mr-2 h-4 w-4"/>Export</Button>
-            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Upload className="mr-2 h-4 w-4"/>Import</Button>
-            <Button variant="outline" className="bg-white/10 text-white hover:bg-white/20"><Share2 className="mr-2 h-4 w-4"/>Share</Button>
           </div>
         </div>
 
