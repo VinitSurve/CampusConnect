@@ -76,7 +76,6 @@ export type Club = {
   createdAt?: string | null;
   updatedAt?: string | null;
   whatsAppGroupLink?: string;
-  // New fields for club management
   socialLinks?: {
     website?: string;
     facebook?: string;

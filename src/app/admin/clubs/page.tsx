@@ -23,7 +23,14 @@ const DEFAULT_CLUB: Partial<Club> = {
     name: '',
     description: '',
     facultyAdvisor: '',
-    leadId: ''
+    leadId: '',
+    whatsAppGroupLink: '',
+    socialLinks: {
+        website: '',
+        facebook: '',
+        twitter: '',
+        instagram: '',
+    }
 };
 
 export default function AdminClubsPage() {
@@ -63,7 +70,7 @@ export default function AdminClubsPage() {
             const studentLead = club.leadId ? studentsMap.get(club.leadId) : null;
             return (
                 club.name.toLowerCase().includes(lowercasedFilter) ||
-                club.description.toLowerCase().includes(lowercasedFilter) ||
+                (club.description && club.description.toLowerCase().includes(lowercasedFilter)) ||
                 club.facultyAdvisor.toLowerCase().includes(lowercasedFilter) ||
                 (studentLead && studentLead.name.toLowerCase().includes(lowercasedFilter))
             );
@@ -79,7 +86,12 @@ export default function AdminClubsPage() {
             setLoading(false);
 
             if (club) {
-                setCurrentClub(club);
+                // Ensure socialLinks is an object even if it's missing from Firestore data
+                const clubData = {
+                    ...club,
+                    socialLinks: club.socialLinks || DEFAULT_CLUB.socialLinks
+                };
+                setCurrentClub(clubData);
                 setIsEditMode(true);
             } else {
                 setCurrentClub(DEFAULT_CLUB);
@@ -145,11 +157,18 @@ export default function AdminClubsPage() {
                 const dataToSave = {
                     name: clubData.name || '',
                     description: clubData.description || '',
-                    image: 'https://placehold.co/600x400.png',
-                    tags: [],
+                    image: clubData.image || 'https://placehold.co/600x400.png',
+                    tags: clubData.tags || [],
                     contactEmail: leadContactEmail,
                     facultyAdvisor: clubData.facultyAdvisor || '',
                     leadId: clubData.leadId,
+                    whatsAppGroupLink: clubData.whatsAppGroupLink || '',
+                    socialLinks: {
+                        website: clubData.socialLinks?.website || '',
+                        facebook: clubData.socialLinks?.facebook || '',
+                        twitter: clubData.socialLinks?.twitter || '',
+                        instagram: clubData.socialLinks?.instagram || ''
+                    }
                 };
 
                 if (id) {
@@ -186,6 +205,17 @@ export default function AdminClubsPage() {
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setCurrentClub(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSocialLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setCurrentClub(prev => ({
+            ...prev,
+            socialLinks: {
+                ...prev?.socialLinks,
+                [name]: value
+            }
+        }));
     };
 
     if (loading && clubs.length === 0) {
@@ -228,7 +258,7 @@ export default function AdminClubsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="border-b-white/10 hover:bg-white/5">
-                            <TableHead className="w-[80px]">Image</TableHead>
+                            <TableHead className="w-[80px]">Logo</TableHead>
                             <TableHead>Club Name</TableHead>
                             <TableHead>Student Lead</TableHead>
                             <TableHead>Faculty Advisor</TableHead>
@@ -284,7 +314,7 @@ export default function AdminClubsPage() {
                     <DialogHeader>
                         <DialogTitle>{isEditMode ? 'Edit Club' : 'Add New Club'}</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+                    <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">Name*</Label>
                             <Input id="name" name="name" value={currentClub.name || ''} onChange={handleFormChange} className="col-span-3"/>
@@ -323,6 +353,33 @@ export default function AdminClubsPage() {
                                 )}
                             </select>
                         </div>
+                        
+                        <div>
+                             <h4 className="text-lg font-semibold text-white mb-4 border-t border-white/10 pt-6">Social & Communication Links</h4>
+                             <div className="space-y-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="whatsAppGroupLink" className="text-right">WhatsApp</Label>
+                                    <Input id="whatsAppGroupLink" name="whatsAppGroupLink" value={currentClub.whatsAppGroupLink || ''} onChange={handleFormChange} className="col-span-3" placeholder="https://chat.whatsapp.com/..."/>
+                                </div>
+                                 <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="website" className="text-right">Website</Label>
+                                    <Input id="website" name="website" value={currentClub.socialLinks?.website || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://..."/>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="instagram" className="text-right">Instagram</Label>
+                                    <Input id="instagram" name="instagram" value={currentClub.socialLinks?.instagram || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://instagram.com/..."/>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="twitter" className="text-right">Twitter/X</Label>
+                                    <Input id="twitter" name="twitter" value={currentClub.socialLinks?.twitter || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://x.com/..."/>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="facebook" className="text-right">Facebook</Label>
+                                    <Input id="facebook" name="facebook" value={currentClub.socialLinks?.facebook || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://facebook.com/..."/>
+                                </div>
+                             </div>
+                        </div>
+
                     </div>
                     <DialogFooter>
                         <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>

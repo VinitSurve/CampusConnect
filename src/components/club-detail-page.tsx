@@ -197,16 +197,18 @@ export default function ClubDetailPage({ club, events, lead }: ClubDetailPagePro
                         </Section>
                      </div>
                      
-                      <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-                         <Section title="Find us on">
-                            <div className="flex flex-wrap gap-2 not-prose">
-                                {club.socialLinks?.website && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.website} target="_blank" rel="noopener noreferrer"><LinkIcon /> Website</a></Button>}
-                                {club.socialLinks?.facebook && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.facebook} target="_blank" rel="noopener noreferrer"><Facebook /> Facebook</a></Button>}
-                                {club.socialLinks?.twitter && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.twitter} target="_blank" rel="noopener noreferrer"><Twitter /> Twitter</a></Button>}
-                                {club.socialLinks?.instagram && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.instagram} target="_blank" rel="noopener noreferrer"><Instagram /> Instagram</a></Button>}
-                            </div>
-                         </Section>
-                     </div>
+                      {(club.socialLinks && Object.values(club.socialLinks).some(link => link)) && (
+                         <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                             <Section title="Find us on">
+                                <div className="flex flex-wrap gap-2 not-prose">
+                                    {club.socialLinks.website && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.website} target="_blank" rel="noopener noreferrer"><LinkIcon /> Website</a></Button>}
+                                    {club.socialLinks.facebook && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.facebook} target="_blank" rel="noopener noreferrer"><Facebook /> Facebook</a></Button>}
+                                    {club.socialLinks.twitter && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.twitter} target="_blank" rel="noopener noreferrer"><Twitter /> Twitter</a></Button>}
+                                    {club.socialLinks.instagram && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.instagram} target="_blank" rel="noopener noreferrer"><Instagram /> Instagram</a></Button>}
+                                </div>
+                             </Section>
+                         </div>
+                      )}
 
                      <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl p-6">
                          <Section title="Related Topics" icon={<Tag className="w-6 h-6 text-blue-400" />}>
