@@ -29,7 +29,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true;
       allow create: if isAuthenticated();
-      allow update: if (isOwner(userId) && !('role' in request.resource.data)) || isFaculty() || isAdmin();
+      // Allow update if the user is the owner and is NOT trying to change their role,
+      // OR if the user is faculty/admin.
+      allow update: if (
+        isOwner(userId) && 
+        request.resource.data.role == resource.data.role
+      ) || isFaculty() || isAdmin();
       allow delete: if isAdmin();
     }
 
