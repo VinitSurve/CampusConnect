@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import type { User } from '@/types';
 import { nanoid } from 'nanoid';
 import { sendFacultyInviteEmail } from '@/lib/email';
+import { adminDb } from '@/lib/firebase-admin';
 
 export async function getAllFaculty(): Promise<User[]> {
   if (!db) {
@@ -25,19 +26,20 @@ export async function getAllFaculty(): Promise<User[]> {
 }
 
 export async function inviteFaculty({ name, email }: { name: string; email: string }): Promise<{ success: boolean; error?: string }> {
+    // Client-side DB for checks is fine, as it respects security rules.
     if (!db) {
         return { success: false, error: "Database service is not available." };
     }
     
     try {
-        // 1. Check if user with this email already exists
+        // 1. Check if user with this email already exists (using client DB)
         const userQuery = query(collection(db, "users"), where("email", "==", email), limit(1));
         const userSnapshot = await getDocs(userQuery);
         if (!userSnapshot.empty) {
             return { success: false, error: "A user with this email address already exists." };
         }
 
-        // 2. Check for an existing, unexpired invitation
+        // 2. Check for an existing, unexpired invitation (using client DB)
         const inviteQuery = query(
             collection(db, "facultyInvitations"), 
             where("email", "==", email)
@@ -53,19 +55,17 @@ export async function inviteFaculty({ name, email }: { name: string; email: stri
             return { success: false, error: "An active invitation for this email already exists." };
         }
 
-        // 3. Create a new invitation
-        const token = nanoid(32); // Generate a secure, URL-friendly token
+        // 3. Create a new invitation using the Admin SDK to bypass security rules
+        const token = nanoid(32);
         const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24-hour expiration
 
-        // This is the corrected data object, sent directly to Firestore.
-        // It avoids the previous issue of defining expiresAt twice with different types.
-        await addDoc(collection(db, "facultyInvitations"), {
+        await adminDb.collection("facultyInvitations").add({
             name,
             email,
             token,
             role: 'faculty',
-            expiresAt: expiresAt, // Use the JS Date object for expiration check
-            createdAt: serverTimestamp(), // Use server timestamp for creation
+            expiresAt: expiresAt, // Admin SDK uses JS Date objects
+            createdAt: new Date(), // Admin SDK uses JS Date objects
             used: false,
         });
 
