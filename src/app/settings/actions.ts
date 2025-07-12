@@ -9,7 +9,6 @@ import type { UserPreferences } from '@/types';
 
 interface UpdateProfileData {
   name: string;
-  // Email is handled by Firebase Auth, not direct DB updates
   username: string;
   mobile: string;
 }
@@ -27,13 +26,10 @@ export async function updateUserProfile(data: UpdateProfileData) {
 
   try {
     const userRef = doc(db, 'users', user.id);
-    
-    // Security check is implicitly handled by `getCurrentUser`. 
-    // If we want to be extra sure, we can check `user.id` against a passed `userId`.
-    // But since we get the user from the secure cookie, we can trust `user.id`.
 
     // Create a clean object with ONLY the fields that should be updated.
-    // This prevents accidentally trying to write to protected fields like 'role' or 'email'.
+    // This prevents accidentally trying to write to protected fields like 'role' or 'email'
+    // which would violate the security rules.
     const dataToSave = {
         name: data.name,
         fullName: data.name, // Keep fullName in sync with name
@@ -69,16 +65,6 @@ export async function updateUserPreferences(preferences: Partial<UserPreferences
 
     try {
         const userRef = doc(db, 'users', user.id);
-        const userDoc = await getDoc(userRef);
-
-        if (!userDoc.exists()) {
-            throw new Error('User document not found.');
-        }
-
-        // Security check: Ensure the authenticated user is the owner of the document.
-        if (userDoc.data().uid !== user.uid) {
-            throw new Error('Permission denied: You can only update your own preferences.');
-        }
         
         // Merge with existing preferences to ensure no data is lost
         const newPreferences = {
