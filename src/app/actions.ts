@@ -7,6 +7,9 @@ import { db } from '@/lib/firebase'
 import { getCurrentUser } from '@/lib/auth'
 import type { User } from '@/types'
 
+// A small utility function to introduce a delay
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 export async function createSession(uid: string, isNewUser: boolean = false) {
   const cookieStore = cookies()
   cookieStore.set('firebaseUid', uid, {
@@ -16,8 +19,13 @@ export async function createSession(uid: string, isNewUser: boolean = false) {
     path: '/',
     maxAge: 60 * 60 * 24 * 7, // 1 week
   })
-
-  // The redirect to /setup for new users has been removed.
+  
+  // This is the key fix. If it's a new user, we wait a moment
+  // to ensure the Firestore user document write has time to complete
+  // before we read it for the role-based redirect.
+  if (isNewUser) {
+    await delay(2000); // 2-second delay
+  }
 
   const userDocRef = doc(db, 'users', uid)
   const userDoc = await getDoc(userDocRef)
