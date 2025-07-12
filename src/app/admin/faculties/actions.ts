@@ -14,6 +14,8 @@ export async function getAllFaculty(): Promise<User[]> {
     return [];
   }
   try {
+    // This function should use the standard 'db' object to respect security rules.
+    // Only privileged actions like creating an invite need the adminDb.
     const q = query(collection(db, "users"), where("role", "==", "faculty"));
     const querySnapshot = await getDocs(q);
     const faculty = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
