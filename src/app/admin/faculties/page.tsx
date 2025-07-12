@@ -5,32 +5,16 @@ import { useState, useEffect, useTransition } from 'react';
 import type { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-  DialogDescription
-} from "@/components/ui/dialog";
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { PlusCircle, Mail, Building, Trash2 } from 'lucide-react';
+import { Mail, Building, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAllFaculty, inviteFaculty } from './actions';
+import { getAllFaculty } from '@/lib/data';
 
 
 export default function AdminFacultiesPage() {
     const [faculty, setFaculty] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isPending, startTransition] = useTransition();
-    
-    const [isInviteOpen, setIsInviteOpen] = useState(false);
-    const [inviteName, setInviteName] = useState('');
-    const [inviteEmail, setInviteEmail] = useState('');
     
     const { toast } = useToast();
 
@@ -50,40 +34,14 @@ export default function AdminFacultiesPage() {
     useEffect(() => {
         fetchFaculty();
     }, []);
-
-    const handleInvite = () => {
-        if (!inviteName || !inviteEmail) {
-            toast({ title: "Missing Information", description: "Please enter a name and email.", variant: "destructive" });
-            return;
-        }
-
-        startTransition(async () => {
-            try {
-                const result = await inviteFaculty({ name: inviteName, email: inviteEmail });
-                if (result.success) {
-                    toast({ title: "Invitation Sent", description: `An invitation has been sent to ${inviteEmail}.` });
-                    setIsInviteOpen(false);
-                    setInviteName('');
-                    setInviteEmail('');
-                } else {
-                    toast({ title: "Invitation Failed", description: result.error, variant: "destructive" });
-                }
-            } catch (error) {
-                toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
-            }
-        });
-    };
     
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white">Manage Faculty</h1>
-                    <p className="text-white/70 mt-1">Invite, view, and manage faculty members.</p>
+                    <p className="text-white/70 mt-1">View and manage faculty members.</p>
                 </div>
-                <Button onClick={() => setIsInviteOpen(true)} className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white self-start md:self-center">
-                    <PlusCircle /> Invite New Faculty
-                </Button>
             </div>
             
             <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
@@ -134,33 +92,6 @@ export default function AdminFacultiesPage() {
                     </Table>
                 )}
             </div>
-
-            <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-                <DialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
-                    <DialogHeader>
-                        <DialogTitle>Invite New Faculty</DialogTitle>
-                        <DialogDescription>
-                            Enter the name and email of the new faculty member. They will receive an email with a link to create their account and set their password.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Full Name</Label>
-                            <Input id="name" value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="e.g. Dr. Jane Smith" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input id="email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="e.g. j.smith@university.edu" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                        <Button onClick={handleInvite} disabled={isPending} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                            {isPending ? 'Sending...' : 'Send Invitation'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

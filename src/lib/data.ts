@@ -1,5 +1,4 @@
 
-
 'use server'
 
 import type { Club, Event, EventProposal, User, TimetableEntry, SeminarBooking } from '@/types';
@@ -26,6 +25,40 @@ export async function getAllUsers(): Promise<User[]> {
     return [];
   }
 }
+
+export async function getAllFaculty(): Promise<User[]> {
+  if (handleDbError('getAllFaculty')) return [];
+  // For demonstration, we are returning a hardcoded list of faculty.
+  // In a real application, this would query the 'users' collection.
+  const facultyNames = [
+    "Ramchandra Patil", "Roshal Chinnu Vinu", "Rikhi Yadav", "Pawan Koul", 
+    "Rupali Taru", "Evelina Brajesh", "Alok Suresh Shah", "Archana Sakure",
+    "Ramesh Neelakantan", "Sheetal Patil", "Ujwala Kawade", "Anjali Dadhich",
+    "Ankita Jangid", "Neha Sharma", "Adveta Gharat", "Madhuri Kadam"
+  ];
+
+  const facultyList: User[] = facultyNames.map(name => {
+    const emailName = name.toLowerCase().replace(/\s+/g, '');
+    const passwordName = name.split(' ')[0].toLowerCase();
+    return {
+      id: `faculty-${emailName}`,
+      uid: `faculty-${emailName}`,
+      name: name,
+      fullName: name,
+      email: `${emailName}@gmail.com`,
+      // Password would be handled by Firebase Auth, but for demo:
+      // password: `${passwordName}@123`,
+      role: 'faculty',
+      department: 'Computer Science', // Default department for demo
+    };
+  });
+  
+  // Sorting the list alphabetically by name
+  facultyList.sort((a, b) => a.name.localeCompare(b.name));
+
+  return Promise.resolve(facultyList);
+}
+
 
 export async function getEvents(): Promise<Event[]> {
   if (handleDbError('getEvents')) return [];
