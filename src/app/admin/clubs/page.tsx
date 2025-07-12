@@ -395,7 +395,7 @@ export default function AdminClubsPage() {
                                             value={student.id}
                                             className="bg-gray-800"
                                         >
-                                            {student.name} ({student.course} - {student.year})
+                                            {student.name} ({student.course || '-'} - {student.year || '-'})
                                         </option>
                                     ))
                                 ) : (
@@ -442,5 +442,7 @@ export default function AdminClubsPage() {
         </div>
     );
 }
+
+    
 
     
