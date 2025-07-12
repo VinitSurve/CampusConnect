@@ -1,12 +1,13 @@
 
 'use server';
 
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getCurrentUser } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import type { UserPreferences } from '@/types';
 
+// This is the data structure the form will send.
 interface UpdateProfileData {
   name: string;
   username: string;
@@ -19,25 +20,22 @@ export async function updateUserProfile(data: UpdateProfileData) {
   if (!user) {
     throw new Error('You must be logged in to update your profile.');
   }
-
-  if (!data.name) {
-    throw new Error('Name cannot be empty.');
-  }
+  
+  // This is the crucial fix. We create a clean object with ONLY the fields
+  // that a user is allowed to edit according to the security rules.
+  // We explicitly DO NOT include the 'role' or 'email' fields.
+  const dataToSave = {
+    name: data.name,
+    fullName: data.name, // Keep fullName in sync with name
+    username: data.username,
+    mobile: data.mobile,
+  };
 
   try {
     const userRef = doc(db, 'users', user.id);
-
-    // Create a clean object with ONLY the fields that should be updated.
-    // This prevents accidentally trying to write to protected fields like 'role' or 'email'
-    // which would violate the security rules.
-    const dataToSave = {
-        name: data.name,
-        fullName: data.name, // Keep fullName in sync with name
-        username: data.username,
-        mobile: data.mobile,
-    };
-
-    // Use updateDoc to merge the new data with the existing document.
+    
+    // Use the clean dataToSave object for the update.
+    // This will merge with the existing document and only change these specific fields.
     await updateDoc(userRef, dataToSave);
     
     // Revalidate paths where user data is displayed to reflect changes immediately
@@ -49,7 +47,7 @@ export async function updateUserProfile(data: UpdateProfileData) {
   } catch (error) {
     console.error("Error updating profile:", error);
     if ((error as any).code === 'permission-denied' || (error as any).code === 7) {
-       throw new Error(`Permission Denied: You do not have permission to perform this action.`);
+       throw new Error(`Permission Denied: You do not have permission to perform this action. Your security rules may be preventing this update.`);
     }
     const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred.';
     throw new Error(`Failed to update profile. ${errorMessage}`);
