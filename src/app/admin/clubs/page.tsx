@@ -18,8 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2, Search, X, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
 const DEFAULT_CLUB: Partial<Club> = {
@@ -346,37 +345,35 @@ export default function AdminClubsPage() {
                         <div className="grid grid-cols-4 items-start gap-4 pt-2">
                              <Label htmlFor="facultyAdvisors" className="text-right mt-2">Advisors*</Label>
                              <div className="col-span-3">
-                                 <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start text-left font-normal h-auto">
-                                            <div className="flex gap-1 flex-wrap">
-                                                {(currentClub.facultyAdvisorIds && currentClub.facultyAdvisorIds.length > 0) ? currentClub.facultyAdvisorIds.map(id => (
-                                                     <Badge key={id} variant="secondary" className="bg-white/20">
-                                                        {facultyMap.get(id)?.name || 'Unknown Advisor'}
-                                                     </Badge>
-                                                 )) : 'Select advisors...'}
-                                            </div>
-                                        </Button>
-                                    </PopoverTrigger>
-                                     <PopoverContent className="w-[400px] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder="Search faculty..." />
-                                            <CommandEmpty>No faculty found.</CommandEmpty>
-                                            <CommandGroup className="max-h-60 overflow-auto">
-                                                {allFaculty.map((faculty) => (
-                                                     <CommandItem
-                                                        key={faculty.id}
-                                                        onSelect={() => handleAdvisorSelect(faculty.id)}
-                                                        className="flex justify-between"
-                                                     >
-                                                        <span>{faculty.name}</span>
-                                                         {currentClub.facultyAdvisorIds?.includes(faculty.id) && <Check className="h-4 w-4" />}
-                                                     </CommandItem>
-                                                 ))}
-                                            </CommandGroup>
-                                        </Command>
-                                     </PopoverContent>
-                                 </Popover>
+                                 <DropdownMenu>
+                                     <DropdownMenuTrigger asChild>
+                                         <Button variant="outline" className="w-full justify-start text-left font-normal h-auto">
+                                             <div className="flex gap-1 flex-wrap">
+                                                 {(currentClub.facultyAdvisorIds && currentClub.facultyAdvisorIds.length > 0) ? currentClub.facultyAdvisorIds.map(id => (
+                                                      <Badge key={id} variant="secondary" className="bg-white/20">
+                                                         {facultyMap.get(id)?.name || 'Unknown Advisor'}
+                                                      </Badge>
+                                                  )) : 'Select advisors...'}
+                                             </div>
+                                         </Button>
+                                     </DropdownMenuTrigger>
+                                     <DropdownMenuContent className="w-[400px]" align="start">
+                                         <div className="p-2 text-sm text-muted-foreground">Select one or more advisors</div>
+                                         <DropdownMenuSeparator />
+                                         <div className="max-h-60 overflow-y-auto">
+                                            {allFaculty.map((faculty) => (
+                                                <DropdownMenuItem
+                                                   key={faculty.id}
+                                                   onSelect={(e) => { e.preventDefault(); handleAdvisorSelect(faculty.id); }}
+                                                   className="flex justify-between"
+                                                >
+                                                   <span>{faculty.name}</span>
+                                                    {currentClub.facultyAdvisorIds?.includes(faculty.id) && <Check className="h-4 w-4" />}
+                                                </DropdownMenuItem>
+                                            ))}
+                                         </div>
+                                     </DropdownMenuContent>
+                                 </DropdownMenu>
                              </div>
                         </div>
 
@@ -445,3 +442,5 @@ export default function AdminClubsPage() {
         </div>
     );
 }
+
+    
