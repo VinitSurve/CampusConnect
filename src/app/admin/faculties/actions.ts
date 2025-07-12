@@ -1,0 +1,85 @@
+
+'use server';
+
+import { collection, query, where, getDocs, addDoc, serverTimestamp, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { User } from '@/types';
+import { nanoid } from 'nanoid';
+import { sendFacultyInviteEmail } from '@/lib/email';
+
+export async function getAllFaculty(): Promise<User[]> {
+  if (!db) {
+    console.error("Firebase not initialized.");
+    return [];
+  }
+  try {
+    const q = query(collection(db, "users"), where("role", "==", "faculty"));
+    const querySnapshot = await getDocs(q);
+    const faculty = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+    faculty.sort((a, b) => (a.name).localeCompare(b.name));
+    return faculty;
+  } catch (error) {
+    console.error("Error fetching faculty:", error);
+    return [];
+  }
+}
+
+export async function inviteFaculty({ name, email }: { name: string; email: string }): Promise<{ success: boolean; error?: string }> {
+    if (!db) {
+        return { success: false, error: "Database service is not available." };
+    }
+    
+    try {
+        // 1. Check if user with this email already exists
+        const userQuery = query(collection(db, "users"), where("email", "==", email), limit(1));
+        const userSnapshot = await getDocs(userQuery);
+        if (!userSnapshot.empty) {
+            return { success: false, error: "A user with this email address already exists." };
+        }
+
+        // 2. Check for an existing, unexpired invitation
+        const inviteQuery = query(
+            collection(db, "facultyInvitations"), 
+            where("email", "==", email)
+        );
+        const inviteSnapshot = await getDocs(inviteQuery);
+        const now = new Date();
+        const existingValidInvite = inviteSnapshot.docs.find(doc => {
+            const data = doc.data();
+            return data.expiresAt.toDate() > now && !data.used;
+        });
+        
+        if (existingValidInvite) {
+            return { success: false, error: "An active invitation for this email already exists." };
+        }
+
+        // 3. Create a new invitation
+        const token = nanoid(32); // Generate a secure, URL-friendly token
+        const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24-hour expiration
+
+        const invitation = {
+            name,
+            email,
+            token,
+            role: 'faculty',
+            expiresAt: serverTimestamp(),
+            createdAt: serverTimestamp(),
+            used: false,
+        };
+        
+        await addDoc(collection(db, "facultyInvitations"), {
+            ...invitation,
+            expiresAt: expiresAt, // Use JS date for email, Firestore timestamp for DB
+        });
+
+        // 4. Send the invitation email
+        const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/invite/${token}`;
+        await sendFacultyInviteEmail({ name, email, inviteLink });
+        
+        return { success: true };
+
+    } catch (error: any) {
+        console.error("Error inviting faculty:", error);
+        return { success: false, error: error.message || "An unknown error occurred." };
+    }
+}

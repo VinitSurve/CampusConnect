@@ -1,5 +1,6 @@
 
 
+
 export type UserPreferences = {
   emailNotifications: boolean;
   weeklyDigest: boolean;
@@ -152,4 +153,15 @@ export type SeminarBooking = {
   approvedBy?: string;
   createdAt?: any;
   updatedAt?: any;
+};
+
+export type FacultyInvitation = {
+  id: string;
+  name: string;
+  email: string;
+  token: string;
+  role: 'faculty';
+  expiresAt: any; // Firestore Timestamp
+  createdAt: any; // Firestore Timestamp
+  used: boolean;
 };
