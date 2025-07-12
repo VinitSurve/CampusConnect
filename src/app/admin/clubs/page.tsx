@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useTransition, useMemo } from 'react';
-import { getClubs, getStudents } from '@/lib/data';
+import { getClubs, getStudents, getAllFaculty } from '@/lib/data';
 import type { Club, User } from '@/types';
 import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
@@ -15,14 +15,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Search } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Search, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
 
 const DEFAULT_CLUB: Partial<Club> = {
     name: '',
     description: '',
-    facultyAdvisor: '',
+    facultyAdvisorIds: [],
     leadId: '',
     whatsAppGroupLink: '',
     socialLinks: {
@@ -36,6 +39,7 @@ const DEFAULT_CLUB: Partial<Club> = {
 export default function AdminClubsPage() {
     const [clubs, setClubs] = useState<Club[]>([]);
     const [students, setStudents] = useState<User[]>([]);
+    const [allFaculty, setAllFaculty] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
 
@@ -48,9 +52,10 @@ export default function AdminClubsPage() {
     
     const refreshData = async () => {
         try {
-            const [clubsData, studentsData] = await Promise.all([getClubs(), getStudents()]);
+            const [clubsData, studentsData, facultyData] = await Promise.all([getClubs(), getStudents(), getAllFaculty()]);
             setClubs(clubsData);
             setStudents(studentsData);
+            setAllFaculty(facultyData);
         } catch (error) {
             toast({ title: "Error", description: "Failed to fetch data.", variant: "destructive" });
         }
@@ -62,34 +67,37 @@ export default function AdminClubsPage() {
     }, []);
 
     const studentsMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+    const facultyMap = useMemo(() => new Map(allFaculty.map(f => [f.id, f])), [allFaculty]);
 
     const filteredClubs = useMemo(() => {
         if (!searchTerm) return clubs;
         const lowercasedFilter = searchTerm.toLowerCase();
         return clubs.filter(club => {
             const studentLead = club.leadId ? studentsMap.get(club.leadId) : null;
+            const advisors = (club.facultyAdvisorIds || []).map(id => facultyMap.get(id)?.name).filter(Boolean).join(' ');
             return (
                 club.name.toLowerCase().includes(lowercasedFilter) ||
                 (club.description && club.description.toLowerCase().includes(lowercasedFilter)) ||
-                club.facultyAdvisor.toLowerCase().includes(lowercasedFilter) ||
+                advisors.toLowerCase().includes(lowercasedFilter) ||
                 (studentLead && studentLead.name.toLowerCase().includes(lowercasedFilter))
             );
         });
-    }, [searchTerm, clubs, studentsMap]);
+    }, [searchTerm, clubs, studentsMap, facultyMap]);
 
 
     const handleOpenForm = async (club?: Club) => {
         try {
             setLoading(true);
-            const studentsData = await getStudents();
+            const [studentsData, facultyData] = await Promise.all([getStudents(), getAllFaculty()]);
             setStudents(studentsData);
+            setAllFaculty(facultyData);
             setLoading(false);
 
             if (club) {
-                // Ensure socialLinks is an object even if it's missing from Firestore data
                 const clubData = {
                     ...club,
-                    socialLinks: club.socialLinks || DEFAULT_CLUB.socialLinks
+                    socialLinks: club.socialLinks || DEFAULT_CLUB.socialLinks,
+                    facultyAdvisorIds: club.facultyAdvisorIds || []
                 };
                 setCurrentClub(clubData);
                 setIsEditMode(true);
@@ -99,7 +107,7 @@ export default function AdminClubsPage() {
             }
             setIsDialogOpen(true);
         } catch (error) {
-            toast({ title: "Error", description: "Failed to load up-to-date student list.", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to load up-to-date lists.", variant: "destructive" });
         }
     };
 
@@ -121,8 +129,8 @@ export default function AdminClubsPage() {
     };
 
     const handleSave = () => {
-        if (!currentClub.name || !currentClub.leadId || !currentClub.facultyAdvisor) {
-            toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
+        if (!currentClub.name || !currentClub.leadId || !currentClub.facultyAdvisorIds || currentClub.facultyAdvisorIds.length === 0) {
+            toast({ title: "Validation Error", description: "Please fill all required fields, including at least one faculty advisor.", variant: "destructive" });
             return;
         }
 
@@ -160,7 +168,7 @@ export default function AdminClubsPage() {
                     image: clubData.image || 'https://placehold.co/600x400.png',
                     tags: clubData.tags || [],
                     contactEmail: leadContactEmail,
-                    facultyAdvisor: clubData.facultyAdvisor || '',
+                    facultyAdvisorIds: clubData.facultyAdvisorIds || [],
                     leadId: clubData.leadId,
                     whatsAppGroupLink: clubData.whatsAppGroupLink || '',
                     socialLinks: {
@@ -217,6 +225,17 @@ export default function AdminClubsPage() {
             }
         }));
     };
+    
+    const handleAdvisorSelect = (advisorId: string) => {
+        setCurrentClub(prev => {
+            const currentIds = prev?.facultyAdvisorIds || [];
+            const newIds = currentIds.includes(advisorId) 
+                ? currentIds.filter(id => id !== advisorId)
+                : [...currentIds, advisorId];
+            return { ...prev, facultyAdvisorIds: newIds };
+        });
+    };
+
 
     if (loading && clubs.length === 0) {
         return (
@@ -261,13 +280,14 @@ export default function AdminClubsPage() {
                             <TableHead className="w-[80px]">Logo</TableHead>
                             <TableHead>Club Name</TableHead>
                             <TableHead>Student Lead</TableHead>
-                            <TableHead>Faculty Advisor</TableHead>
+                            <TableHead>Faculty Advisors</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredClubs.length > 0 ? filteredClubs.map(club => {
                              const studentLead = club.leadId ? studentsMap.get(club.leadId) : null;
+                             const advisors = (club.facultyAdvisorIds || []).map(id => facultyMap.get(id)?.name).filter(Boolean);
                              return (
                                 <TableRow key={club.id} className="border-b-white/10 hover:bg-white/5">
                                     <TableCell>
@@ -275,7 +295,7 @@ export default function AdminClubsPage() {
                                     </TableCell>
                                     <TableCell className="font-medium text-white">{club.name}</TableCell>
                                     <TableCell className="text-white/80">{studentLead?.name || 'N/A'}</TableCell>
-                                    <TableCell className="text-white/80">{club.facultyAdvisor}</TableCell>
+                                    <TableCell className="text-white/80">{advisors.join(', ') || 'N/A'}</TableCell>
                                     <TableCell className="text-right">
                                          <Button variant="ghost" size="icon" onClick={() => handleOpenForm(club)} className="text-white/70 hover:text-white hover:bg-white/20"><Edit /></Button>
                                          <AlertDialog>
@@ -323,10 +343,43 @@ export default function AdminClubsPage() {
                             <Label htmlFor="description" className="text-right">Description</Label>
                             <Textarea id="description" name="description" value={currentClub.description || ''} onChange={handleFormChange} className="col-span-3"/>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="facultyAdvisor" className="text-right">Advisor*</Label>
-                            <Input id="facultyAdvisor" name="facultyAdvisor" value={currentClub.facultyAdvisor || ''} onChange={handleFormChange} className="col-span-3"/>
+                        <div className="grid grid-cols-4 items-start gap-4 pt-2">
+                             <Label htmlFor="facultyAdvisors" className="text-right mt-2">Advisors*</Label>
+                             <div className="col-span-3">
+                                 <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-start text-left font-normal h-auto">
+                                            <div className="flex gap-1 flex-wrap">
+                                                {(currentClub.facultyAdvisorIds && currentClub.facultyAdvisorIds.length > 0) ? currentClub.facultyAdvisorIds.map(id => (
+                                                     <Badge key={id} variant="secondary" className="bg-white/20">
+                                                        {facultyMap.get(id)?.name || 'Unknown Advisor'}
+                                                     </Badge>
+                                                 )) : 'Select advisors...'}
+                                            </div>
+                                        </Button>
+                                    </PopoverTrigger>
+                                     <PopoverContent className="w-[400px] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search faculty..." />
+                                            <CommandEmpty>No faculty found.</CommandEmpty>
+                                            <CommandGroup className="max-h-60 overflow-auto">
+                                                {allFaculty.map((faculty) => (
+                                                     <CommandItem
+                                                        key={faculty.id}
+                                                        onSelect={() => handleAdvisorSelect(faculty.id)}
+                                                        className="flex justify-between"
+                                                     >
+                                                        <span>{faculty.name}</span>
+                                                         {currentClub.facultyAdvisorIds?.includes(faculty.id) && <Check className="h-4 w-4" />}
+                                                     </CommandItem>
+                                                 ))}
+                                            </CommandGroup>
+                                        </Command>
+                                     </PopoverContent>
+                                 </Popover>
+                             </div>
                         </div>
+
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
                              <select
@@ -392,4 +445,3 @@ export default function AdminClubsPage() {
         </div>
     );
 }
-

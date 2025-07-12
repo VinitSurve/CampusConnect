@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
 import Link from "next/link";
-import { collection, query, where, getDocs, doc, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, addDoc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import AcademicCalendar from '@/components/academic-calendar';
-import type { User, EventProposal, Event } from "@/types";
+import type { User, EventProposal, Event, Club } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
 import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe, Camera } from "lucide-react";
@@ -54,7 +54,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
-  const [userClubs, setUserClubs] = useState<{id: string, name: string}[]>([]);
+  const [userClubs, setUserClubs] = useState<Club[]>([]);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
   const [isSubmitting, startTransition] = useTransition();
   const [proposals, setProposals] = useState(initialProposals);
@@ -75,12 +75,11 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     const checkPermissions = async () => {
       if (!user || !db) return;
       try {
-        let clubs: { id: string; name: string; }[] = [];
         const clubsQuery = query(collection(db, "clubs"), where("leadId", "==", user.uid));
         const querySnapshot = await getDocs(clubsQuery);
         if (!querySnapshot.empty) {
-            clubs = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
-            setUserClubs(clubs);
+            const clubsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Club));
+            setUserClubs(clubsData);
             setIsAllowed(true);
         } else {
             setIsAllowed(false);
@@ -96,12 +95,14 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
   useEffect(() => {
     // When user clubs load, if no club is selected in the form yet, default to the first one.
-    // This ensures the correct club name appears in previews and submissions.
+    // This ensures the correct club name and advisor IDs are picked up.
     if (userClubs.length > 0 && !form.clubId) {
+      const defaultClub = userClubs[0];
       setForm((prev: any) => ({
         ...prev,
-        clubId: userClubs[0].id,
-        clubName: userClubs[0].name,
+        clubId: defaultClub.id,
+        clubName: defaultClub.name,
+        facultyAdvisorIds: defaultClub.facultyAdvisorIds || [],
       }));
     }
   }, [userClubs, form.clubId]);
@@ -157,7 +158,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         whatYouWillLearn: form.whatYouWillLearn,
         googleDriveFolderId: form.googleDriveFolderId,
         photoAlbumUrl: form.photoAlbumUrl,
-        allowExternals: form.allowExternals
+        allowExternals: form.allowExternals,
+        facultyAdvisorIds: form.facultyAdvisorIds || [],
     };
   }
 
@@ -268,7 +270,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   }
 
   const handleNewRequest = () => {
-    const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
+    const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name, facultyAdvisorIds: userClubs[0].facultyAdvisorIds || [] } : {};
     
     setForm({...EMPTY_FORM, ...clubInfo});
     setEquipment(EMPTY_EQUIPMENT_STATE);
@@ -282,7 +284,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   
   const handleSelectTemplate = (templateKey: keyof typeof templates | 'scratch') => {
     setSelectedTemplate(templateKey);
-    const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name } : {};
+    const clubInfo = userClubs[0] ? { clubId: userClubs[0].id, clubName: userClubs[0].name, facultyAdvisorIds: userClubs[0].facultyAdvisorIds || [] } : {};
     const persistentInfo = {...clubInfo};
 
     if (templateKey === 'scratch') {
@@ -317,7 +319,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         const formData = new FormData();
         Object.entries(form).forEach(([key, value]) => {
             if (value !== null && value !== undefined) {
-                if (key === 'targetAudience' && Array.isArray(value)) {
+                if ((key === 'targetAudience' || key === 'facultyAdvisorIds') && Array.isArray(value)) {
                     value.forEach(item => formData.append(key, item));
                 } else if (value instanceof File) {
                     formData.append(key, value as File);
@@ -450,6 +452,19 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       toast({ title: "Time Slot Confirmed", description: `Set to ${selection.date} from ${selection.start} to ${selection.end}` });
       setIsTimeModalOpen(false);
   };
+  
+  const handleClubChange = (clubId: string) => {
+    const club = userClubs.find(c => c.id === clubId);
+    if (club) {
+        setForm((prev:any) => ({
+            ...prev, 
+            clubId: club.id, 
+            clubName: club.name, 
+            facultyAdvisorIds: club.facultyAdvisorIds || [] 
+        }));
+    }
+  };
+
 
   if (!isAllowed) {
     return (
@@ -674,7 +689,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         {userClubs.length > 0 && (
                             <div>
                                 <label className="block text-white text-sm font-medium mb-2">Hosting as Club</label>
-                                <select name="clubId" value={form.clubId || ''} onChange={(e) => { const club = userClubs.find(c => c.id === e.target.value); setForm((prev:any) => ({...prev, clubId: e.target.value, clubName: club?.name || '' })); }} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
+                                <select name="clubId" value={form.clubId || ''} onChange={(e) => handleClubChange(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" required>
                                 {userClubs.map(club => (<option key={club.id} value={club.id} className="bg-gray-800">{club.name}</option>))}
                                 </select>
                             </div>

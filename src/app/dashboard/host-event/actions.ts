@@ -69,6 +69,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                 photoAlbumUrl: photoAlbumUrl,
                 tags: tags,
                 allowExternals: formData.get('allowExternals') === 'true',
+                facultyAdvisorIds: formData.getAll('facultyAdvisorIds') as string[],
             }
         };
 

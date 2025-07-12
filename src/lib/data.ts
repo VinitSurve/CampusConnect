@@ -139,7 +139,7 @@ export async function getClubById(id: string): Promise<Club | null> {
         image: data.image,
         tags: data.tags,
         contactEmail: data.contactEmail,
-        facultyAdvisor: data.facultyAdvisor,
+        facultyAdvisorIds: data.facultyAdvisorIds,
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
@@ -189,7 +189,7 @@ export async function getClubs(): Promise<Club[]> {
         image: data.image,
         tags: data.tags,
         contactEmail: data.contactEmail,
-        facultyAdvisor: data.facultyAdvisor,
+        facultyAdvisorIds: data.facultyAdvisorIds,
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
@@ -238,12 +238,13 @@ export async function getStudents(): Promise<User[]> {
     }
 }
 
-export async function getEventProposals(): Promise<EventProposal[]> {
+export async function getEventProposals(facultyId: string): Promise<EventProposal[]> {
   if (handleDbError('getEventProposals')) return [];
   try {
     const q = query(
       collection(db, "eventRequests"),
-      where("status", "==", "pending")
+      where("status", "==", "pending"),
+      where("facultyAdvisorIds", "array-contains", facultyId)
     );
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {

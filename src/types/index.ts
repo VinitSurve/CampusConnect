@@ -1,6 +1,4 @@
 
-
-
 export type UserPreferences = {
   emailNotifications: boolean;
   weeklyDigest: boolean;
@@ -63,6 +61,7 @@ export type Event = {
   allowExternals?: boolean;
   // This field is for passing fetched image URLs, not for storing in DB
   gallery?: string[];
+  facultyAdvisorIds?: string[];
 };
 
 export type Club = {
@@ -72,7 +71,7 @@ export type Club = {
   image: string;
   tags: string[];
   contactEmail: string;
-  facultyAdvisor: string;
+  facultyAdvisorIds: string[];
   leadId: string;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -126,6 +125,7 @@ export type EventProposal = {
   allowExternals?: boolean;
   // This field is for passing fetched image URLs, not for storing in DB
   gallery?: string[];
+  facultyAdvisorIds?: string[];
 };
 
 export type TimetableEntry = {
