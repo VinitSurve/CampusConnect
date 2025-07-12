@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { getClubs, getStudents } from '@/lib/data';
 import type { Club, User } from '@/types';
 import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -13,9 +13,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Users, User as UserIcon, BookUser, Mail } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
@@ -36,6 +36,7 @@ export default function AdminClubsPage() {
     const [isEditMode, setIsEditMode] = useState(false);
     const [currentClub, setCurrentClub] = useState<Partial<Club>>(DEFAULT_CLUB);
     
+    const [searchTerm, setSearchTerm] = useState("");
     const { toast } = useToast();
     
     const refreshData = async () => {
@@ -52,6 +53,23 @@ export default function AdminClubsPage() {
         setLoading(true);
         refreshData().finally(() => setLoading(false));
     }, []);
+
+    const studentsMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+
+    const filteredClubs = useMemo(() => {
+        if (!searchTerm) return clubs;
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return clubs.filter(club => {
+            const studentLead = club.leadId ? studentsMap.get(club.leadId) : null;
+            return (
+                club.name.toLowerCase().includes(lowercasedFilter) ||
+                club.description.toLowerCase().includes(lowercasedFilter) ||
+                club.facultyAdvisor.toLowerCase().includes(lowercasedFilter) ||
+                (studentLead && studentLead.name.toLowerCase().includes(lowercasedFilter))
+            );
+        });
+    }, [searchTerm, clubs, studentsMap]);
+
 
     const handleOpenForm = async (club?: Club) => {
         try {
@@ -173,12 +191,14 @@ export default function AdminClubsPage() {
     if (loading && clubs.length === 0) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                 <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-6">
                     <Skeleton className="h-10 w-48 bg-white/10" />
                     <Skeleton className="h-10 w-32 bg-white/10" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full bg-white/10" />)}
+                <div className="space-y-4">
+                    <Skeleton className="h-12 w-full bg-white/10" />
+                    <Skeleton className="h-24 w-full bg-white/10" />
+                    <Skeleton className="h-24 w-full bg-white/10" />
                 </div>
             </div>
         )
@@ -186,56 +206,77 @@ export default function AdminClubsPage() {
     
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-white">Manage Clubs</h1>
-                <Button onClick={() => handleOpenForm()} className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white"><PlusCircle /> Add New Club</Button>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Manage Clubs</h1>
+                    <p className="text-white/70 mt-1">Search, view, and manage all campus clubs.</p>
+                </div>
+                <Button onClick={() => handleOpenForm()} className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white self-start md:self-center"><PlusCircle /> Add New Club</Button>
+            </div>
+
+            <div className="mb-6 relative">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
+                 <Input
+                    placeholder="Search by club, lead, or advisor..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {clubs.map(club => (
-                    <div key={club.id} className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden flex flex-col group">
-                        <div className="relative h-40 w-full">
-                            <Image src={club.image || 'https://placehold.co/600x400.png'} alt={club.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
-                        </div>
-                        <div className="p-4 flex-grow flex flex-col">
-                            <h2 className="text-xl font-semibold text-white mb-2">{club.name}</h2>
-                            <p className="text-white/70 text-sm mb-4 flex-grow">{club.description}</p>
-                            
-                            <div className="space-y-2 text-sm text-white/80 mb-4">
-                                <p className="flex items-center gap-2"><UserIcon /> <strong>Lead:</strong> {students.find(s => s.id === club.leadId)?.name || 'N/A'}</p>
-                                <p className="flex items-center gap-2"><BookUser /> <strong>Advisor:</strong> {club.facultyAdvisor}</p>
-                                <p className="flex items-center gap-2"><Mail /> <strong>Contact:</strong> {club.contactEmail}</p>
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                {(Array.isArray(club.tags) ? club.tags : []).map(tag => (
-                                    <span key={tag} className="px-2 py-1 text-xs bg-white/20 text-white rounded-full">{tag}</span>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="p-3 bg-black/20 border-t border-white/10 flex justify-end gap-2">
-                           <Button variant="ghost" size="icon" onClick={() => handleOpenForm(club)} className="text-white/70 hover:text-white hover:bg-white/20"><Edit /></Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-400 hover:bg-red-900/50"><Trash2 /></Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete {club.name}?</AlertDialogTitle>
-                                        <AlertDialogDescription>This action cannot be undone and will permanently delete the club.</AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDelete(club.id)} disabled={isPending} className="bg-red-600 hover:bg-red-700">
-                                            {isPending ? 'Deleting...' : 'Delete'}
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                    </div>
-                ))}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="border-b-white/10 hover:bg-white/5">
+                            <TableHead className="w-[80px]">Image</TableHead>
+                            <TableHead>Club Name</TableHead>
+                            <TableHead>Student Lead</TableHead>
+                            <TableHead>Faculty Advisor</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredClubs.length > 0 ? filteredClubs.map(club => {
+                             const studentLead = club.leadId ? studentsMap.get(club.leadId) : null;
+                             return (
+                                <TableRow key={club.id} className="border-b-white/10 hover:bg-white/5">
+                                    <TableCell>
+                                        <Image src={club.image || 'https://placehold.co/100x100.png'} alt={club.name} width={40} height={40} className="rounded-md object-cover" />
+                                    </TableCell>
+                                    <TableCell className="font-medium text-white">{club.name}</TableCell>
+                                    <TableCell className="text-white/80">{studentLead?.name || 'N/A'}</TableCell>
+                                    <TableCell className="text-white/80">{club.facultyAdvisor}</TableCell>
+                                    <TableCell className="text-right">
+                                         <Button variant="ghost" size="icon" onClick={() => handleOpenForm(club)} className="text-white/70 hover:text-white hover:bg-white/20"><Edit /></Button>
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-400 hover:bg-red-900/50"><Trash2 /></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent className="bg-gray-900/80 backdrop-blur-lg border-gray-700 text-white">
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Delete {club.name}?</AlertDialogTitle>
+                                                    <AlertDialogDescription>This action cannot be undone and will permanently delete the club.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(club.id)} disabled={isPending} className="bg-red-600 hover:bg-red-700">
+                                                        {isPending ? 'Deleting...' : 'Delete'}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                             );
+                        }) : (
+                             <TableRow>
+                                <TableCell colSpan={5} className="text-center h-24 text-white/70">
+                                    No clubs found.
+                                </TableCell>
+                             </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -292,3 +333,4 @@ export default function AdminClubsPage() {
         </div>
     );
 }
+
