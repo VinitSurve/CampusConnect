@@ -57,19 +57,16 @@ export async function inviteFaculty({ name, email }: { name: string; email: stri
         const token = nanoid(32); // Generate a secure, URL-friendly token
         const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24-hour expiration
 
-        const invitation = {
+        // This is the corrected data object, sent directly to Firestore.
+        // It avoids the previous issue of defining expiresAt twice with different types.
+        await addDoc(collection(db, "facultyInvitations"), {
             name,
             email,
             token,
             role: 'faculty',
-            expiresAt: serverTimestamp(),
-            createdAt: serverTimestamp(),
+            expiresAt: expiresAt, // Use the JS Date object for expiration check
+            createdAt: serverTimestamp(), // Use server timestamp for creation
             used: false,
-        };
-        
-        await addDoc(collection(db, "facultyInvitations"), {
-            ...invitation,
-            expiresAt: expiresAt, // Use JS date for email, Firestore timestamp for DB
         });
 
         // 4. Send the invitation email
