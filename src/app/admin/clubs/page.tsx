@@ -383,7 +383,9 @@ export default function AdminClubsPage() {
                     </div>
                     <DialogFooter>
                         <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                        <Button onClick={handleSave} disabled={isPending} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">{isPending ? 'Saving...' : 'Save'}</Button>
+                        <Button onClick={handleSave} disabled={isPending} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                           {isPending ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Create Club')}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
