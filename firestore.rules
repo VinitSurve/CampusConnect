@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -28,8 +29,8 @@ service cloud.firestore {
     // Users Collection
     match /users/{userId} {
       allow read: if true;
-      // Allow user document creation if the user has been created in Firebase Auth.
-      // This is safe because Auth handles the initial creation security.
+      // Allow user creation for anyone, as it's protected by Firebase Auth.
+      // This is necessary for the faculty invitation signup page to work.
       allow create: if true;
       // Allow update if the user is the owner and is NOT trying to change their role,
       // OR if the user is faculty/admin.
@@ -57,7 +58,7 @@ service cloud.firestore {
       allow update: if isFaculty() || (
         isAuthenticated() &&
         resource.data.leadId == request.auth.uid &&
-        request.resource.data.keys().hasOnly(['name', 'description', 'image', 'whatsAppGroupLink', 'socialLinks', 'gallery', 'googleDriveFolderId', 'updatedAt'])
+        request.resource.data.keys().hasOnly(['name', 'description', 'image', 'socialLinks', 'gallery', 'googleDriveFolderId', 'updatedAt'])
       );
     }
 
@@ -81,18 +82,16 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isFaculty();
     }
-    
-    // Faculty Invitations Collection
+
+    // Faculty Invitations collection
     match /facultyInvitations/{inviteId} {
-      // Anyone can read an invitation to verify it on the invite page.
-      // The document ID is a secure, random string, so it's not guessable.
-      allow read: if true;
-      // Only authenticated faculty can create new invitations.
+      // Allow anyone to read if they have the token (hard to guess)
+      allow read: if true; 
+      // Only existing faculty can create new invitations
       allow create: if isFaculty();
-      // Anyone can update an invitation to mark it as used. This is required
-      // for the unauthenticated registration flow to complete.
-      allow update: if true;
-      allow delete: if isFaculty();
+      // Allow anyone to mark an invitation as used. This is safe because
+      // the client logic checks if it's already used before proceeding.
+      allow update: if request.resource.data.used == true;
     }
   }
 }

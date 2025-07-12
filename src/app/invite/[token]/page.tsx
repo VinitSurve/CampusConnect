@@ -80,14 +80,14 @@ export default function InvitePage({ params }: { params: { token: string } }) {
 
         setIsSubmitting(true);
         try {
-            // Create user in Firebase Auth
+            // Step 1: Create the user in Firebase Auth. This is the only way to get a UID.
             const userCredential = await createUserWithEmailAndPassword(auth, invitation.email, password);
             const user = userCredential.user;
             
-            // Use a batch write to ensure atomicity
+            // Step 2: Use a batch write to ensure all database changes happen together or not at all.
             const batch = writeBatch(db);
 
-            // Create user document in Firestore
+            // Step 2a: Create the corresponding user document in Firestore.
             const userDocRef = doc(db, 'users', user.uid);
             batch.set(userDocRef, {
                 uid: user.uid,
@@ -98,21 +98,33 @@ export default function InvitePage({ params }: { params: { token: string } }) {
                 createdAt: new Date(),
             });
 
-            // Mark invitation as used
+            // Step 2b: Mark the invitation as used so it cannot be used again.
             const inviteDocRef = doc(db, 'facultyInvitations', invitation.id);
             batch.update(inviteDocRef, { used: true });
 
+            // Step 3: Commit the batch. This is an atomic operation.
             await batch.commit();
             
             toast({ title: "Account Created!", description: `Welcome, ${invitation.name}. You are now logged in.` });
             
-            // Log the user in and redirect
+            // Step 4: Create a session cookie and redirect the user to their dashboard.
             const redirectUrl = await createSession(user.uid, true);
             router.push(redirectUrl);
 
         } catch (error: any) {
             console.error("Error creating faculty account:", error);
-            toast({ title: "Registration Failed", description: error.message, variant: "destructive" });
+            // Provide a more user-friendly error message
+            let errorMessage = "An unknown error occurred during registration. Please try again.";
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = "This email address is already in use. Please sign in instead.";
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = "The password is too weak. Please choose a stronger password.";
+            } else if (error.code === 'permission-denied') {
+                errorMessage = "Permission denied. Please check Firestore security rules.";
+            } else {
+                 errorMessage = error.message;
+            }
+            toast({ title: "Registration Failed", description: errorMessage, variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
