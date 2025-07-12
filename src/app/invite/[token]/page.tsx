@@ -119,8 +119,10 @@ export default function InvitePage({ params }: { params: { token: string } }) {
                 errorMessage = "This email address is already in use. Please sign in instead.";
             } else if (error.code === 'auth/weak-password') {
                 errorMessage = "The password is too weak. Please choose a stronger password.";
-            } else if (error.code === 'permission-denied') {
+            } else if (error.code === 'permission-denied' || error.code === 7) {
                 errorMessage = "Permission denied. Please check Firestore security rules.";
+            } else if (error.code === 'not-found' || error.code === 5) {
+                 errorMessage = "Invitation not found. It may have been used or revoked. Please request a new invitation.";
             } else {
                  errorMessage = error.message;
             }
