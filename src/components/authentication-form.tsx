@@ -75,8 +75,13 @@ export default function AuthenticationForm() {
 
   const isFacultyEmail = (email: string) => {
     const facultyEmails = [
-      "ujwala@gmail.com",
-      "e.reed@university.edu"
+      "ramchandrapatil@gmail.com", "roshalchinnuvinu@gmail.com",
+      "rikhiyadav@gmail.com", "pawankoul@gmail.com", "rupalitaru@gmail.com",
+      "evelinabrajesh@gmail.com", "aloksureshshah@gmail.com",
+      "archanasakure@gmail.com", "rameshneelakantan@gmail.com",
+      "sheetalpatil@gmail.com", "ujwalakawade@gmail.com",
+      "anjalidadhich@gmail.com", "ankitajangid@gmail.com",
+      "nehasharma@gmail.com", "advetagharat@gmail.com", "madhurikadam@gmail.com",
     ];
     return facultyEmails.includes(email.toLowerCase());
   };
