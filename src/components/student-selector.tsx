@@ -121,7 +121,7 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
     <div ref={containerRef} className={`relative ${className}`}>
       <div
         onClick={handleOpen}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white flex justify-between items-center cursor-pointer h-10" // Matched height
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white flex justify-between items-center cursor-pointer h-10"
       >
         <span className={selectedStudentName ? 'text-white' : 'text-gray-400'}>
           {selectedStudentName || 'Select a student lead...'}

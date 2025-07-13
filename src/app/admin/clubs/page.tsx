@@ -6,7 +6,6 @@ import { getClubs, getStudents, getAllFaculty } from '@/lib/data';
 import type { Club, User } from '@/types';
 import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { StudentSelector } from '@/components/student-selector';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -236,6 +235,10 @@ export default function AdminClubsPage() {
             return { ...prev, facultyAdvisorIds: newIds };
         });
     };
+
+    const handleLeadSelect = (studentId: string) => {
+        setCurrentClub(prev => ({...prev, leadId: studentId }));
+    }
     
     if (loading && clubs.length === 0) {
         return (
@@ -379,11 +382,31 @@ export default function AdminClubsPage() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                            <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                            <StudentSelector
-                                value={currentClub.leadId || ''}
-                                onChange={(studentId) => setCurrentClub(prev => ({ ...prev, leadId: studentId }))}
-                                className="col-span-3"
-                            />
+                           <div className="col-span-3">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                            {currentClub.leadId ? studentsMap.get(currentClub.leadId)?.name : "Select a student lead..."}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-[400px]" align="start">
+                                        <div className="p-2 text-sm text-muted-foreground">Select a single student</div>
+                                        <DropdownMenuSeparator />
+                                        <div className="max-h-60 overflow-y-auto">
+                                            {students.map(student => (
+                                                <DropdownMenuItem
+                                                    key={student.id}
+                                                    onSelect={() => handleLeadSelect(student.id)}
+                                                    className="flex justify-between"
+                                                >
+                                                    <span>{student.name} ({student.course} - {student.year})</span>
+                                                    {currentClub.leadId === student.id && <Check className="h-4 w-4" />}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </div>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
                         
                         <div>
