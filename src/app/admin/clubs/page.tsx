@@ -6,7 +6,7 @@ import { getClubs, getStudents, getAllFaculty } from '@/lib/data';
 import type { Club, User } from '@/types';
 import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { createFolder, uploadFileBuffer } from '@/lib/drive';
+import { createClubFolder, uploadClubLogo } from '@/lib/drive';
 import { Readable } from 'stream';
 
 import { Button } from '@/components/ui/button';
@@ -81,21 +81,32 @@ async function handleClubSave(formData: FormData) {
 
         let finalLogoUrl = existingLogoUrl;
 
-        if (logoFile && logoFile.size > 0) {
-            if (!driveFolderId && name) {
-                const { folderId } = await createFolder(`Club-${name}`);
+        // For new club or if we don't have a folder yet, create one
+        if (!driveFolderId && name) {
+            try {
+                // Use our new createClubFolder function
+                const { folderId } = await createClubFolder(name);
                 driveFolderId = folderId;
+                console.log(`Created club folder with ID: ${folderId}`);
+            } catch (folderError) {
+                console.error("Error creating club folder:", folderError);
+                // Continue even if folder creation fails, we'll just not be able to upload the logo
             }
-            if (driveFolderId) {
+        }
+        
+        // If we have a logo file and a folder to store it in
+        if (logoFile && logoFile.size > 0 && driveFolderId) {
+            try {
+                // Convert File to Buffer for server-side processing
                 const arrayBuffer = await logoFile.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
                 
-                finalLogoUrl = await uploadFileBuffer(
-                    buffer, 
-                    logoFile.name, 
-                    logoFile.type, 
-                    driveFolderId
-                );
+                // Upload the logo using our specialized function
+                finalLogoUrl = await uploadClubLogo(buffer, driveFolderId, logoFile.name);
+                console.log(`Uploaded logo with URL: ${finalLogoUrl}`);
+            } catch (uploadError) {
+                console.error("Error uploading club logo:", uploadError);
+                // Continue without the logo if upload fails
             }
         }
         
@@ -257,33 +268,44 @@ export default function AdminClubsPage() {
 
     const handleSave = () => {
         startTransition(async () => {
-            const formData = new FormData();
-            
-            // Append all data to FormData
-            if (currentClub.id) formData.append('id', currentClub.id);
-            formData.append('name', currentClub.name || '');
-            formData.append('description', currentClub.description || '');
-            formData.append('leadId', currentClub.leadId || '');
-            (currentClub.facultyAdvisorIds || []).forEach(id => formData.append('facultyAdvisorIds', id));
-            formData.append('logoUrl', currentClub.logoUrl || '');
-            formData.append('googleDriveFolderId', currentClub.googleDriveFolderId || '');
-            formData.append('whatsAppGroupLink', currentClub.whatsAppGroupLink || '');
-            formData.append('website', currentClub.socialLinks?.website || '');
-            formData.append('facebook', currentClub.socialLinks?.facebook || '');
-            formData.append('twitter', currentClub.socialLinks?.twitter || '');
-            formData.append('instagram', currentClub.socialLinks?.instagram || '');
-            if (logoFile) {
-                formData.append('logoFile', logoFile);
-            }
+            try {
+                const formData = new FormData();
+                
+                // Append all data to FormData
+                if (currentClub.id) formData.append('id', currentClub.id);
+                formData.append('name', currentClub.name || '');
+                formData.append('description', currentClub.description || '');
+                formData.append('leadId', currentClub.leadId || '');
+                (currentClub.facultyAdvisorIds || []).forEach(id => formData.append('facultyAdvisorIds', id));
+                formData.append('logoUrl', currentClub.logoUrl || '');
+                formData.append('googleDriveFolderId', currentClub.googleDriveFolderId || '');
+                formData.append('whatsAppGroupLink', currentClub.whatsAppGroupLink || '');
+                formData.append('website', currentClub.socialLinks?.website || '');
+                formData.append('facebook', currentClub.socialLinks?.facebook || '');
+                formData.append('twitter', currentClub.socialLinks?.twitter || '');
+                formData.append('instagram', currentClub.socialLinks?.instagram || '');
+                
+                if (logoFile) {
+                    console.log(`Attaching logo file: ${logoFile.name}, size: ${logoFile.size}, type: ${logoFile.type}`);
+                    formData.append('logoFile', logoFile);
+                } else {
+                    console.log("No logo file to attach");
+                }
 
-            const result = await handleClubSave(formData);
-            
-            if (result.success) {
-                toast({ title: "Success", description: `Club ${isEditMode ? 'updated' : 'created'} successfully.` });
-                setIsDialogOpen(false);
-                await refreshData();
-            } else {
-                toast({ title: "Error", description: result.error, variant: "destructive" });
+                console.log("Submitting club save request...");
+                const result = await handleClubSave(formData);
+                
+                console.log("Club save result:", result);
+                if (result.success) {
+                    toast({ title: "Success", description: `Club ${isEditMode ? 'updated' : 'created'} successfully.` });
+                    setIsDialogOpen(false);
+                    await refreshData();
+                } else {
+                    toast({ title: "Error", description: result.error, variant: "destructive" });
+                }
+            } catch (error) {
+                console.error("Unexpected error in handleSave:", error);
+                toast({ title: "Error", description: "An unexpected error occurred while saving the club.", variant: "destructive" });
             }
         });
     };
@@ -313,10 +335,6 @@ export default function AdminClubsPage() {
             return { ...prev, facultyAdvisorIds: newIds };
         });
     };
-
-    const handleLeadSelect = (studentId: string) => {
-        setCurrentClub(prev => ({...prev, leadId: studentId }));
-    }
     
     if (loading && clubs.length === 0) {
         return (
@@ -483,7 +501,7 @@ export default function AdminClubsPage() {
                              </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                           <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
+                            <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
                             <Select 
                                 name="leadId" 
                                 value={currentClub.leadId || ''} 
