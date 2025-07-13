@@ -2,7 +2,7 @@
 'use server'
 
 import type { Club, Event, EventProposal, User, TimetableEntry, SeminarBooking } from '@/types';
-import { collection, getDocs, query, where, orderBy, doc, getDoc, limit } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc, limit, startAfter } from 'firebase/firestore';
 import { db } from './firebase';
 
 const handleDbError = (operation: string) => {
@@ -46,17 +46,80 @@ export async function getAllFaculty(): Promise<User[]> {
       name: name,
       fullName: name,
       email: `${emailName}@gmail.com`,
-      // Password would be handled by Firebase Auth, but for demo:
-      // password: `${passwordName}@123`,
       role: 'faculty',
       department: 'Computer Science', // Default department for demo
     };
   });
   
-  // Sorting the list alphabetically by name
   facultyList.sort((a, b) => a.name.localeCompare(b.name));
 
   return Promise.resolve(facultyList);
+}
+
+export async function getStudentById(studentId: string): Promise<User | null> {
+    if (handleDbError('getStudentById')) return null;
+    try {
+        const docRef = doc(db, "users", studentId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists() && docSnap.data().role === 'student') {
+            return { id: docSnap.id, ...docSnap.data() } as User;
+        }
+
+        return null;
+    } catch (error) {
+        console.error("Error fetching student by ID:", error);
+        return null;
+    }
+}
+
+export async function searchStudents(
+  searchQuery: string,
+  lastDoc: any | null = null,
+  pageSize: number = 10
+) {
+    if (handleDbError('searchStudents')) return { students: [], hasMore: false, lastDoc: null };
+    try {
+        const studentsRef = collection(db, "users");
+        
+        let q = query(
+            studentsRef,
+            where("role", "==", "student"),
+            orderBy("name")
+        );
+        
+        if (searchQuery) {
+            const endQuery = searchQuery + '\uf8ff';
+            q = query(q, where("name", ">=", searchQuery), where("name", "<=", endQuery));
+        }
+        
+        if (lastDoc) {
+            q = query(q, startAfter(lastDoc));
+        }
+
+        q = query(q, limit(pageSize + 1));
+        
+        const snapshot = await getDocs(q);
+        
+        const students = snapshot.docs.slice(0, pageSize).map(doc => ({
+            id: doc.id,
+            name: doc.data().name || 'Unknown',
+            fullName: doc.data().fullName,
+            course: doc.data().course,
+            year: doc.data().year,
+            email: doc.data().email,
+            role: 'student',
+            uid: doc.data().uid,
+        }));
+        
+        const hasMore = snapshot.docs.length > pageSize;
+        const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - (hasMore ? 2 : 1)] : null;
+
+        return { students, hasMore, lastDoc: newLastDoc };
+    } catch (error) {
+        console.error("Error searching students:", error);
+        return { students: [], hasMore: false, lastDoc: null };
+    }
 }
 
 
@@ -97,8 +160,6 @@ export async function getEventById(id: string): Promise<Event | null> {
 export async function getEventsByClubId(clubId: string): Promise<Event[]> {
   if (handleDbError('getEventsByClubId')) return [];
   try {
-    // There seems to be an issue with clubId propagation.
-    // A more reliable way is to find the club document, get its name, and query by the organizer field.
     const clubDoc = await getDoc(doc(db, 'clubs', clubId));
     if (!clubDoc.exists()) {
       console.error(`Club with id ${clubId} not found.`);
@@ -113,7 +174,6 @@ export async function getEventsByClubId(clubId: string): Promise<Event[]> {
       return { id: doc.id, ...data } as Event;
     });
     
-    // We sort the events here in code, after fetching them.
     events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return events;
@@ -131,7 +191,6 @@ export async function getClubById(id: string): Promise<Club | null> {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Manually construct the object and serialize timestamps
       const club: Club = {
         id: docSnap.id,
         name: data.name,
@@ -143,6 +202,7 @@ export async function getClubById(id: string): Promise<Club | null> {
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
+        whatsAppGroupLink: data.whatsAppGroupLink,
         socialLinks: data.socialLinks,
         gallery: data.gallery,
         googleDriveFolderId: data.googleDriveFolderId,
@@ -193,6 +253,7 @@ export async function getClubs(): Promise<Club[]> {
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
+        whatsAppGroupLink: data.whatsAppGroupLink,
         socialLinks: data.socialLinks,
         gallery: data.gallery,
         googleDriveFolderId: data.googleDriveFolderId,
@@ -249,7 +310,6 @@ export async function getEventProposals(facultyId: string): Promise<EventProposa
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      // Serialize all timestamp fields to prevent passing complex objects to client components
       const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString();
       const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null;
       const approvedAt = data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : null;
@@ -265,7 +325,6 @@ export async function getEventProposals(facultyId: string): Promise<EventProposa
       } as EventProposal;
     });
     
-    // Manually sort results to avoid composite index
     requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return requests;
@@ -335,17 +394,16 @@ const createBookingObject = (
 export async function getDayScheduleForLocation(date: Date, locationId: string): Promise<any[]> {
     if (handleDbError('getDayScheduleForLocation')) return [];
 
-    const tzoffset = date.getTimezoneOffset() * 60000; //offset in milliseconds
+    const tzoffset = date.getTimezoneOffset() * 60000;
     const localDate = new Date(date.getTime() - tzoffset);
     const dateStr = localDate.toISOString().slice(0, 10);
     
-    const timetableDayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const timetableDayOfWeek = date.getDay();
     
     const targetLocationName = locationIdToNameMap[locationId] || locationId;
     const allBookingsForDay: any[] = [];
 
     try {
-        // --- 1. Fetch all documents relevant for the day in parallel ---
         const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
         const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
         const timetableQuery = (timetableDayOfWeek > 0 && timetableDayOfWeek < 7) 
@@ -358,12 +416,11 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
             timetableQuery ? getDocs(timetableQuery) : Promise.resolve(null),
         ]);
 
-        // --- 2. Process and normalize all fetched data ---
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
             if (!data.location) return;
 
-            if (data.time) { // Timed event
+            if (data.time) {
                  allBookingsForDay.push(createBookingObject(
                     data.title,
                     data.organizer,
@@ -372,7 +429,7 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
                     data.time,
                     data.endTime || `${String(parseInt(data.time.split(':')[0]) + 1).padStart(2, '0')}:00`
                 ));
-            } else { // All-day event
+            } else {
                 allBookingsForDay.push(createBookingObject(
                     data.title,
                     data.organizer,
@@ -411,7 +468,6 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
             });
         }
         
-        // --- 3. Filter the combined list by the target location ---
         const finalSchedule = allBookingsForDay.filter(booking => {
             return booking.location === targetLocationName || booking.location === locationId;
         });

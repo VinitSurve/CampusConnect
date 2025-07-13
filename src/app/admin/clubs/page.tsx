@@ -6,6 +6,7 @@ import { getClubs, getStudents, getAllFaculty } from '@/lib/data';
 import type { Club, User } from '@/types';
 import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
+import { StudentSelector } from '@/components/student-selector';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -15,12 +16,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Search, X, Check, ChevronsUpDown } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Search, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const DEFAULT_CLUB: Partial<Club> = {
@@ -377,29 +377,13 @@ export default function AdminClubsPage() {
                                  </DropdownMenu>
                              </div>
                         </div>
-
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                             <Select 
-                                name="leadId" 
-                                value={currentClub.leadId || ''} 
-                                onValueChange={(value) => setCurrentClub(prev => ({ ...prev, leadId: value }))}
-                              >
-                                <SelectTrigger className="col-span-3">
-                                  <SelectValue placeholder="Select a student lead..." />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-800 text-white">
-                                  {students.length > 0 ? (
-                                    students.map(student => (
-                                      <SelectItem key={student.id} value={student.id}>
-                                        {student.name} ({student.course} - {student.year})
-                                      </SelectItem>
-                                    ))
-                                  ) : (
-                                    <SelectItem value="" disabled>No students found</SelectItem>
-                                  )}
-                                </SelectContent>
-                              </Select>
+                           <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
+                            <StudentSelector
+                                value={currentClub.leadId || ''}
+                                onChange={(studentId) => setCurrentClub(prev => ({ ...prev, leadId: studentId }))}
+                                className="col-span-3"
+                            />
                         </div>
                         
                         <div>
