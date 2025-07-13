@@ -69,7 +69,6 @@ export type Club = {
   name: string;
   description: string;
   image: string;
-  logoUrl?: string;
   tags: string[];
   contactEmail: string;
   facultyAdvisorIds: string[];
@@ -85,6 +84,7 @@ export type Club = {
   };
   gallery?: string[];
   googleDriveFolderId?: string;
+  facultyAdvisor?: string; // Kept for backward compatibility
 };
 
 export type EventProposal = {
