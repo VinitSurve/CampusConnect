@@ -240,7 +240,7 @@ export default function AdminClubsPage() {
     };
     
     const handleLeadSelect = (studentId: string) => {
-        setCurrentClub(prev => ({...prev, leadId: studentId}));
+        setCurrentClub(prev => ({ ...prev, leadId: studentId }));
         setLeadSearchOpen(false);
     }
 
@@ -397,7 +397,7 @@ export default function AdminClubsPage() {
                                         className="col-span-3 justify-between"
                                     >
                                         {currentClub.leadId
-                                            ? students.find((student) => student.id === currentClub.leadId)?.name
+                                            ? studentsMap.get(currentClub.leadId)?.name
                                             : "Select student..."}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -412,8 +412,8 @@ export default function AdminClubsPage() {
                                                     <CommandItem
                                                         key={student.id}
                                                         value={student.id}
-                                                        onSelect={(currentValue) => {
-                                                          handleLeadSelect(currentValue);
+                                                        onSelect={() => {
+                                                          handleLeadSelect(student.id);
                                                         }}
                                                     >
                                                         <Check
@@ -467,5 +467,3 @@ export default function AdminClubsPage() {
         </div>
     );
 }
-
-    
