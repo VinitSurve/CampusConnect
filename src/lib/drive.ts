@@ -107,6 +107,49 @@ export async function uploadFile(file: File, folderId: string): Promise<string> 
     }
 }
 
+export async function uploadFileBuffer(
+    buffer: Buffer, 
+    filename: string, 
+    mimeType: string, 
+    folderId: string
+): Promise<string> {
+    const drive = getDriveClient();
+    const fileMetadata = {
+        name: filename,
+        parents: [folderId],
+    };
+
+    const media = {
+        mimeType: mimeType,
+        body: Readable.from(buffer),
+    };
+
+    try {
+        const uploadedFile = await drive.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: 'id',
+        });
+        
+        const fileId = uploadedFile.data.id!;
+
+        // Make the file publicly readable
+        await drive.permissions.create({
+            fileId,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+        
+        // Return a public URL for the image
+        return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    } catch (err) {
+        console.error('Error uploading file to Google Drive:', err);
+        throw new Error('Failed to upload file.');
+    }
+}
+
 export async function deleteFolder(folderId: string): Promise<void> {
     const drive = getDriveClient();
     try {

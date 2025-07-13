@@ -6,7 +6,8 @@ import { getClubs, getStudents, getAllFaculty } from '@/lib/data';
 import type { Club, User } from '@/types';
 import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { createFolder, uploadFile } from '@/lib/drive';
+import { createFolder, uploadFileBuffer } from '@/lib/drive';
+import { Readable } from 'stream';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -20,6 +21,7 @@ import { PlusCircle, Edit, Trash2, Search, Check, UploadCloud, X } from 'lucide-
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 
 
@@ -85,7 +87,15 @@ async function handleClubSave(formData: FormData) {
                 driveFolderId = folderId;
             }
             if (driveFolderId) {
-                finalLogoUrl = await uploadFile(logoFile, driveFolderId);
+                const arrayBuffer = await logoFile.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                
+                finalLogoUrl = await uploadFileBuffer(
+                    buffer, 
+                    logoFile.name, 
+                    logoFile.type, 
+                    driveFolderId
+                );
             }
         }
         
@@ -110,12 +120,16 @@ async function handleClubSave(formData: FormData) {
                 updatedAt: serverTimestamp(),
             });
         } else {
-            await addDoc(collection(db, "clubs"), {
+            const newClubRef = await addDoc(collection(db, "clubs"), {
                 ...dataToSave,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 createdBy: user.uid,
             });
+            // If it's a new club, update its drive folder ID
+            if (driveFolderId) {
+              await updateDoc(newClubRef, { googleDriveFolderId: driveFolderId });
+            }
         }
 
         return { success: true };
@@ -284,7 +298,7 @@ export default function AdminClubsPage() {
         setCurrentClub(prev => ({
             ...prev,
             socialLinks: {
-                ...prev?.socialLinks,
+                ...(prev.socialLinks as any), // Type assertion to avoid optional chaining issues
                 [name]: value
             }
         }));
@@ -417,7 +431,7 @@ export default function AdminClubsPage() {
                                     {logoPreview ? (
                                         <div className="relative group aspect-square w-32 mx-auto">
                                             <Image src={logoPreview} alt="Logo Preview" fill sizes="8rem" className="object-contain rounded-lg" />
-                                            <button type="button" onClick={() => { setLogoPreview(null); setLogoFile(null); }} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white hover:bg-black/80 transition-opacity opacity-50 group-hover:opacity-100">
+                                            <button type="button" onClick={() => { setLogoPreview(currentClub.logoUrl || null); setLogoFile(null); const input = document.getElementById('logo-upload') as HTMLInputElement; if(input) input.value = ''; }} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white hover:bg-black/80 transition-opacity opacity-50 group-hover:opacity-100">
                                                 <X className="w-3 h-3" />
                                             </button>
                                         </div>
@@ -470,31 +484,26 @@ export default function AdminClubsPage() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                            <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                           <div className="col-span-3">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                            {currentClub.leadId ? studentsMap.get(currentClub.leadId)?.name : "Select a student lead..."}
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-[400px]" align="start">
-                                        <div className="p-2 text-sm text-muted-foreground">Select a single student</div>
-                                        <DropdownMenuSeparator />
-                                        <div className="max-h-60 overflow-y-auto">
-                                            {students.map(student => (
-                                                <DropdownMenuItem
-                                                    key={student.id}
-                                                    onSelect={() => handleLeadSelect(student.id)}
-                                                    className="flex justify-between"
-                                                >
-                                                    <span>{student.name} ({student.course} - {student.year})</span>
-                                                    {currentClub.leadId === student.id && <Check className="h-4 w-4" />}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </div>
-                                    </DropdownMenuContent>
-                                 </DropdownMenu>
-                            </div>
+                            <Select 
+                                name="leadId" 
+                                value={currentClub.leadId || ''} 
+                                onValueChange={(value) => setCurrentClub(prev => ({ ...prev, leadId: value }))}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Select a student lead..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-800 text-white">
+                                {students.length > 0 ? (
+                                    students.map(student => (
+                                    <SelectItem key={student.id} value={student.id}>
+                                        {student.name} ({student.course} - {student.year})
+                                    </SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="" disabled>No students found</SelectItem>
+                                )}
+                                </SelectContent>
+                            </Select>
                         </div>
                         
                         <div>
@@ -535,5 +544,3 @@ export default function AdminClubsPage() {
         </div>
     );
 }
-
-    
