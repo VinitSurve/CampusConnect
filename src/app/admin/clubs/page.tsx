@@ -6,6 +6,7 @@ import { getClubs, getStudents, getAllFaculty } from '@/lib/data';
 import type { Club, User } from '@/types';
 import { collection, doc, updateDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
+import { createFolder, uploadFile } from '@/lib/drive';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -20,7 +21,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { createFolder, uploadFile } from '@/lib/drive';
 
 
 const DEFAULT_CLUB: Partial<Club> = {
@@ -39,6 +39,98 @@ const DEFAULT_CLUB: Partial<Club> = {
     }
 };
 
+// --- SERVER ACTION ---
+// This function runs only on the server
+async function handleClubSave(formData: FormData) {
+    const user = auth.currentUser;
+    if (!user) {
+        return { success: false, error: "You must be logged in to save a club." };
+    }
+    
+    const clubId = formData.get('id') as string | null;
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const leadId = formData.get('leadId') as string;
+    const facultyAdvisorIds = formData.getAll('facultyAdvisorIds') as string[];
+    let existingLogoUrl = formData.get('logoUrl') as string;
+    let driveFolderId = formData.get('googleDriveFolderId') as string;
+    const whatsAppGroupLink = formData.get('whatsAppGroupLink') as string;
+    const website = formData.get('website') as string;
+    const facebook = formData.get('facebook') as string;
+    const twitter = formData.get('twitter') as string;
+    const instagram = formData.get('instagram') as string;
+    const logoFile = formData.get('logoFile') as File | null;
+
+    if (!name || !leadId || facultyAdvisorIds.length === 0) {
+        return { success: false, error: "Please fill all required fields, including at least one faculty advisor." };
+    }
+
+    try {
+        const studentDocRef = doc(db, "users", leadId);
+        const studentDoc = await getDoc(studentDocRef);
+
+        if (!studentDoc.exists()) {
+             return { success: false, error: "Selected club lead could not be found." };
+        }
+        const leadContactEmail = studentDoc.data().email;
+        if (!leadContactEmail) {
+            return { success: false, error: "The selected club lead does not have an email address." };
+        }
+
+        let finalLogoUrl = existingLogoUrl;
+
+        if (logoFile && logoFile.size > 0) {
+            if (!driveFolderId && name) {
+                const { folderId } = await createFolder(`Club-${name}`);
+                driveFolderId = folderId;
+            }
+            if (driveFolderId) {
+                finalLogoUrl = await uploadFile(logoFile, driveFolderId);
+            }
+        }
+        
+        const dataToSave = {
+            name,
+            description,
+            image: 'https://placehold.co/600x400.png',
+            logoUrl: finalLogoUrl,
+            googleDriveFolderId: driveFolderId,
+            tags: [], // Tags can be added later if needed
+            contactEmail: leadContactEmail,
+            facultyAdvisorIds,
+            leadId,
+            whatsAppGroupLink,
+            socialLinks: { website, facebook, twitter, instagram }
+        };
+
+        if (clubId) {
+            const clubRef = doc(db, "clubs", clubId);
+            await updateDoc(clubRef, {
+                ...dataToSave,
+                updatedAt: serverTimestamp(),
+            });
+        } else {
+            await addDoc(collection(db, "clubs"), {
+                ...dataToSave,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                createdBy: user.uid,
+            });
+        }
+
+        return { success: true };
+
+    } catch (error: any) {
+        console.error("Error in handleClubSave server action:", error);
+        const message = error.code === 'permission-denied' 
+            ? "You do not have permission to perform this action. Please ensure you are logged in as faculty."
+            : error.message;
+        return { success: false, error: message };
+    }
+}
+
+
+// --- CLIENT COMPONENT ---
 export default function AdminClubsPage() {
     const [clubs, setClubs] = useState<Club[]>([]);
     const [students, setStudents] = useState<User[]>([]);
@@ -150,98 +242,34 @@ export default function AdminClubsPage() {
     };
 
     const handleSave = () => {
-        if (!currentClub.name || !currentClub.leadId || !currentClub.facultyAdvisorIds || currentClub.facultyAdvisorIds.length === 0) {
-            toast({ title: "Validation Error", description: "Please fill all required fields, including at least one faculty advisor.", variant: "destructive" });
-            return;
-        }
-
         startTransition(async () => {
-            try {
-                const user = auth.currentUser;
-                if (!user) {
-                    toast({ title: "Authentication Error", description: "You must be logged in to save a club.", variant: "destructive" });
-                    return;
-                }
+            const formData = new FormData();
+            
+            // Append all data to FormData
+            if (currentClub.id) formData.append('id', currentClub.id);
+            formData.append('name', currentClub.name || '');
+            formData.append('description', currentClub.description || '');
+            formData.append('leadId', currentClub.leadId || '');
+            (currentClub.facultyAdvisorIds || []).forEach(id => formData.append('facultyAdvisorIds', id));
+            formData.append('logoUrl', currentClub.logoUrl || '');
+            formData.append('googleDriveFolderId', currentClub.googleDriveFolderId || '');
+            formData.append('whatsAppGroupLink', currentClub.whatsAppGroupLink || '');
+            formData.append('website', currentClub.socialLinks?.website || '');
+            formData.append('facebook', currentClub.socialLinks?.facebook || '');
+            formData.append('twitter', currentClub.socialLinks?.twitter || '');
+            formData.append('instagram', currentClub.socialLinks?.instagram || '');
+            if (logoFile) {
+                formData.append('logoFile', logoFile);
+            }
 
-                const { id, ...clubData } = currentClub;
-                
-                if (!clubData.leadId) {
-                    toast({ title: "Error", description: "A club lead must be selected.", variant: "destructive" });
-                    return;
-                }
-
-                const studentDocRef = doc(db, "users", clubData.leadId);
-                const studentDoc = await getDoc(studentDocRef);
-
-                if (!studentDoc.exists()) {
-                    toast({ title: "Error", description: "Selected club lead could not be found.", variant: "destructive" });
-                    return;
-                }
-                const leadContactEmail = studentDoc.data().email;
-                if (!leadContactEmail) {
-                    toast({ title: "Error", description: "The selected club lead does not have an email address.", variant: "destructive" });
-                    return;
-                }
-
-                let finalLogoUrl = clubData.logoUrl || '';
-                let driveFolderId = clubData.googleDriveFolderId;
-
-                if (logoFile) {
-                    if (!driveFolderId && clubData.name) {
-                        const { folderId } = await createFolder(`Club-${clubData.name}`);
-                        driveFolderId = folderId;
-                    }
-                    if (driveFolderId) {
-                        finalLogoUrl = await uploadFile(logoFile, driveFolderId);
-                    }
-                }
-
-                const dataToSave = {
-                    name: clubData.name || '',
-                    description: clubData.description || '',
-                    image: clubData.image || 'https://placehold.co/600x400.png',
-                    logoUrl: finalLogoUrl,
-                    googleDriveFolderId: driveFolderId,
-                    tags: clubData.tags || [],
-                    contactEmail: leadContactEmail,
-                    facultyAdvisorIds: clubData.facultyAdvisorIds || [],
-                    leadId: clubData.leadId,
-                    whatsAppGroupLink: clubData.whatsAppGroupLink || '',
-                    socialLinks: {
-                        website: clubData.socialLinks?.website || '',
-                        facebook: clubData.socialLinks?.facebook || '',
-                        twitter: clubData.socialLinks?.twitter || '',
-                        instagram: clubData.socialLinks?.instagram || ''
-                    }
-                };
-
-                if (id) {
-                    const clubRef = doc(db, "clubs", id);
-                    await updateDoc(clubRef, {
-                        ...dataToSave,
-                        updatedAt: serverTimestamp(),
-                    });
-                    toast({ title: "Success", description: "Club updated successfully." });
-                } else {
-                    await addDoc(collection(db, "clubs"), {
-                        ...dataToSave,
-                        createdAt: serverTimestamp(),
-                        updatedAt: serverTimestamp(),
-                        createdBy: user.uid,
-                    });
-                    toast({ title: "Success", description: "Club created successfully." });
-                }
-
+            const result = await handleClubSave(formData);
+            
+            if (result.success) {
+                toast({ title: "Success", description: `Club ${isEditMode ? 'updated' : 'created'} successfully.` });
                 setIsDialogOpen(false);
                 await refreshData();
-
-            } catch (error: any) {
-                console.error("Error saving club:", error);
-                if (error.code === 'permission-denied' || (error.message && error.message.toLowerCase().includes('permission'))) {
-                    toast({ title: "Permission Denied", description: "You do not have permission to perform this action. Please ensure you are logged in as faculty.", variant: "destructive" });
-                } else {
-                    toast({ title: "Error", description: error.message, variant: "destructive" });
-                }
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
             }
         });
     };
@@ -398,7 +426,7 @@ export default function AdminClubsPage() {
                                             <UploadCloud className="w-10 h-10 text-white/50" />
                                             <label htmlFor="logo-upload" className="relative cursor-pointer">
                                                 <span className="text-blue-400 font-semibold">Click to upload</span>
-                                                <input id="logo-upload" name="logo" type="file" className="sr-only" accept="image/jpeg, image/png" onChange={handleLogoFileChange} />
+                                                <input id="logo-upload" name="logoFile" type="file" className="sr-only" accept="image/jpeg, image/png" onChange={handleLogoFileChange} />
                                             </label>
                                             <p className="text-xs text-white/50">PNG, JPG up to 1MB</p>
                                         </div>
@@ -507,3 +535,5 @@ export default function AdminClubsPage() {
         </div>
     );
 }
+
+    
