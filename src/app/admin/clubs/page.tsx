@@ -15,11 +15,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Search, X, Check } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Search, X, Check, ChevronsUpDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+
 
 const DEFAULT_CLUB: Partial<Club> = {
     name: '',
@@ -47,6 +50,7 @@ export default function AdminClubsPage() {
     const [currentClub, setCurrentClub] = useState<Partial<Club>>(DEFAULT_CLUB);
     
     const [searchTerm, setSearchTerm] = useState("");
+    const [leadSearchOpen, setLeadSearchOpen] = useState(false);
     const { toast } = useToast();
     
     const refreshData = async () => {
@@ -209,7 +213,7 @@ export default function AdminClubsPage() {
         });
     };
 
-    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setCurrentClub(prev => ({ ...prev, [name]: value }));
     };
@@ -234,6 +238,11 @@ export default function AdminClubsPage() {
             return { ...prev, facultyAdvisorIds: newIds };
         });
     };
+    
+    const handleLeadSelect = (studentId: string) => {
+        setCurrentClub(prev => ({...prev, leadId: studentId}));
+        setLeadSearchOpen(false);
+    }
 
 
     if (loading && clubs.length === 0) {
@@ -379,29 +388,43 @@ export default function AdminClubsPage() {
 
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                             <select
-                                id="leadId"
-                                name="leadId"
-                                value={currentClub.leadId || ''}
-                                onChange={handleFormChange}
-                                className="col-span-3 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-                                required
-                            >
-                                <option value="" disabled className="bg-gray-800">Select a student lead...</option>
-                                {students.length > 0 ? (
-                                    students.map(student => (
-                                        <option
-                                            key={student.id}
-                                            value={student.id}
-                                            className="bg-gray-800"
-                                        >
-                                            {student.name} ({student.course || '-'} - {student.year || '-'})
-                                        </option>
-                                    ))
-                                ) : (
-                                    <option value="" disabled className="bg-gray-800">No students found</option>
-                                )}
-                            </select>
+                             <Popover open={leadSearchOpen} onOpenChange={setLeadSearchOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={leadSearchOpen}
+                                        className="col-span-3 justify-between"
+                                    >
+                                        {currentClub.leadId
+                                            ? students.find((student) => student.id === currentClub.leadId)?.name
+                                            : "Select student..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[420px] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search student..." />
+                                        <CommandList>
+                                            <CommandEmpty>No student found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {students.map((student) => (
+                                                    <CommandItem
+                                                        key={student.id}
+                                                        value={student.name}
+                                                        onSelect={() => handleLeadSelect(student.id)}
+                                                    >
+                                                        <Check
+                                                            className={`mr-2 h-4 w-4 ${currentClub.leadId === student.id ? "opacity-100" : "opacity-0"}`}
+                                                        />
+                                                        {student.name} ({student.course} - {student.year})
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         
                         <div>
@@ -442,7 +465,3 @@ export default function AdminClubsPage() {
         </div>
     );
 }
-
-    
-
-    
