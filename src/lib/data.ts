@@ -2,7 +2,7 @@
 'use server'
 
 import type { Club, Event, EventProposal, User, TimetableEntry, SeminarBooking } from '@/types';
-import { collection, getDocs, query, where, orderBy, doc, getDoc, limit, startAfter } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc, limit, startAfter, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
 const handleDbError = (operation: string) => {
@@ -75,24 +75,28 @@ export async function getStudentById(studentId: string): Promise<User | null> {
 
 export async function searchStudents(
   searchQuery: string,
-  lastDoc: any | null = null,
+  lastDoc: QueryDocumentSnapshot | null = null,
   pageSize: number = 10
 ) {
     if (handleDbError('searchStudents')) return { students: [], hasMore: false, lastDoc: null };
+    
     try {
         const studentsRef = collection(db, "users");
-        
-        let q = query(
-            studentsRef,
+        let q;
+
+        const baseQuery = [
             where("role", "==", "student"),
             orderBy("name")
-        );
-        
+        ];
+
         if (searchQuery) {
-            const endQuery = searchQuery + '\uf8ff';
-            q = query(q, where("name", ">=", searchQuery), where("name", "<=", endQuery));
+            const capitalizedQuery = searchQuery.charAt(0).toUpperCase() + searchQuery.slice(1);
+            const endQuery = capitalizedQuery + '\uf8ff';
+            q = query(studentsRef, ...baseQuery, where("name", ">=", capitalizedQuery), where("name", "<=", endQuery));
+        } else {
+            q = query(studentsRef, ...baseQuery);
         }
-        
+
         if (lastDoc) {
             q = query(q, startAfter(lastDoc));
         }
@@ -100,20 +104,13 @@ export async function searchStudents(
         q = query(q, limit(pageSize + 1));
         
         const snapshot = await getDocs(q);
-        
+        const hasMore = snapshot.docs.length > pageSize;
         const students = snapshot.docs.slice(0, pageSize).map(doc => ({
             id: doc.id,
-            name: doc.data().name || 'Unknown',
-            fullName: doc.data().fullName,
-            course: doc.data().course,
-            year: doc.data().year,
-            email: doc.data().email,
-            role: 'student',
-            uid: doc.data().uid,
-        }));
+            ...doc.data()
+        } as User));
         
-        const hasMore = snapshot.docs.length > pageSize;
-        const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - (hasMore ? 2 : 1)] : null;
+        const newLastDoc = hasMore ? snapshot.docs[pageSize - 1] : null;
 
         return { students, hasMore, lastDoc: newLastDoc };
     } catch (error) {

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { User } from '@/types';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 
 type StudentSelectorProps = {
   value: string;
@@ -19,14 +20,12 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
   const [query, setQuery] = useState('');
   const [students, setStudents] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [selectedStudentName, setSelectedStudentName] = useState<string | null>(null);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const lastDocRef = useRef<any>(null);
+  const lastDocRef = useRef<QueryDocumentSnapshot | null>(null);
   
   const fetchAndSetSelectedStudent = useCallback(async (studentId: string) => {
     if (!studentId) {
@@ -63,17 +62,17 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
   
-  const fetchStudents = useCallback(async (searchQuery: string, pageNum: number) => {
+  const fetchStudents = useCallback(async (searchQuery: string, isNewSearch: boolean) => {
     setLoading(true);
+    if (isNewSearch) {
+        lastDocRef.current = null;
+        setStudents([]);
+    }
+
     try {
-      const result = await searchStudents(searchQuery, pageNum === 1 ? null : lastDocRef.current, 10);
+      const result = await searchStudents(searchQuery, lastDocRef.current, 10);
       
-      if (pageNum === 1) {
-        setStudents(result.students);
-      } else {
-        setStudents(prev => [...prev, ...result.students]);
-      }
-      
+      setStudents(prev => isNewSearch ? result.students : [...prev, ...result.students]);
       setHasMore(result.hasMore);
       lastDocRef.current = result.lastDoc;
     } catch (error) {
@@ -87,7 +86,7 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
     if (!isOpen) return;
     
     const timer = setTimeout(() => {
-      fetchStudents(query, 1);
+      fetchStudents(query, true);
     }, 300);
     
     return () => clearTimeout(timer);
@@ -101,8 +100,9 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
   
   const handleOpen = () => {
     setIsOpen(true);
-    setPage(1);
-    lastDocRef.current = null;
+    if (students.length === 0) {
+        fetchStudents('', true);
+    }
   };
   
   const handleSelect = (student: {id: string, name: string}) => {
@@ -113,9 +113,7 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
   
   const loadMore = () => {
     if (!loading && hasMore) {
-        const nextPage = page + 1;
-        setPage(nextPage);
-        fetchStudents(query, nextPage);
+        fetchStudents(query, false);
     }
   };
   
@@ -138,17 +136,17 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
               ref={inputRef}
               placeholder="Search students..."
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-                lastDocRef.current = null;
-              }}
+              onChange={(e) => setQuery(e.target.value)}
               className="bg-white/10"
             />
           </div>
           
-          <div ref={listRef} className="max-h-60 overflow-y-auto">
-            {!loading && students.length === 0 ? (
+          <div className="max-h-60 overflow-y-auto">
+            {loading && students.length === 0 ? (
+                <div className="flex justify-center p-4">
+                    <Spinner />
+                </div>
+            ) : !loading && students.length === 0 ? (
                 <div className="px-4 py-6 text-center text-gray-400">No students found</div>
             ) : (
               <>
@@ -165,12 +163,6 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
                   </div>
                 ))}
                 
-                {loading && (
-                    <div className="flex justify-center p-4">
-                        <Spinner />
-                    </div>
-                )}
-                
                 {hasMore && !loading && (
                   <div className="p-2 text-center">
                     <Button
@@ -183,6 +175,11 @@ export function StudentSelector({ value, onChange, className }: StudentSelectorP
                       Load more
                     </Button>
                   </div>
+                )}
+                 {loading && students.length > 0 && (
+                    <div className="flex justify-center p-4">
+                        <Spinner />
+                    </div>
                 )}
               </>
             )}
