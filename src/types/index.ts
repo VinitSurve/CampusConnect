@@ -69,6 +69,7 @@ export type Club = {
   name: string;
   description: string;
   image: string;
+  logoUrl?: string;
   tags: string[];
   contactEmail: string;
   facultyAdvisorIds: string[];

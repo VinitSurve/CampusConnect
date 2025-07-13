@@ -15,11 +15,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Search, Check } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Search, Check, UploadCloud, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { createFolder, uploadFile } from '@/lib/drive';
 
 
 const DEFAULT_CLUB: Partial<Club> = {
@@ -27,6 +28,8 @@ const DEFAULT_CLUB: Partial<Club> = {
     description: '',
     facultyAdvisorIds: [],
     leadId: '',
+    logoUrl: '',
+    googleDriveFolderId: '',
     whatsAppGroupLink: '',
     socialLinks: {
         website: '',
@@ -46,6 +49,8 @@ export default function AdminClubsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [currentClub, setCurrentClub] = useState<Partial<Club>>(DEFAULT_CLUB);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
     
     const [searchTerm, setSearchTerm] = useState("");
     const { toast } = useToast();
@@ -93,6 +98,8 @@ export default function AdminClubsPage() {
             setAllFaculty(facultyData);
             setLoading(false);
 
+            setLogoFile(null);
+
             if (club) {
                 const clubData = {
                     ...club,
@@ -100,9 +107,11 @@ export default function AdminClubsPage() {
                     facultyAdvisorIds: club.facultyAdvisorIds || []
                 };
                 setCurrentClub(clubData);
+                setLogoPreview(club.logoUrl || null);
                 setIsEditMode(true);
             } else {
                 setCurrentClub(DEFAULT_CLUB);
+                setLogoPreview(null);
                 setIsEditMode(false);
             }
             setIsDialogOpen(true);
@@ -126,6 +135,18 @@ export default function AdminClubsPage() {
                 }
             }
         });
+    };
+
+    const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setLogoFile(file);
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => setLogoPreview(reader.result as string);
+            reader.readAsDataURL(file);
+        } else {
+            setLogoPreview(currentClub.logoUrl || null);
+        }
     };
 
     const handleSave = () => {
@@ -162,10 +183,25 @@ export default function AdminClubsPage() {
                     return;
                 }
 
+                let finalLogoUrl = clubData.logoUrl || '';
+                let driveFolderId = clubData.googleDriveFolderId;
+
+                if (logoFile) {
+                    if (!driveFolderId && clubData.name) {
+                        const { folderId } = await createFolder(`Club-${clubData.name}`);
+                        driveFolderId = folderId;
+                    }
+                    if (driveFolderId) {
+                        finalLogoUrl = await uploadFile(logoFile, driveFolderId);
+                    }
+                }
+
                 const dataToSave = {
                     name: clubData.name || '',
                     description: clubData.description || '',
                     image: clubData.image || 'https://placehold.co/600x400.png',
+                    logoUrl: finalLogoUrl,
+                    googleDriveFolderId: driveFolderId,
                     tags: clubData.tags || [],
                     contactEmail: leadContactEmail,
                     facultyAdvisorIds: clubData.facultyAdvisorIds || [],
@@ -294,7 +330,7 @@ export default function AdminClubsPage() {
                              return (
                                 <TableRow key={club.id} className="border-b-white/10 hover:bg-white/5">
                                     <TableCell>
-                                        <Image src={club.image || 'https://placehold.co/100x100.png'} alt={club.name} width={40} height={40} className="rounded-md object-cover" />
+                                        <Image src={club.logoUrl || 'https://placehold.co/100x100.png'} alt={club.name} width={40} height={40} className="rounded-md object-cover" />
                                     </TableCell>
                                     <TableCell className="font-medium text-white">{club.name}</TableCell>
                                     <TableCell className="text-white/80">{studentLead?.name || 'N/A'}</TableCell>
@@ -345,6 +381,30 @@ export default function AdminClubsPage() {
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="description" className="text-right">Description</Label>
                             <Textarea id="description" name="description" value={currentClub.description || ''} onChange={handleFormChange} className="col-span-3"/>
+                        </div>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                             <Label className="text-right mt-2">Logo</Label>
+                             <div className="col-span-3 space-y-2">
+                                <div className="w-full bg-white/5 border-2 border-dashed border-white/20 rounded-xl p-4 text-center">
+                                    {logoPreview ? (
+                                        <div className="relative group aspect-square w-32 mx-auto">
+                                            <Image src={logoPreview} alt="Logo Preview" fill sizes="8rem" className="object-contain rounded-lg" />
+                                            <button type="button" onClick={() => { setLogoPreview(null); setLogoFile(null); }} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white hover:bg-black/80 transition-opacity opacity-50 group-hover:opacity-100">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center space-y-2">
+                                            <UploadCloud className="w-10 h-10 text-white/50" />
+                                            <label htmlFor="logo-upload" className="relative cursor-pointer">
+                                                <span className="text-blue-400 font-semibold">Click to upload</span>
+                                                <input id="logo-upload" name="logo" type="file" className="sr-only" accept="image/jpeg, image/png" onChange={handleLogoFileChange} />
+                                            </label>
+                                            <p className="text-xs text-white/50">PNG, JPG up to 1MB</p>
+                                        </div>
+                                    )}
+                                </div>
+                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4 pt-2">
                              <Label htmlFor="facultyAdvisors" className="text-right mt-2">Advisors*</Label>
@@ -405,7 +465,7 @@ export default function AdminClubsPage() {
                                             ))}
                                         </div>
                                     </DropdownMenuContent>
-                                </DropdownMenu>
+                                 </DropdownMenu>
                             </div>
                         </div>
                         
