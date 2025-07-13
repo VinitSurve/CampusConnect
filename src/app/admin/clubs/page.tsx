@@ -239,8 +239,11 @@ export default function AdminClubsPage() {
         });
     };
     
-    const handleLeadSelect = (studentId: string) => {
-        setCurrentClub(prev => ({...prev, leadId: studentId}));
+    const handleLeadSelect = (currentValue: string) => {
+        const studentId = students.find(s => s.name.toLowerCase() === currentValue)?.id
+        if (studentId) {
+            setCurrentClub(prev => ({...prev, leadId: studentId}));
+        }
         setLeadSearchOpen(false);
     }
 
@@ -412,7 +415,7 @@ export default function AdminClubsPage() {
                                                     <CommandItem
                                                         key={student.id}
                                                         value={student.name}
-                                                        onSelect={() => handleLeadSelect(student.id)}
+                                                        onSelect={handleLeadSelect}
                                                     >
                                                         <Check
                                                             className={`mr-2 h-4 w-4 ${currentClub.leadId === student.id ? "opacity-100" : "opacity-0"}`}
