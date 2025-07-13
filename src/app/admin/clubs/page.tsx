@@ -20,8 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const DEFAULT_CLUB: Partial<Club> = {
@@ -50,7 +49,6 @@ export default function AdminClubsPage() {
     const [currentClub, setCurrentClub] = useState<Partial<Club>>(DEFAULT_CLUB);
     
     const [searchTerm, setSearchTerm] = useState("");
-    const [leadSearchOpen, setLeadSearchOpen] = useState(false);
     const { toast } = useToast();
     
     const refreshData = async () => {
@@ -239,12 +237,6 @@ export default function AdminClubsPage() {
         });
     };
     
-    const handleLeadSelect = (studentId: string) => {
-        setCurrentClub(prev => ({ ...prev, leadId: studentId }));
-        setLeadSearchOpen(false);
-    }
-
-
     if (loading && clubs.length === 0) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -388,45 +380,26 @@ export default function AdminClubsPage() {
 
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                             <Popover open={leadSearchOpen} onOpenChange={setLeadSearchOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={leadSearchOpen}
-                                        className="col-span-3 justify-between"
-                                    >
-                                        {currentClub.leadId
-                                            ? studentsMap.get(currentClub.leadId)?.name
-                                            : "Select student..."}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[420px] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Search student..." />
-                                        <CommandList>
-                                            <CommandEmpty>No student found.</CommandEmpty>
-                                            <CommandGroup>
-                                                {students.map((student) => (
-                                                    <CommandItem
-                                                        key={student.id}
-                                                        value={student.id}
-                                                        onSelect={() => {
-                                                          handleLeadSelect(student.id);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={`mr-2 h-4 w-4 ${currentClub.leadId === student.id ? "opacity-100" : "opacity-0"}`}
-                                                        />
-                                                        {student.name} ({student.course} - {student.year})
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                             <Select 
+                                name="leadId" 
+                                value={currentClub.leadId || ''} 
+                                onValueChange={(value) => setCurrentClub(prev => ({ ...prev, leadId: value }))}
+                              >
+                                <SelectTrigger className="col-span-3">
+                                  <SelectValue placeholder="Select a student lead..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-800 text-white">
+                                  {students.length > 0 ? (
+                                    students.map(student => (
+                                      <SelectItem key={student.id} value={student.id}>
+                                        {student.name} ({student.course} - {student.year})
+                                      </SelectItem>
+                                    ))
+                                  ) : (
+                                    <SelectItem value="" disabled>No students found</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
                         </div>
                         
                         <div>
