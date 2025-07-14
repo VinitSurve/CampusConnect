@@ -39,7 +39,7 @@ const ClubInfoCard = ({ club, leadUser }: { club: Club | null; leadUser: User | 
     if (!club) return null;
 
     return (
-        <div className="bg-white/5 rounded-xl p-6">
+        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
             <div className="flex items-center gap-3 mb-4">
                 <Building className="h-6 w-6 text-blue-400" />
                 <h2 className="text-xl font-semibold text-white">Organizing Club</h2>
