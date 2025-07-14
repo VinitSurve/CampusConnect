@@ -1,7 +1,8 @@
 
-import { getEventById } from '@/lib/data';
+import { getEventById, getClubById } from '@/lib/data';
 import EventDetailPage from '@/components/event-detail-page';
 import { notFound } from 'next/navigation';
+import type { Club, User } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +13,17 @@ export default async function Page({ params }: { params: { id: string } }) {
     notFound();
   }
 
+  let club: Club | null = null;
+  if (event.clubId) {
+    club = await getClubById(event.clubId);
+  }
+
   // All the slow photo fetching logic has been moved to a client component
   // and a server action. The page now loads almost instantly.
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <EventDetailPage event={event} />
+      <EventDetailPage event={event} club={club} />
     </div>
   );
 }

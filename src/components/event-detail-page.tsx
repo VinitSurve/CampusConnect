@@ -1,16 +1,22 @@
 
 'use client';
 
-import type { Event } from '@/types';
+import type { Event, Club, User } from '@/types';
 import Image from 'next/image';
-import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera, CalendarPlus } from 'lucide-react';
+import Link from 'next/link';
+import { Tag, Target, Users, Mic, UserCircle, Info, Calendar, Clock, MapPin, Globe, Map, Camera, CalendarPlus, Building, Link as LinkIcon, Instagram, Linkedin } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
 import EventGallery from './event-gallery';
+import { getStudentById } from '@/lib/data';
+import { useState, useEffect } from 'react';
+import { Skeleton } from './ui/skeleton';
+
 
 interface EventDetailPageProps {
   event: Event;
+  club: Club | null;
 }
 
 const DetailSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => {
@@ -28,7 +34,57 @@ const DetailSection = ({ title, icon, children }: { title: string; icon: React.R
     );
 };
 
-export default function EventDetailPage({ event }: EventDetailPageProps) {
+const ClubInfoCard = ({ club }: { club: Club | null }) => {
+    const [leadUser, setLeadUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (club?.leadId) {
+            getStudentById(club.leadId).then(user => {
+                setLeadUser(user);
+                setLoading(false);
+            });
+        } else {
+            setLoading(false);
+        }
+    }, [club]);
+
+    if (!club) return null;
+
+    return (
+        <div className="bg-white/5 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+                <Building className="h-6 w-6 text-blue-400" />
+                <h2 className="text-xl font-semibold text-white">Organizing Club</h2>
+            </div>
+            <div className="space-y-4">
+                <Link href={`/dashboard/clubs/${club.id}`} className="font-bold text-lg text-blue-300 hover:underline">{club.name}</Link>
+                
+                {loading ? (
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4 rounded-full" />
+                        <Skeleton className="h-4 w-24" />
+                    </div>
+                ) : leadUser && (
+                     <div className="flex items-center gap-2 text-white/80">
+                        <UserCircle className="w-5 h-5"/>
+                        <span>Lead: {leadUser.name}</span>
+                    </div>
+                )}
+                
+                {(club.socialLinks && Object.values(club.socialLinks).some(link => link)) && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                        {club.socialLinks.website && <Button asChild size="sm" variant="outline" className="bg-white/5"><a href={club.socialLinks.website} target="_blank" rel="noopener noreferrer"><LinkIcon /> Website</a></Button>}
+                        {club.socialLinks.instagram && <Button asChild size="sm" variant="outline" className="bg-white/5"><a href={club.socialLinks.instagram} target="_blank" rel="noopener noreferrer"><Instagram /> Instagram</a></Button>}
+                        {club.socialLinks.linkedin && <Button asChild size="sm" variant="outline" className="bg-white/5"><a href={club.socialLinks.linkedin} target="_blank" rel="noopener noreferrer"><Linkedin /> LinkedIn</a></Button>}
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
+export default function EventDetailPage({ event, club }: EventDetailPageProps) {
   const { 
       title, description, longDescription, organizer, category, image, headerImage, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
@@ -108,47 +164,8 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                 </div>
             </div>
 
-            <div className="p-6 md:p-8">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8 bg-white/5 p-6 rounded-xl border border-white/10">
-                    <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-                        <div className="flex items-center gap-4">
-                            <Calendar className="h-8 w-8 text-blue-400 flex-shrink-0" />
-                            <div>
-                                <p className="font-semibold text-white">{format(eventDate, 'MMMM d, yyyy')}</p>
-                                <p className="text-white/70 text-sm">{format(eventDate, 'EEEE')}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <Clock className="h-8 w-8 text-blue-400 flex-shrink-0" />
-                            <div>
-                                <p className="font-semibold text-white">{time}{endTime && ` - ${endTime}`}</p>
-                                <p className="text-white/70 text-sm">Event Time</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <MapPin className="h-8 w-8 text-blue-400 flex-shrink-0" />
-                            <div>
-                                <p className="font-semibold text-white">{location}</p>
-                                <p className="text-white/70 text-sm">Location</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="w-full md:w-auto flex-shrink-0 flex flex-col sm:flex-row gap-3">
-                        <Button asChild size="lg" variant="outline" className="bg-white/10 text-white hover:bg-white/20">
-                            <a href={generateGoogleCalendarLink()} target="_blank" rel="noopener noreferrer">
-                                <CalendarPlus />
-                                Add to Calendar
-                            </a>
-                        </Button>
-                        {registrationLink && (
-                        <Button asChild size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                            <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
-                        </Button>
-                        )}
-                    </div>
-                </div>
-
-                <div className="space-y-8">
+            <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
                     <DetailSection title="About this event" icon={<Info className="h-6 w-6 text-blue-400" />}>
                         <p>{longDescription || description}</p>
                     </DetailSection>
@@ -221,10 +238,50 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                             </div>
                         </DetailSection>
                     )}
-                    
-                    <DetailSection title="Organized by" icon={<UserCircle className="h-6 w-6 text-blue-400" />}>
-                        <p>{organizer}</p>
-                    </DetailSection>
+                </div>
+
+                <div className="lg:col-span-1 space-y-8 self-start sticky top-24">
+                     <div className="bg-white/5 p-6 rounded-xl border border-white/10">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+                                <div className="flex items-center gap-4">
+                                    <Calendar className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                                    <div>
+                                        <p className="font-semibold text-white">{format(eventDate, 'MMMM d, yyyy')}</p>
+                                        <p className="text-white/70 text-sm">{format(eventDate, 'EEEE')}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <Clock className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                                    <div>
+                                        <p className="font-semibold text-white">{time}{endTime && ` - ${endTime}`}</p>
+                                        <p className="text-white/70 text-sm">Event Time</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <MapPin className="h-8 w-8 text-blue-400 flex-shrink-0" />
+                                    <div>
+                                        <p className="font-semibold text-white">{location}</p>
+                                        <p className="text-white/70 text-sm">Location</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                         <div className="w-full mt-6 flex-shrink-0 flex flex-col sm:flex-row gap-3">
+                            <Button asChild size="lg" variant="outline" className="bg-white/10 text-white hover:bg-white/20">
+                                <a href={generateGoogleCalendarLink()} target="_blank" rel="noopener noreferrer">
+                                    <CalendarPlus />
+                                    Add to Calendar
+                                </a>
+                            </Button>
+                            {registrationLink && (
+                            <Button asChild size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                                <a href={registrationLink} target="_blank" rel="noopener noreferrer">RSVP Now</a>
+                            </Button>
+                            )}
+                        </div>
+                    </div>
+                     <ClubInfoCard club={club} />
                 </div>
             </div>
         </div>
