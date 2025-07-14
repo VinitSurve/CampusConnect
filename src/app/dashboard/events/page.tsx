@@ -4,9 +4,8 @@ import { getEvents } from '@/lib/data';
 
 export default async function EventsPage() {
   const allEvents = await getEvents();
-  const upcomingEvents = allEvents.filter(e => e.status === 'upcoming');
   
   return (
-      <EventsDisplay events={upcomingEvents} />
+      <EventsDisplay events={allEvents} />
   );
 }

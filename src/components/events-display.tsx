@@ -62,7 +62,7 @@ const EventCard = ({ event }: { event: Event }) => {
                     <Badge className={`${getCategoryColor(event.category)}`}>{event.category}</Badge>
                     <div className="flex items-center gap-2 text-white/70 text-sm">
                         <Users className="w-4 h-4" />
-                        <span>{event.attendees} / {event.capacity}</span>
+                        <span>{event.attendees || 0}</span>
                     </div>
                  </div>
                 <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{event.title}</h3>
@@ -122,6 +122,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
   const [filter, setFilter] = useState("All Categories");
   
   const now = new Date();
+  now.setHours(0, 0, 0, 0); // Set to start of today for accurate date comparison
 
   const filterEvents = (eventList: Event[]) => {
     return eventList.filter(event => {
@@ -136,8 +137,8 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
     });
   }
 
-  const upcomingEvents = filterEvents(events.filter(e => e.status === 'upcoming' && new Date(e.date) >= now));
-  const completedEvents = filterEvents(events.filter(e => e.status === 'completed' || (e.status === 'upcoming' && new Date(e.date) < now)));
+  const upcomingEvents = filterEvents(events.filter(e => new Date(e.date) >= now));
+  const pastEvents = filterEvents(events.filter(e => new Date(e.date) < now));
 
     
   const calendarEvents = upcomingEvents.map(event => ({
@@ -204,13 +205,13 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
             <Tabs defaultValue="upcoming" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
-                    <TabsTrigger value="completed">Past Events</TabsTrigger>
+                    <TabsTrigger value="past">Past Events</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upcoming" className="mt-6">
                     <EventList events={upcomingEvents} />
                 </TabsContent>
-                <TabsContent value="completed" className="mt-6">
-                    <EventList events={completedEvents} />
+                <TabsContent value="past" className="mt-6">
+                    <EventList events={pastEvents} />
                 </TabsContent>
             </Tabs>
         )}
