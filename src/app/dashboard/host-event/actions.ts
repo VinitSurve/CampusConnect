@@ -16,7 +16,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         // Create a new folder only if one doesn't already exist and a title is present
         if (!googleDriveFolderId && title) {
             const { folderId, folderUrl } = await createFolder(title);
-            googleDriveFolderId = folderId; // This is the key fix - use the newly created ID immediately
+            googleDriveFolderId = folderId;
             photoAlbumUrl = folderUrl;
         }
         
