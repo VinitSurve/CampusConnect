@@ -57,6 +57,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [userClubs, setUserClubs] = useState<Club[]>([]);
   const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
   const [isSubmitting, startTransition] = useTransition();
+  const [submissionType, setSubmissionType] = useState<'draft' | 'pending' | null>(null);
   const [proposals, setProposals] = useState(initialProposals);
   const [previewChannel, setPreviewChannel] = useState<BroadcastChannel | null>(null);
 
@@ -321,6 +322,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         return;
     }
     
+    setSubmissionType(status);
     startTransition(async () => {
       try {
         const formData = new FormData();
@@ -400,6 +402,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       } catch (error) {
         console.error("Error submitting form:", error);
         toast({ title: "An Error Occurred", description: (error as Error).message, variant: "destructive" });
+      } finally {
+        setSubmissionType(null);
       }
     });
   };
@@ -709,7 +713,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 <div>{step > 1 && <Button type="button" variant="outline" onClick={handleBack} className="bg-white/10">Back</Button>}</div>
                 <div className="flex items-center gap-2">
                     <Button type="button" variant="secondary" onClick={() => handleFormSubmit('draft')} disabled={isSubmitting}>
-                        {isSubmitting ? 'Saving...' : 'Save Draft'}
+                        {isSubmitting && submissionType === 'draft' ? 'Saving...' : 'Save Draft'}
                     </Button>
                     <Button type="button" variant="outline" className="bg-white/10" onClick={handlePreview}>Preview</Button>
                     {step < 3 && <Button type="button" onClick={handleNext} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">Next</Button>}
@@ -720,7 +724,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                           disabled={isSubmitting}
                           className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                         >
-                          {isSubmitting ? 'Submitting...' : 'Submit Event Request'}
+                          {isSubmitting && submissionType === 'pending' ? 'Submitting...' : 'Submit Event Request'}
                         </Button>
                     }
                 </div>
