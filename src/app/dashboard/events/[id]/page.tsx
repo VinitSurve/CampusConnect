@@ -14,12 +14,12 @@ export default async function Page({ params }: { params: { id: string } }) {
   }
 
   let club: Club | null = null;
-  let leadUser: User | null = null;
+  let lead: User | null = null;
 
   if (event.clubId) {
     club = await getClubById(event.clubId);
     if (club && club.leadId) {
-        leadUser = await getStudentById(club.leadId);
+        lead = await getStudentById(club.leadId);
     }
   }
 
@@ -28,7 +28,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <EventDetailPage event={event} club={club} lead={leadUser} />
+      <EventDetailPage event={event} club={club} lead={lead} />
     </div>
   );
 }

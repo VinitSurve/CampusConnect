@@ -2,12 +2,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Event } from '@/types';
+import type { Event, Club, User } from '@/types';
 import EventDetailPage from '@/components/event-detail-page';
 import { Skeleton } from '@/components/ui/skeleton';
 
+interface PreviewData {
+    event: Event;
+    club: Club | null;
+    lead: User | null;
+}
+
 export default function EventPreviewPage() {
-    const [eventData, setEventData] = useState<Event | null>(null);
+    const [previewData, setPreviewData] = useState<PreviewData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +25,7 @@ export default function EventPreviewPage() {
                 const storedData = sessionStorage.getItem('eventPreviewData');
                 if (storedData) {
                     const parsedData = JSON.parse(storedData);
-                    setEventData(parsedData);
+                    setPreviewData(parsedData);
                 } else {
                     setError("No preview data found. Please generate a preview from the event form.");
                 }
@@ -40,7 +46,7 @@ export default function EventPreviewPage() {
             if (event.data) {
                 try {
                     // The event.data should be a JavaScript object
-                    setEventData(event.data);
+                    setPreviewData(event.data);
                 } catch (e) {
                      console.error("Error processing preview update:", e);
                      setError("Could not update preview. The data might be corrupted.");
@@ -84,7 +90,7 @@ export default function EventPreviewPage() {
         );
     }
 
-    if (!eventData) {
+    if (!previewData || !previewData.event) {
         return (
             <div className="min-h-screen flex items-center justify-center p-4">
                  <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/10 p-8 max-w-md w-full text-center">
@@ -100,7 +106,7 @@ export default function EventPreviewPage() {
             <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-200 text-sm rounded-lg p-4 mb-8 max-w-4xl mx-auto text-center">
                 <strong>Note:</strong> This is a dynamic preview. Changes in the form tab will update here automatically. Close this tab to return to the form.
             </div>
-            <EventDetailPage event={eventData} />
+            <EventDetailPage event={previewData.event} club={previewData.club} lead={previewData.lead} />
         </div>
     );
 }

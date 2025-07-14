@@ -107,12 +107,11 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     }
   }, [userClubs, form.clubId]);
 
-  const getOrganizerName = () => {
+  const getOrganizerClub = (): Club | null => {
     if (form.clubId) {
-        const selectedClub = userClubs.find(c => c.id === form.clubId);
-        if (selectedClub) return selectedClub.name;
+        return userClubs.find(c => c.id === form.clubId) || null;
     }
-    return form.clubName || 'CampusConnect';
+    return null;
   };
 
   const { liveProposals, completedProposals, draftProposals, rejectedProposals } = useMemo(() => {
@@ -125,7 +124,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     };
   }, [proposals]);
 
-  const mapFormToEventPreview = (): Event => {
+  const mapFormToPreviewData = () => {
     const getTagsArray = (tagsValue: any): string[] => {
       if (!tagsValue) return [];
       if (Array.isArray(tagsValue)) return tagsValue;
@@ -133,7 +132,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       return [];
     };
 
-    return {
+    const club = getOrganizerClub();
+
+    const event: Event = {
         id: 'preview',
         title: form.title || 'Your Event Title',
         description: form.description?.substring(0, 100) + '...',
@@ -142,7 +143,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         time: form.time || '12:00',
         endTime: form.endTime,
         location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
-        organizer: getOrganizerName(),
+        organizer: club?.name || 'CampusConnect',
         category: form.category || 'General',
         image: previews.headerImage || 'https://placehold.co/600x400.png',
         headerImage: previews.headerImage || 'https://placehold.co/2560x650.png',
@@ -151,7 +152,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         capacity: 100,
         registrationLink: form.registrationLink || '#',
         status: 'upcoming',
-        gallery: [], // Gallery is now fetched from Drive link, so preview is empty
+        gallery: [],
         tags: getTagsArray(form.tags),
         targetAudience: form.targetAudience,
         keySpeakers: form.keySpeakers,
@@ -160,20 +161,26 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         photoAlbumUrl: form.photoAlbumUrl,
         allowExternals: form.allowExternals,
         facultyAdvisorIds: form.facultyAdvisorIds || [],
+        clubId: club?.id,
     };
+    
+    // The `user` object is the currently logged-in user, who is the lead.
+    const lead: User | null = user;
+
+    return { event, club, lead };
   }
 
   useEffect(() => {
     if (view === 'form' && previewChannel) {
-      const eventData = mapFormToEventPreview();
+      const previewData = mapFormToPreviewData();
       try {
-        sessionStorage.setItem('eventPreviewData', JSON.stringify(eventData));
-        previewChannel.postMessage(eventData);
+        sessionStorage.setItem('eventPreviewData', JSON.stringify(previewData));
+        previewChannel.postMessage(previewData);
       } catch (error) {
         console.error("Could not update preview data:", error);
       }
     }
-  }, [form, equipment, previews, view, previewChannel, userClubs]);
+  }, [form, equipment, previews, view, previewChannel, userClubs, user]);
 
   const handleGenerateDetails = async () => {
       if (!form.title) {
@@ -398,9 +405,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   };
 
   const handlePreview = () => {
-    const eventData = mapFormToEventPreview();
+    const previewData = mapFormToPreviewData();
     try {
-        sessionStorage.setItem('eventPreviewData', JSON.stringify(eventData));
+        sessionStorage.setItem('eventPreviewData', JSON.stringify(previewData));
         window.open('/dashboard/host-event/preview', '_blank');
     } catch (error) {
         console.error("Could not open preview:", error);
