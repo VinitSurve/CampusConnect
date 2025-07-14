@@ -17,7 +17,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2, Search, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
@@ -31,9 +30,8 @@ const DEFAULT_CLUB: Partial<Club> = {
     whatsAppGroupLink: '',
     socialLinks: {
         website: '',
-        facebook: '',
-        twitter: '',
         instagram: '',
+        linkedin: '',
     }
 };
 
@@ -51,9 +49,8 @@ async function handleClubSave(formData: FormData) {
     const facultyAdvisorIds = formData.getAll('facultyAdvisorIds') as string[];
     const whatsAppGroupLink = formData.get('whatsAppGroupLink') as string;
     const website = formData.get('website') as string;
-    const facebook = formData.get('facebook') as string;
-    const twitter = formData.get('twitter') as string;
     const instagram = formData.get('instagram') as string;
+    const linkedin = formData.get('linkedin') as string;
 
     if (!name || !leadId || facultyAdvisorIds.length === 0) {
         return { success: false, error: "Please fill all required fields, including at least one faculty advisor." };
@@ -80,7 +77,7 @@ async function handleClubSave(formData: FormData) {
             facultyAdvisorIds,
             leadId,
             whatsAppGroupLink,
-            socialLinks: { website, facebook, twitter, instagram }
+            socialLinks: { website, instagram, linkedin }
         };
 
         if (clubId) {
@@ -216,9 +213,8 @@ export default function AdminClubsPage() {
                 (currentClub.facultyAdvisorIds || []).forEach(id => formData.append('facultyAdvisorIds', id));
                 formData.append('whatsAppGroupLink', currentClub.whatsAppGroupLink || '');
                 formData.append('website', currentClub.socialLinks?.website || '');
-                formData.append('facebook', currentClub.socialLinks?.facebook || '');
-                formData.append('twitter', currentClub.socialLinks?.twitter || '');
                 formData.append('instagram', currentClub.socialLinks?.instagram || '');
+                formData.append('linkedin', currentClub.socialLinks?.linkedin || '');
                 
                 const result = await handleClubSave(formData);
                 
@@ -400,9 +396,9 @@ export default function AdminClubsPage() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                            <Select 
-                                name="leadId" 
-                                value={currentClub.leadId || ''} 
+                             <Select
+                                name="leadId"
+                                value={currentClub.leadId || ''}
                                 onValueChange={(value) => setCurrentClub(prev => ({ ...prev, leadId: value }))}
                             >
                                 <SelectTrigger className="col-span-3">
@@ -438,12 +434,8 @@ export default function AdminClubsPage() {
                                     <Input id="instagram" name="instagram" value={currentClub.socialLinks?.instagram || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://instagram.com/..."/>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="twitter" className="text-right">Twitter/X</Label>
-                                    <Input id="twitter" name="twitter" value={currentClub.socialLinks?.twitter || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://x.com/..."/>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="facebook" className="text-right">Facebook</Label>
-                                    <Input id="facebook" name="facebook" value={currentClub.socialLinks?.facebook || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://facebook.com/..."/>
+                                    <Label htmlFor="linkedin" className="text-right">LinkedIn</Label>
+                                    <Input id="linkedin" name="linkedin" value={currentClub.socialLinks?.linkedin || ''} onChange={handleSocialLinkChange} className="col-span-3" placeholder="https://linkedin.com/company/..."/>
                                 </div>
                              </div>
                         </div>

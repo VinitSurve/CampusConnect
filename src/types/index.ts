@@ -78,9 +78,8 @@ export type Club = {
   whatsAppGroupLink?: string;
   socialLinks?: {
     website?: string;
-    facebook?: string;
-    twitter?: string;
     instagram?: string;
+    linkedin?: string;
   };
   gallery?: string[];
   googleDriveFolderId?: string;

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Club, Event, User } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Share2, Tag, Link as LinkIcon, Facebook, Twitter, Instagram } from 'lucide-react';
+import { Mail, BookUser, User as UserIcon, Calendar, Clock, MessageSquare, Camera, Share2, Tag, Link as LinkIcon, Instagram, Linkedin } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { format } from 'date-fns';
@@ -202,9 +202,8 @@ export default function ClubDetailPage({ club, events, lead }: ClubDetailPagePro
                              <Section title="Find us on">
                                 <div className="flex flex-wrap gap-2 not-prose">
                                     {club.socialLinks.website && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.website} target="_blank" rel="noopener noreferrer"><LinkIcon /> Website</a></Button>}
-                                    {club.socialLinks.facebook && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.facebook} target="_blank" rel="noopener noreferrer"><Facebook /> Facebook</a></Button>}
-                                    {club.socialLinks.twitter && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.twitter} target="_blank" rel="noopener noreferrer"><Twitter /> Twitter</a></Button>}
                                     {club.socialLinks.instagram && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.instagram} target="_blank" rel="noopener noreferrer"><Instagram /> Instagram</a></Button>}
+                                    {club.socialLinks.linkedin && <Button asChild variant="outline" className="bg-white/5"><a href={club.socialLinks.linkedin} target="_blank" rel="noopener noreferrer"><Linkedin /> LinkedIn</a></Button>}
                                 </div>
                              </Section>
                          </div>
