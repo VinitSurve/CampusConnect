@@ -17,7 +17,7 @@ service cloud.firestore {
     }
 
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth.uid != null;
     }
     
     function isOwner(userId) {
@@ -64,7 +64,8 @@ service cloud.firestore {
 
     // Event Requests collection
     match /eventRequests/{requestId} {
-      allow read: if true;
+      // Allow read only by the user who created it, or a listed faculty advisor.
+      allow read: if isAuthenticated() && (isOwner(resource.data.createdBy) || (isFaculty() && request.auth.uid in resource.data.facultyAdvisorIds));
       allow create: if isAuthenticated();
       // Allow update if user is faculty, OR if they are the owner and only changing specific fields.
       allow update: if (
@@ -77,7 +78,7 @@ service cloud.firestore {
               'keySpeakers', 'equipmentNeeds', 'budgetDetails', 'location',
               'category', 'registrationLink', 'clubId', 'clubName', 'date',
               'time', 'endTime', 'headerImage', 'eventLogo', 'googleDriveFolderId',
-              'photoAlbumUrl', 'tags', 'allowExternals', 'status', 'updatedAt'
+              'photoAlbumUrl', 'tags', 'allowExternals', 'status', 'updatedAt', 'facultyAdvisorIds'
             ])
           )
         )
