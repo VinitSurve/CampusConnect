@@ -44,7 +44,7 @@ export type Event = {
   attendees: number;
   capacity: number;
   registrationLink: string;
-  status: 'upcoming' | 'past' | 'cancelled';
+  status: 'upcoming' | 'past' | 'cancelled' | 'completed';
   tags: string[];
   eventType?: 'event' | 'timetable';
   // New fields
@@ -83,7 +83,6 @@ export type Club = {
   };
   gallery?: string[];
   googleDriveFolderId?: string;
-  facultyAdvisor?: string; // Kept for backward compatibility
 };
 
 export type EventProposal = {

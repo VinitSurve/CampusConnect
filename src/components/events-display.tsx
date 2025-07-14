@@ -15,6 +15,8 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 
 interface EventsDisplayProps {
   events: Event[]
@@ -96,15 +98,33 @@ const EventCard = ({ event }: { event: Event }) => {
     );
 };
 
+const EventList = ({ events }: { events: Event[] }) => {
+    if (events.length === 0) {
+        return (
+            <div className="text-center py-16 bg-white/10 rounded-lg col-span-full">
+                <h3 className="text-xl font-semibold text-white mb-2">No Events Found</h3>
+                <p className="text-white/80">Try adjusting your filters.</p>
+            </div>
+        )
+    }
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in-0 duration-300">
+            {events.map(event => <EventCard key={event.id} event={event} />)}
+        </div>
+    );
+}
+
 export function EventsDisplay({ events }: EventsDisplayProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [view, setView] = useState<'grid' | 'calendar'>('grid');
 
   const allCategories = ['All Categories', ...Array.from(new Set(events.map(e => e.category).filter(Boolean)))];
   const [filter, setFilter] = useState("All Categories");
+  
+  const now = new Date();
 
-  const filteredEvents = events
-    .filter(event => {
+  const filterEvents = (eventList: Event[]) => {
+    return eventList.filter(event => {
         const lowerSearch = searchTerm.toLowerCase();
         const searchMatch = !searchTerm || 
             event.title.toLowerCase().includes(lowerSearch) ||
@@ -112,11 +132,15 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
             event.organizer.toLowerCase().includes(lowerSearch) ||
             event.tags?.some(tag => tag.toLowerCase().includes(lowerSearch));
         const categoryMatch = filter === 'All Categories' || event.category === filter;
-
         return searchMatch && categoryMatch;
     });
+  }
+
+  const upcomingEvents = filterEvents(events.filter(e => e.status === 'upcoming' && new Date(e.date) >= now));
+  const completedEvents = filterEvents(events.filter(e => e.status === 'completed' || (e.status === 'upcoming' && new Date(e.date) < now)));
+
     
-  const calendarEvents = filteredEvents.map(event => ({
+  const calendarEvents = upcomingEvents.map(event => ({
     id: event.id,
     title: event.title,
     start: `${event.date}T${event.time || '00:00'}`,
@@ -139,7 +163,7 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Events</h1>
-          <p className="text-white/70 mt-1">Upcoming events happening on campus</p>
+          <p className="text-white/70 mt-1">Discover what's happening on campus</p>
         </div>
       </div>
       
@@ -176,21 +200,24 @@ export function EventsDisplay({ events }: EventsDisplayProps) {
             </div>
       </div>
 
-      {view === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in-0 duration-300">
-             {filteredEvents.length > 0 ? (
-                filteredEvents.map(event => <EventCard key={event.id} event={event} />)
-            ) : (
-                <div className="text-center py-16 bg-white/10 rounded-lg col-span-full">
-                    <h3 className="text-xl font-semibold text-white mb-2">No Events Found</h3>
-                    <p className="text-white/80">Try adjusting your filters.</p>
-                </div>
-            )}
-        </div>
-      )}
+        {view === 'grid' && (
+            <Tabs defaultValue="upcoming" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
+                    <TabsTrigger value="completed">Past Events</TabsTrigger>
+                </TabsList>
+                <TabsContent value="upcoming" className="mt-6">
+                    <EventList events={upcomingEvents} />
+                </TabsContent>
+                <TabsContent value="completed" className="mt-6">
+                    <EventList events={completedEvents} />
+                </TabsContent>
+            </Tabs>
+        )}
 
       {view === 'calendar' && (
            <div className="bg-white/10 border border-white/10 rounded-xl p-4">
+              <p className="text-white/70 text-sm mb-4">The calendar view shows upcoming events only. Switch to grid view to see past events.</p>
               <FullCalendar
                 plugins={[dayGridPlugin, interactionPlugin]}
                 headerToolbar={{

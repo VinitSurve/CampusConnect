@@ -1,5 +1,5 @@
 
-import { getEventById, getClubById } from '@/lib/data';
+import { getEventById, getClubById, getStudentById } from '@/lib/data';
 import EventDetailPage from '@/components/event-detail-page';
 import { notFound } from 'next/navigation';
 import type { Club, User } from '@/types';
@@ -14,8 +14,13 @@ export default async function Page({ params }: { params: { id: string } }) {
   }
 
   let club: Club | null = null;
+  let leadUser: User | null = null;
+
   if (event.clubId) {
     club = await getClubById(event.clubId);
+    if (club && club.leadId) {
+        leadUser = await getStudentById(club.leadId);
+    }
   }
 
   // All the slow photo fetching logic has been moved to a client component
@@ -23,7 +28,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <EventDetailPage event={event} club={club} />
+      <EventDetailPage event={event} club={club} lead={leadUser} />
     </div>
   );
 }
