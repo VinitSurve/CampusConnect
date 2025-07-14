@@ -340,10 +340,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         
         formData.set('equipmentNeeds', JSON.stringify(equipment));
 
-        const uploadResult = await handleEventMediaUpload(formData, form.googleDriveFolderId);
+        const uploadResult = await handleEventMediaUpload(formData, form.googleDriveFolderId, status);
 
         if (!uploadResult.success || !uploadResult.data) {
-          toast({ title: "Upload Failed", description: uploadResult.error || "Could not process file uploads.", variant: "destructive" });
+          toast({ title: "Save Failed", description: uploadResult.error || "Could not process event data.", variant: "destructive" });
           return;
         }
 

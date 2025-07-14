@@ -105,9 +105,11 @@ export default function AcademicCalendar({
     const fetchCalendarData = async () => {
       setLoading(true);
       try {
-        // Fetch regular events
+        // Fetch regular events, excluding completed ones
         const eventsQuery = query(
           collection(db, "events"),
+          where("status", "!=", "completed"),
+          orderBy("status", "asc"),
           orderBy("date", "asc")
         );
         const eventsSnapshot = await getDocs(eventsQuery);
