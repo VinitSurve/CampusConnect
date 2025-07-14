@@ -358,44 +358,41 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             status,
         };
 
-        let newProposalId: string | null = null;
+        let savedProposal: EventProposal;
+        
         if (currentProposalId) {
-          const docRef = doc(db, "eventRequests", currentProposalId);
-          await updateDoc(docRef, { ...finalDataToSave, updatedAt: serverTimestamp() });
+            const docRef = doc(db, "eventRequests", currentProposalId);
+            await updateDoc(docRef, { ...finalDataToSave, updatedAt: serverTimestamp() });
+            const updatedDoc = await getDoc(docRef);
+            savedProposal = { id: updatedDoc.id, ...updatedDoc.data() } as EventProposal;
         } else {
-          const newDoc = await addDoc(collection(db, "eventRequests"), { ...finalDataToSave, createdAt: serverTimestamp() });
-          newProposalId = newDoc.id;
-          setCurrentProposalId(newDoc.id);
+            const newDocRef = await addDoc(collection(db, "eventRequests"), { ...finalDataToSave, createdAt: serverTimestamp() });
+            const newDoc = await getDoc(newDocRef);
+            savedProposal = { id: newDoc.id, ...newDoc.data() } as EventProposal;
         }
+
+        setCurrentProposalId(savedProposal.id);
 
         const finalFormState = {
             ...form,
-            ...dataToSave,
-            tags: Array.isArray(dataToSave.tags) ? dataToSave.tags.join(', ') : (dataToSave.tags || ''),
-            headerImage: null,
+            ...savedProposal,
+            headerImage: null, // Clear file inputs
             eventLogo: null,
-            headerImageUrl: dataToSave.headerImage,
-            eventLogoUrl: dataToSave.eventLogo,
-            googleDriveFolderId: uploadResult.data.googleDriveFolderId,
-            photoAlbumUrl: uploadResult.data.photoAlbumUrl,
         };
         
         setForm(finalFormState);
 
         setPreviews({
-            headerImage: dataToSave.headerImage || null,
-            eventLogo: dataToSave.eventLogo || null,
+            headerImage: savedProposal.headerImage || null,
+            eventLogo: savedProposal.eventLogo || null,
         });
-        
-        if (newProposalId) {
-            setCurrentProposalId(newProposalId);
-        }
 
         toast({ title: "Success!", description: status === 'draft' ? "Your draft has been saved." : "Your proposal has been submitted!" });
 
         if (status === 'pending') {
           setView('list'); 
         }
+        
         const updatedProposals = await getUserProposals(user.uid);
         setProposals(updatedProposals);
 
