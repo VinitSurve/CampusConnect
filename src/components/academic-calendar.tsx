@@ -105,10 +105,15 @@ export default function AcademicCalendar({
     const fetchCalendarData = async () => {
       setLoading(true);
       try {
-        // Fetch regular events, excluding completed ones
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); 
+        const todayStr = today.toISOString().slice(0, 10);
+
+        // Fetch regular events, only upcoming
         const eventsQuery = query(
           collection(db, "events"),
           where("status", "==", "upcoming"),
+          where("date", ">=", todayStr),
           orderBy("date", "asc")
         );
         const eventsSnapshot = await getDocs(eventsQuery);
@@ -131,9 +136,6 @@ export default function AcademicCalendar({
           };
         });
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to start of day for comparison
-        const todayStr = today.toISOString().slice(0, 10);
 
         const seminarQuery = query(
           collection(db, 'seminarBookings'),
