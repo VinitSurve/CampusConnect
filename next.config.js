@@ -29,6 +29,16 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    serverComponentsExternalPackages: ["@genkit-ai/googleai"],
+    // This is the fix: Ignore the AI directory from the Next.js watcher
+    // to prevent restart loops with the Genkit watcher.
+    outputFileTracingExcludes: {
+      "**/*": [
+        "./src/ai/**/*"
+      ]
+    }
+  },
 };
 
 module.exports = nextConfig;
