@@ -18,8 +18,8 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   if (event.clubId) {
     club = await getClubById(event.clubId);
-    if (club && club.leadId) {
-        lead = await getStudentById(club.leadId);
+    if (club?.leadId) {
+      lead = await getStudentById(club.leadId);
     }
   }
 

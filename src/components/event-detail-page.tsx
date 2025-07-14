@@ -9,8 +9,6 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
 import EventGallery from './event-gallery';
-import { getStudentById } from '@/lib/data';
-import { useState, useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 
 
@@ -53,9 +51,12 @@ const ClubInfoCard = ({ club, leadUser }: { club: Club | null; leadUser: User | 
                         <span>Lead: {leadUser.name}</span>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 text-white/80">
-                        <Skeleton className="h-4 w-24" />
-                    </div>
+                    club.leadId && (
+                        <div className="flex items-center gap-2 text-white/80">
+                            <UserCircle className="w-5 h-5"/>
+                            <Skeleton className="h-4 w-24 bg-white/10" />
+                        </div>
+                    )
                 )}
                 
                 {(club.socialLinks && Object.values(club.socialLinks).some(link => link)) && (
