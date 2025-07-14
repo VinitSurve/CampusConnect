@@ -401,7 +401,11 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
     const allBookingsForDay: any[] = [];
 
     try {
-        const eventsQuery = query(collection(db, "events"), where("date", "==", dateStr));
+        const eventsQuery = query(
+          collection(db, "events"), 
+          where("date", "==", dateStr),
+          where("status", "==", "upcoming")
+        );
         const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
         const timetableQuery = (timetableDayOfWeek > 0 && timetableDayOfWeek < 7) 
             ? query(collection(db, "timetables"), where("dayOfWeek", "==", timetableDayOfWeek))
