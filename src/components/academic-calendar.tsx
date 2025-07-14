@@ -131,6 +131,29 @@ export default function AcademicCalendar({
           };
         });
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+        const todayStr = today.toISOString().slice(0, 10);
+
+        const seminarQuery = query(
+          collection(db, 'seminarBookings'),
+          where('date', '>=', todayStr)
+        );
+
+        const seminarSnapshot = await getDocs(seminarQuery);
+        const seminarBookings = seminarSnapshot.docs.map(doc => {
+            const data = doc.data() as SeminarBooking;
+            return {
+                id: `sb-${doc.id}`,
+                title: data.title,
+                start: `${data.date}T${data.startTime}`,
+                end: `${data.date}T${data.endTime}`,
+                extendedProps: { ...data, eventType: 'booking' },
+                className: 'bg-yellow-600/30 text-yellow-100 border-l-4 border-yellow-400 cursor-pointer'
+            }
+        });
+
+
         // Fetch timetable entries as recurring events
         const timetablesQuery = query(collection(db, "timetables"));
         const timetablesSnapshot = await getDocs(timetablesQuery);
@@ -155,7 +178,7 @@ export default function AcademicCalendar({
         }).filter(Boolean);
 
 
-        const allCalEvents = [...regularEvents, ...timetableEvents];
+        const allCalEvents = [...regularEvents, ...seminarBookings, ...timetableEvents];
         
         const filteredEvents = locationFilter
           ? allCalEvents.filter(e => {

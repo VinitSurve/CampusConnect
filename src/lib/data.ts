@@ -404,23 +404,30 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         const eventsQuery = query(
           collection(db, "events"), 
           where("date", "==", dateStr),
-          where("status", "==", "upcoming")
+          where("status", "==", "upcoming"),
+          where("location", "==", targetLocationName)
         );
-        const seminarQuery = query(collection(db, "seminarBookings"), where("date", "==", dateStr));
+        
+        const seminarQuery = locationId === 'seminar'
+            ? query(collection(db, "seminarBookings"), where("date", "==", dateStr))
+            : null;
+
         const timetableQuery = (timetableDayOfWeek > 0 && timetableDayOfWeek < 7) 
-            ? query(collection(db, "timetables"), where("dayOfWeek", "==", timetableDayOfWeek))
+            ? query(
+                collection(db, "timetables"), 
+                where("dayOfWeek", "==", timetableDayOfWeek),
+                where("location", "==", targetLocationName)
+              )
             : null;
 
         const [eventsSnapshot, seminarSnapshot, timetablesSnapshot] = await Promise.all([
             getDocs(eventsQuery),
-            getDocs(seminarQuery),
+            seminarQuery ? getDocs(seminarQuery) : Promise.resolve(null),
             timetableQuery ? getDocs(timetableQuery) : Promise.resolve(null),
         ]);
 
         eventsSnapshot.forEach(doc => {
             const data = doc.data() as Event;
-            if (!data.location) return;
-
             if (data.time) {
                  allBookingsForDay.push(createBookingObject(
                     data.title,
@@ -442,22 +449,23 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
             }
         });
 
-        seminarSnapshot.forEach(doc => {
-            const data = doc.data() as SeminarBooking;
-            allBookingsForDay.push(createBookingObject(
-                data.title,
-                data.organizer,
-                'Seminar Hall',
-                'Booking',
-                data.startTime,
-                data.endTime
-            ));
-        });
+        if (seminarSnapshot) {
+            seminarSnapshot.forEach(doc => {
+                const data = doc.data() as SeminarBooking;
+                allBookingsForDay.push(createBookingObject(
+                    data.title,
+                    data.organizer,
+                    'Seminar Hall',
+                    'Booking',
+                    data.startTime,
+                    data.endTime
+                ));
+            });
+        }
 
         if (timetablesSnapshot) {
             timetablesSnapshot.forEach(doc => {
                 const data = doc.data() as TimetableEntry;
-                if (!data.location) return;
                 allBookingsForDay.push(createBookingObject(
                     `${data.subject} (${data.course} ${data.year}-${data.division})`,
                     data.facultyName,
@@ -469,11 +477,7 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
             });
         }
         
-        const finalSchedule = allBookingsForDay.filter(booking => {
-            return booking.location === targetLocationName || booking.location === locationId;
-        });
-
-        return finalSchedule;
+        return allBookingsForDay;
 
     } catch (error) {
         console.error("Error fetching day schedule:", error);
