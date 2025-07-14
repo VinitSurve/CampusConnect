@@ -16,7 +16,7 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         // Create a new folder only if one doesn't already exist and a title is present
         if (!googleDriveFolderId && title) {
             const { folderId, folderUrl } = await createFolder(title);
-            googleDriveFolderId = folderId;
+            googleDriveFolderId = folderId; // This is the key fix - use the newly created ID immediately
             photoAlbumUrl = folderUrl;
         }
         
@@ -25,12 +25,22 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             // Process Header and Logo
             const headerImageFile = formData.get('headerImage') as File;
             if (headerImageFile && headerImageFile.size > 0) {
-                formData.set('headerImageUrl', await uploadFile(headerImageFile, googleDriveFolderId));
+                try {
+                    formData.set('headerImageUrl', await uploadFile(headerImageFile, googleDriveFolderId));
+                } catch (uploadError) {
+                    console.error(`Header image upload failed for event "${title}":`, uploadError);
+                    throw new Error(`Failed to upload the header image. Please try again or use a different image.`);
+                }
             }
 
             const eventLogoFile = formData.get('eventLogo') as File;
             if (eventLogoFile && eventLogoFile.size > 0) {
-                formData.set('eventLogoUrl', await uploadFile(eventLogoFile, googleDriveFolderId));
+                 try {
+                    formData.set('eventLogoUrl', await uploadFile(eventLogoFile, googleDriveFolderId));
+                } catch (uploadError) {
+                    console.error(`Event logo upload failed for event "${title}":`, uploadError);
+                    throw new Error(`Failed to upload the event logo. Please try again or use a different image.`);
+                }
             }
         }
         
