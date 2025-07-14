@@ -384,6 +384,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             ...savedProposal,
             headerImage: null, // Clear file inputs
             eventLogo: null,
+            photoAlbumUrl: savedProposal.photoAlbumUrl, // <<-- THIS IS THE FIX
         };
         
         setForm(finalFormState);

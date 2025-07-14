@@ -13,26 +13,24 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         let googleDriveFolderId = existingFolderId;
         let photoAlbumUrl = formData.get('photoAlbumUrl') as string; // Keep existing URL if it's there
 
-        // Only perform Drive operations if we are submitting for review, not saving a draft.
-        if (status === 'pending') {
-            // Create a new folder only if one doesn't already exist and a title is present
-            if (!googleDriveFolderId && title) {
-                const { folderId, folderUrl } = await createFolder(title);
-                googleDriveFolderId = folderId;
-                photoAlbumUrl = folderUrl;
+        // Create a new folder only if one doesn't already exist and a title is present
+        if (!googleDriveFolderId && title) {
+            const { folderId, folderUrl } = await createFolder(title);
+            googleDriveFolderId = folderId;
+            photoAlbumUrl = folderUrl;
+        }
+        
+        // Only perform file uploads if we are submitting for review, not just saving a draft.
+        if (status === 'pending' && googleDriveFolderId) {
+            // Process Header and Logo
+            const headerImageFile = formData.get('headerImage') as File;
+            if (headerImageFile && headerImageFile.size > 0) {
+                formData.set('headerImageUrl', await uploadFile(headerImageFile, googleDriveFolderId));
             }
-            
-            if (googleDriveFolderId) {
-                // Process Header and Logo
-                const headerImageFile = formData.get('headerImage') as File;
-                if (headerImageFile && headerImageFile.size > 0) {
-                    formData.set('headerImageUrl', await uploadFile(headerImageFile, googleDriveFolderId));
-                }
 
-                const eventLogoFile = formData.get('eventLogo') as File;
-                if (eventLogoFile && eventLogoFile.size > 0) {
-                    formData.set('eventLogoUrl', await uploadFile(eventLogoFile, googleDriveFolderId));
-                }
+            const eventLogoFile = formData.get('eventLogo') as File;
+            if (eventLogoFile && eventLogoFile.size > 0) {
+                formData.set('eventLogoUrl', await uploadFile(eventLogoFile, googleDriveFolderId));
             }
         }
         
