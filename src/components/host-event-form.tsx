@@ -16,7 +16,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
 import { handleEventMediaUpload } from "../app/dashboard/host-event/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getUserProposals } from '@/lib/data';
 import { format, toDate } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -365,13 +364,20 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             await updateDoc(docRef, { ...finalDataToSave, updatedAt: serverTimestamp() });
             const updatedDoc = await getDoc(docRef);
             savedProposal = { id: updatedDoc.id, ...updatedDoc.data() } as EventProposal;
+
+            // Update local state
+            setProposals(prev => prev.map(p => p.id === savedProposal.id ? savedProposal : p));
+
         } else {
             const newDocRef = await addDoc(collection(db, "eventRequests"), { ...finalDataToSave, createdAt: serverTimestamp() });
             const newDoc = await getDoc(newDocRef);
             savedProposal = { id: newDoc.id, ...newDoc.data() } as EventProposal;
+            setCurrentProposalId(savedProposal.id);
+
+            // Update local state
+            setProposals(prev => [savedProposal, ...prev]);
         }
 
-        setCurrentProposalId(savedProposal.id);
 
         const finalFormState = {
             ...form,
@@ -392,9 +398,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         if (status === 'pending') {
           setView('list'); 
         }
-        
-        const updatedProposals = await getUserProposals(user.uid);
-        setProposals(updatedProposals);
 
       } catch (error) {
         console.error("Error submitting form:", error);
