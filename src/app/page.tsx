@@ -166,7 +166,9 @@ export default function HomePage() {
                 </Button>
               </div>
             </div>
-             <TestCredentials />
+             <div className="max-w-4xl mx-auto mt-16">
+                <TestCredentials />
+             </div>
           </div>
         </section>
 

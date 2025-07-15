@@ -207,15 +207,15 @@ export default function AuthenticationForm() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float-delay"></div>
       </div>
 
-      <div className="relative w-full max-w-lg">
-        <Link href="/" className="inline-flex items-center text-gray-300 hover:text-white mb-6 transition-colors">
+      <div className="relative w-full max-w-lg space-y-8">
+        <Link href="/" className="inline-flex items-center text-gray-300 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Link>
         
         <TestCredentials />
 
-        <div className="text-center mb-8 mt-8">
+        <div className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-white" />
