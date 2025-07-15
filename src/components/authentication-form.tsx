@@ -6,9 +6,6 @@ import { useRouter } from "next/navigation";
 import { db, auth, firebase_error } from "@/lib/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   type User as FirebaseUser
@@ -35,7 +32,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function AuthenticationForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   
   const [formData, setFormData] = useState({
@@ -50,29 +47,6 @@ export default function AuthenticationForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
   
-  useEffect(() => {
-    if (!auth) {
-      setIsLoading(false);
-      return;
-    }
-    const checkRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          await handleSuccessfulLogin(result.user, !result.user.metadata.lastSignInTime);
-        } else {
-          setIsLoading(false);
-        }
-      } catch (error: any) {
-        console.error("Google Sign-In redirect error:", error);
-        setError(error.message || "Failed to sign in with Google. Please try again.");
-        setIsLoading(false);
-      }
-    };
-
-    checkRedirectResult();
-  }, [router, toast]);
-
   const isFacultyEmail = (email: string) => {
     const facultyEmails = [
       "ujwala@gmail.com",
@@ -91,7 +65,7 @@ export default function AuthenticationForm() {
     const { uid, email, displayName } = user;
 
     if (!email) {
-      setError("Email not available from your Google account.");
+      setError("Email not available from your account.");
       setIsLoading(false);
       return;
     }
@@ -168,23 +142,6 @@ export default function AuthenticationForm() {
     }
   }
 
-
-  const handleGoogleSignIn = async () => {
-    if (firebase_error) {
-      setError(`Firebase Error: ${firebase_error.message}`);
-      return;
-    }
-    setIsLoading(true);
-    setError("");
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithRedirect(auth!, provider);
-    } catch (err: any) {
-      setError(err.message || "Google sign-in is not available");
-      setIsLoading(false);
-    }
-  };
-  
   if (isLoading && !error) { 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
@@ -206,7 +163,7 @@ export default function AuthenticationForm() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float-delay"></div>
       </div>
 
-      <div className="relative w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-8">
         <Link href="/" className="inline-flex items-center text-gray-300 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
@@ -400,3 +357,5 @@ export default function AuthenticationForm() {
     </div>
   )
 }
+
+    
