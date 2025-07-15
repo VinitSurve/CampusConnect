@@ -71,10 +71,12 @@ export type Club = {
   image: string;
   tags: string[];
   contactEmail: string;
-  facultyAdvisorIds: string[];
+  facultyAdvisor?: string; // Old field, kept for compatibility
   leadId: string;
   createdAt?: string | null;
   updatedAt?: string | null;
+  // New/current fields
+  facultyAdvisorIds?: string[];
   whatsAppGroupLink?: string;
   socialLinks?: {
     website?: string;
@@ -164,3 +166,5 @@ export type FacultyInvitation = {
   createdAt: any; // Firestore Timestamp
   used: boolean;
 };
+
+    

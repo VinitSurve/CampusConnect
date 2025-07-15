@@ -195,10 +195,12 @@ export async function getClubById(id: string): Promise<Club | null> {
         image: data.image,
         tags: data.tags,
         contactEmail: data.contactEmail,
-        facultyAdvisorIds: data.facultyAdvisorIds,
+        facultyAdvisor: data.facultyAdvisor, // This is the old field
         leadId: data.leadId,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
+        // The new fields might not exist on old documents
+        facultyAdvisorIds: data.facultyAdvisorIds || (data.facultyAdvisor ? [data.facultyAdvisor] : []),
         whatsAppGroupLink: data.whatsAppGroupLink,
         socialLinks: data.socialLinks,
         gallery: data.gallery,
@@ -239,6 +241,10 @@ export async function getClubs(): Promise<Club[]> {
     const querySnapshot = await getDocs(q);
     const clubs = querySnapshot.docs.map(doc => {
       const data = doc.data();
+      // This is the key fix: ensure timestamps are converted to strings
+      const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null;
+      const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null;
+
       const club: Club = {
         id: doc.id,
         name: data.name,
@@ -246,10 +252,12 @@ export async function getClubs(): Promise<Club[]> {
         image: data.image,
         tags: data.tags,
         contactEmail: data.contactEmail,
-        facultyAdvisorIds: data.facultyAdvisorIds,
+        facultyAdvisor: data.facultyAdvisor, // Keep old field for compatibility
         leadId: data.leadId,
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
-        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        // The new fields might not exist on old documents
+        facultyAdvisorIds: data.facultyAdvisorIds || (data.facultyAdvisor ? [data.facultyAdvisor] : []),
         whatsAppGroupLink: data.whatsAppGroupLink,
         socialLinks: data.socialLinks,
         gallery: data.gallery,
@@ -395,6 +403,7 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
     const localDate = new Date(date.getTime() - tzoffset);
     const dateStr = localDate.toISOString().slice(0, 10);
     
+    // JS getDay() is 0=Sun, 6=Sat. Firestore is 1=Mon, 7=Sun. We use 1-6 Mon-Sat.
     const timetableDayOfWeek = date.getDay();
     
     const targetLocationName = locationIdToNameMap[locationId] || locationId;
@@ -484,3 +493,5 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         return [];
     }
 }
+
+    
