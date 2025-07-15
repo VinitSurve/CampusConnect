@@ -48,17 +48,7 @@ const EventCard = ({ event }: { event: Event }) => {
     return (
         <Card className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all flex flex-col group">
             <div className="relative h-48 w-full overflow-hidden bg-black/20 flex items-center justify-center">
-                {event.eventLogo ? (
-                     <Image
-                        src={event.eventLogo}
-                        alt={`${event.title} Logo`}
-                        width={128}
-                        height={128}
-                        className="object-contain transition-transform duration-300 group-hover:scale-105 w-32 h-32"
-                    />
-                ) : (
-                    <CalendarIcon className="w-16 h-16 text-white/20" />
-                )}
+                <CalendarIcon className="w-16 h-16 text-white/20" />
             </div>
             <CardContent className="p-4 flex flex-col flex-grow">
                  <div className="flex justify-between items-start mb-2">

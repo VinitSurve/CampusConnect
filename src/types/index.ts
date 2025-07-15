@@ -38,8 +38,7 @@ export type Event = {
   location: string;
   organizer: string;
   category: string;
-  image: string; // Kept for legacy, headerImage is primary now
-  eventLogo?: string;
+  image: string;
   attendees: number;
   capacity: number;
   registrationLink: string;
@@ -116,7 +115,6 @@ export type EventProposal = {
   equipmentNeeds?: string;
   budgetDetails?: string;
   whatYouWillLearn?: string;
-  eventLogo?: string;
   googleDriveFolderId?: string;
   photoAlbumUrl?: string;
   tags?: string[];

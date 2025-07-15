@@ -21,7 +21,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { 
     TimeSlotSelectionModal,
-    FileInput, 
     ProposalList,
     TemplateCard,
     EquipmentSelector,
@@ -46,9 +45,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [equipment, setEquipment] = useState(EMPTY_EQUIPMENT_STATE);
   const [currentProposalId, setCurrentProposalId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates | 'scratch' | null>(null);
-  const [previews, setPreviews] = useState({ 
-      eventLogo: null as string | null,
-  });
+  
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
@@ -144,8 +141,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
         organizer: club?.name || 'CampusConnect',
         category: form.category || 'General',
-        image: previews.eventLogo || 'https://placehold.co/600x400.png',
-        eventLogo: previews.eventLogo,
+        image: 'https://placehold.co/600x400.png',
         attendees: 0,
         capacity: 100,
         registrationLink: form.registrationLink || '#',
@@ -178,7 +174,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         console.error("Could not update preview data:", error);
       }
     }
-  }, [form, equipment, previews, view, previewChannel, userClubs, user]);
+  }, [form, equipment, view, previewChannel, userClubs, user]);
 
   const handleGenerateDetails = async () => {
       if (!form.title) {
@@ -225,32 +221,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     });
   };
 
-
-  const handleFileChange = (name: string, file: File | null) => {
-    if (file) {
-        // Create a simple serializable preview version
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setPreviews(prev => ({ ...prev, [name]: reader.result as string }));
-            
-            // Store just the file, not trying to keep URL in the form state
-            setForm((prev:any) => ({ 
-                ...prev, 
-                [name]: file,
-                // Don't clear the URL here as it causes issues with serialization
-            }));
-        };
-        reader.readAsDataURL(file);
-    } else {
-        setPreviews(prev => ({ ...prev, [name]: null }));
-        setForm((prev:any) => ({ 
-            ...prev, 
-            [name]: null,
-            // Keep any existing URL if just clearing the file input
-        }));
-    }
-  };
-
   const handleEditProposal = (proposal: EventProposal) => {
     setCurrentProposalId(proposal.id);
     setSelectedTemplate(null);
@@ -262,11 +232,8 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         ...proposal,
         location: draftLocation,
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
-        eventLogoUrl: proposal.eventLogo || '',
     });
-    setPreviews({
-        eventLogo: proposal.eventLogo || null,
-    });
+    
     if (proposal.date) {
         setSelectedDate(toDate(proposal.date));
     }
@@ -293,7 +260,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setEquipment(EMPTY_EQUIPMENT_STATE);
     setCurrentProposalId(null);
     setSelectedTemplate(null);
-    setPreviews({ eventLogo: null });
     setSelectedDate(null);
     setView('templates');
     setStep(1);
@@ -336,10 +302,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       try {
         const formData = new FormData();
         
-        // First add all non-file data to FormData
+        // Add all non-file data to FormData
         Object.entries(form).forEach(([key, value]) => {
-            // Skip file objects first
-            if (value !== null && value !== undefined && !(value instanceof File)) {
+            if (value !== null && value !== undefined) {
                 if ((key === 'targetAudience' || key === 'facultyAdvisorIds') && Array.isArray(value)) {
                     value.forEach(item => formData.append(key, item));
                 } else {
@@ -347,11 +312,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 }
             }
         });
-        
-        // Now add file objects separately with explicit type checking
-        if (form.eventLogo instanceof File) {
-            formData.append('eventLogo', form.eventLogo);
-        }
         
         formData.set('equipmentNeeds', JSON.stringify(equipment));
 
@@ -406,15 +366,10 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         const finalFormState = {
             ...form,
             ...savedProposal,
-            eventLogo: null, // Clear file inputs
             photoAlbumUrl: savedProposal.photoAlbumUrl,
         };
         
         setForm(finalFormState);
-
-        setPreviews({
-            eventLogo: savedProposal.eventLogo || null,
-        });
 
         toast({ title: "Success!", description: status === 'draft' ? "Your draft has been saved." : "Your proposal has been submitted!" });
 
@@ -666,10 +621,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                                     <p className="text-white/60">Please select a date, time, and location from the calendar view on the right.</p>
                                 )}
                             </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <FileInput name="eventLogo" label="Event Logo (Optional)" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
                         </div>
 
                         <EquipmentSelector equipment={equipment} setEquipment={setEquipment} />

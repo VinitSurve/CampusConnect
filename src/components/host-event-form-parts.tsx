@@ -38,8 +38,6 @@ export const EMPTY_FORM = {
     date: "",
     time: "",
     endTime: "",
-    eventLogo: null as File | null,
-    eventLogoUrl: "",
     googleDriveFolderId: "",
     allowExternals: false,
 };
@@ -115,58 +113,6 @@ export const statusVariantMap: { [key: string]: "default" | "secondary" | "destr
 
 // --- REUSABLE COMPONENTS ---
 
-export const FileInput = ({ name, label, accepted, helpText, onFileChange, currentPreview }: { name: string, label: string, accepted: string, helpText: string, onFileChange: (name: string, file: File | null) => void, currentPreview: string | null }) => {
-    const [preview, setPreview] = React.useState<string | null>(currentPreview);
-
-    React.useEffect(() => {
-        setPreview(currentPreview);
-    }, [currentPreview]);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        onFileChange(name, file);
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => setPreview(reader.result as string);
-            reader.readAsDataURL(file);
-        } else {
-            setPreview(null);
-        }
-    };
-    
-    const handleClear = () => {
-        setPreview(null);
-        onFileChange(name, null);
-        const input = document.getElementById(name) as HTMLInputElement;
-        if(input) input.value = "";
-    }
-
-    return (
-        <div className="space-y-2">
-            <label className="text-white text-sm">{label}</label>
-            <div className="w-full bg-white/5 border-2 border-dashed border-white/20 rounded-xl p-4 text-center">
-                {preview ? (
-                    <div className="relative group">
-                        <Image src={preview} alt="Preview" width={1280} height={325} className="w-full h-auto max-h-48 object-contain rounded-lg" />
-                        <button type="button" onClick={handleClear} className="absolute top-2 right-2 bg-black/50 p-1.5 rounded-full text-white hover:bg-black/80 transition-opacity opacity-50 group-hover:opacity-100">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                        <UploadCloud className="w-10 h-10 text-white/50" />
-                        <label htmlFor={name} className="relative cursor-pointer">
-                            <span className="text-blue-400 font-semibold">Click to upload</span>
-                            <input id={name} name={name} type="file" className="sr-only" accept={accepted} onChange={handleFileChange} />
-                        </label>
-                        <p className="text-xs text-white/50">{helpText}</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
 export const ProposalList = ({ list, emptyText, onEdit }: { list: EventProposal[], emptyText: string, onEdit: (p: EventProposal) => void }) => {
     if (list.length === 0) {
       return <div className="text-center py-12 text-white/70">{emptyText}</div>
@@ -200,14 +146,7 @@ export const ProposalList = ({ list, emptyText, onEdit }: { list: EventProposal[
             </div>
 
             <div className="w-full md:w-32 h-32 flex-shrink-0">
-                 <Image 
-                    src={p.eventLogo || 'https://placehold.co/100x100.png'} 
-                    alt="Event Logo" 
-                    width={100} 
-                    height={100} 
-                    className="rounded-lg object-cover w-full h-full bg-black/20" 
-                    data-ai-hint="event logo"
-                 />
+                 <Calendar className="w-full h-full text-white/10" />
             </div>
           </div>
         ))}

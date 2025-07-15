@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wrench, Link as LinkIcon, Image as ImageIcon, FileText, Target, Mic, Globe, Camera } from 'lucide-react';
+import { Calendar, Users, Building, Tag, Info, User as UserIcon, DollarSign, Wrench, Link as LinkIcon, FileText, Target, Mic, Globe, Camera } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -147,8 +147,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 organizer: proposal.clubName,
                 clubId: proposal.clubId,
                 category: proposal.category,
-                image: proposal.eventLogo || 'https://placehold.co/600x400.png',
-                eventLogo: proposal.eventLogo,
+                image: 'https://placehold.co/600x400.png',
                 registrationLink: proposal.registrationLink,
                 tags: [...(proposal.tags || []), proposal.category].filter(Boolean).filter((value, index, self) => self.indexOf(value) === index),
                 targetAudience: proposal.targetAudience,
@@ -349,15 +348,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 <DetailItem icon={<FileText />} label="Tags" value={Array.isArray(selectedRequest.tags) ? selectedRequest.tags.join(', ') : selectedRequest.tags} />
                 <DetailItem icon={<UserIcon />} label="Submitted By" value={selectedRequest.creatorEmail} />
 
-                 <div className="space-y-3">
-                    <p className="text-sm font-medium text-white/70 flex items-center gap-2"><ImageIcon /> Submitted Media</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <p className="text-xs text-white/60 mb-1">Event Logo</p>
-                            <Image src={selectedRequest.eventLogo || 'https://placehold.co/100x100.png'} alt="Event Logo" width={100} height={100} className="rounded-lg object-cover bg-black/20" />
-                        </div>
-                    </div>
-                     {(selectedRequest.gallery && selectedRequest.gallery.length > 0) && (
+                 {(selectedRequest.gallery && selectedRequest.gallery.length > 0) && (
                         <div>
                              <p className="text-xs text-white/60 mb-1 mt-4">Gallery Preview Images</p>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -367,8 +358,6 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                             </div>
                         </div>
                     )}
-                </div>
-
               </div>
               
               <div className="p-4 bg-black/20 border-t border-white/10 flex justify-end gap-2">
