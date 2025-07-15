@@ -10,8 +10,13 @@ if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY || !proc
 }
 
 if (!process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID) {
-    console.warn("GOOGLE_DRIVE_PARENT_FOLDER_ID environment variable not set. Google Drive features will not work.");
+    console.warn("GOOGLE_DRIVE_PARENT_FOLDER_ID environment variable not set. Event gallery folder creation will not work.");
 }
+
+if (!process.env.GOOGLE_DRIVE_ASSETS_FOLDER_ID) {
+    console.warn("GOOGLE_DRIVE_ASSETS_FOLDER_ID environment variable not set. Header/logo image uploads will not work.");
+}
+
 
 const getDriveClient = () => {
     const credentials = {
@@ -69,7 +74,7 @@ export async function createFolder(name: string): Promise<{ folderId: string; fo
     }
 }
 
-export async function uploadFile(file: File, folderId: string): Promise<string> {
+export async function uploadFile(file: File, parentFolderId: string): Promise<string> {
     const drive = getDriveClient();
     
     try {
@@ -83,8 +88,8 @@ export async function uploadFile(file: File, folderId: string): Promise<string> 
         }
         
         const fileMetadata = {
-            name: file.name,
-            parents: [folderId],
+            name: `${Date.now()}-${file.name}`, // Add timestamp to avoid name collisions
+            parents: [parentFolderId],
         };
 
         const media = {
