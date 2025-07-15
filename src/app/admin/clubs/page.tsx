@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
+import { StudentSelector } from '@/components/student-selector';
 
 
 const DEFAULT_CLUB: Partial<Club> = {
@@ -110,7 +111,6 @@ async function handleClubSave(formData: FormData) {
 // --- CLIENT COMPONENT ---
 export default function AdminClubsPage() {
     const [clubs, setClubs] = useState<Club[]>([]);
-    const [students, setStudents] = useState<User[]>([]);
     const [allFaculty, setAllFaculty] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
@@ -122,49 +122,54 @@ export default function AdminClubsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const { toast } = useToast();
     
+    const studentsMap = useMemo(() => new Map(clubs.map(c => c.leadId && c.lead ? [c.leadId, c.lead] : null).filter(Boolean) as [string, User][]), [clubs]);
+    
     const refreshData = async () => {
+        setLoading(true);
         try {
-            const [clubsData, studentsData, facultyData] = await Promise.all([getClubs(), getStudents(), getAllFaculty()]);
-            setClubs(clubsData);
-            setStudents(studentsData);
+            const [clubsData, facultyData] = await Promise.all([getClubs(), getAllFaculty()]);
+            
+            const clubsWithLeadData = await Promise.all(clubsData.map(async (club) => {
+                let lead: User | null = null;
+                if (club.leadId) {
+                    lead = await getStudentById(club.leadId);
+                }
+                return { ...club, lead };
+            }));
+
+            setClubs(clubsWithLeadData);
             setAllFaculty(facultyData);
         } catch (error) {
             toast({ title: "Error", description: "Failed to fetch data.", variant: "destructive" });
+        } finally {
+            setLoading(false);
         }
     };
     
     useEffect(() => {
-        setLoading(true);
-        refreshData().finally(() => setLoading(false));
+        refreshData();
     }, []);
 
-    const studentsMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
     const facultyMap = useMemo(() => new Map(allFaculty.map(f => [f.id, f])), [allFaculty]);
 
     const filteredClubs = useMemo(() => {
         if (!searchTerm) return clubs;
         const lowercasedFilter = searchTerm.toLowerCase();
         return clubs.filter(club => {
-            const studentLead = club.leadId ? studentsMap.get(club.leadId) : null;
+            const studentLeadName = club.lead?.name || '';
             const advisors = (club.facultyAdvisorIds || []).map(id => facultyMap.get(id)?.name).filter(Boolean).join(' ');
             return (
                 club.name.toLowerCase().includes(lowercasedFilter) ||
                 (club.description && club.description.toLowerCase().includes(lowercasedFilter)) ||
                 advisors.toLowerCase().includes(lowercasedFilter) ||
-                (studentLead && studentLead.name.toLowerCase().includes(lowercasedFilter))
+                studentLeadName.toLowerCase().includes(lowercasedFilter)
             );
         });
-    }, [searchTerm, clubs, studentsMap, facultyMap]);
+    }, [searchTerm, clubs, facultyMap]);
 
 
     const handleOpenForm = async (club?: Club) => {
         try {
-            setLoading(true);
-            const [studentsData, facultyData] = await Promise.all([getStudents(), getAllFaculty()]);
-            setStudents(studentsData);
-            setAllFaculty(facultyData);
-            setLoading(false);
-
             if (club) {
                 const clubData = {
                     ...club,
@@ -179,7 +184,7 @@ export default function AdminClubsPage() {
             }
             setIsDialogOpen(true);
         } catch (error) {
-            toast({ title: "Error", description: "Failed to load up-to-date lists.", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to open form.", variant: "destructive" });
         }
     };
 
@@ -306,12 +311,11 @@ export default function AdminClubsPage() {
                     </TableHeader>
                     <TableBody>
                         {filteredClubs.length > 0 ? filteredClubs.map(club => {
-                             const studentLead = club.leadId ? studentsMap.get(club.leadId) : null;
                              const advisors = (club.facultyAdvisorIds || []).map(id => facultyMap.get(id)?.name).filter(Boolean);
                              return (
                                 <TableRow key={club.id} className="border-b-white/10 hover:bg-white/5">
                                     <TableCell className="font-medium text-white">{club.name}</TableCell>
-                                    <TableCell className="text-white/80">{studentLead?.name || 'N/A'}</TableCell>
+                                    <TableCell className="text-white/80">{club.lead?.name || 'N/A'}</TableCell>
                                     <TableCell className="text-white/80">{advisors.join(', ') || 'N/A'}</TableCell>
                                     <TableCell className="text-right">
                                          <Button variant="ghost" size="icon" onClick={() => handleOpenForm(club)} className="text-white/70 hover:text-white hover:bg-white/20"><Edit /></Button>
@@ -396,26 +400,11 @@ export default function AdminClubsPage() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="leadId" className="text-right">Club Lead*</Label>
-                             <Select
-                                name="leadId"
+                            <StudentSelector 
+                                className="col-span-3"
                                 value={currentClub.leadId || ''}
-                                onValueChange={(value) => setCurrentClub(prev => ({ ...prev, leadId: value }))}
-                            >
-                                <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select a student lead..." />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-800 text-white">
-                                {students.length > 0 ? (
-                                    students.map(student => (
-                                    <SelectItem key={student.id} value={student.id}>
-                                        {student.name} ({student.course} - {student.year})
-                                    </SelectItem>
-                                    ))
-                                ) : (
-                                    <SelectItem value="" disabled>No students found</SelectItem>
-                                )}
-                                </SelectContent>
-                            </Select>
+                                onChange={(studentId) => setCurrentClub(prev => ({...prev, leadId: studentId}))}
+                            />
                         </div>
                         
                         <div>

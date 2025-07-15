@@ -91,7 +91,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
   useEffect(() => {
     // When user clubs load, if no club is selected in the form yet, default to the first one.
-    // This ensures the correct club name and advisor IDs are picked up.
     if (userClubs.length > 0 && !form.clubId) {
       const defaultClub = userClubs[0];
       setForm((prev: any) => ({
@@ -329,10 +328,12 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 const dataToSave: Partial<EventProposal> = {
                   ...uploadResult.data,
                   status,
-                  // Do NOT send server timestamps from the client on updates, as this can be blocked by rules.
-                  // The backend/functions should handle this. For now, we remove it to allow submission.
                 };
-
+                // Remove fields that the user shouldn't be able to change after creation
+                delete dataToSave.createdBy;
+                delete dataToSave.creatorEmail;
+                delete dataToSave.createdAt;
+                
                 const docRef = doc(db, "eventRequests", currentProposalId);
                 await updateDoc(docRef, dataToSave);
 
