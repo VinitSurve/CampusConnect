@@ -229,13 +229,27 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
 
   const handleFileChange = (name: string, file: File | null) => {
-    setForm((prev:any) => ({ ...prev, [name]: file, [`${name}Url`]: "" }));
-    if(file) {
+    if (file) {
+        // Create a simple serializable preview version
         const reader = new FileReader();
-        reader.onloadend = () => setPreviews(prev => ({ ...prev, [name]: reader.result as string }));
+        reader.onloadend = () => {
+            setPreviews(prev => ({ ...prev, [name]: reader.result as string }));
+            
+            // Store just the file, not trying to keep URL in the form state
+            setForm((prev:any) => ({ 
+                ...prev, 
+                [name]: file,
+                // Don't clear the URL here as it causes issues with serialization
+            }));
+        };
         reader.readAsDataURL(file);
     } else {
         setPreviews(prev => ({ ...prev, [name]: null }));
+        setForm((prev:any) => ({ 
+            ...prev, 
+            [name]: null,
+            // Keep any existing URL if just clearing the file input
+        }));
     }
   };
 
@@ -325,17 +339,27 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     startTransition(async () => {
       try {
         const formData = new FormData();
+        
+        // First add all non-file data to FormData
         Object.entries(form).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
+            // Skip file objects first
+            if (value !== null && value !== undefined && !(value instanceof File)) {
                 if ((key === 'targetAudience' || key === 'facultyAdvisorIds') && Array.isArray(value)) {
                     value.forEach(item => formData.append(key, item));
-                } else if (value instanceof File) {
-                    formData.append(key, value as File);
                 } else {
                     formData.append(key, String(value));
                 }
             }
         });
+        
+        // Now add file objects separately with explicit type checking
+        if (form.headerImage instanceof File) {
+            formData.append('headerImage', form.headerImage);
+        }
+        
+        if (form.eventLogo instanceof File) {
+            formData.append('eventLogo', form.eventLogo);
+        }
         
         formData.set('equipmentNeeds', JSON.stringify(equipment));
 
@@ -348,43 +372,51 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
 
         const dataToSave = {
           ...uploadResult.data,
+          status,
           createdBy: currentUser.uid,
           creatorEmail: currentUser.email ?? '',
-        };
-
-        const finalDataToSave = {
-            ...dataToSave,
-            status,
         };
 
         let savedProposal: EventProposal;
         
         if (currentProposalId) {
-            const docRef = doc(db, "eventRequests", currentProposalId);
-            await updateDoc(docRef, { ...finalDataToSave, updatedAt: serverTimestamp() });
-            const updatedDoc = await getDoc(docRef);
-            savedProposal = { id: updatedDoc.id, ...updatedDoc.data() } as EventProposal;
-
-            // Update local state
-            setProposals(prev => prev.map(p => p.id === savedProposal.id ? savedProposal : p));
-
+            try {
+                const docRef = doc(db, "eventRequests", currentProposalId);
+                await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
+                const updatedDoc = await getDoc(docRef);
+                if (!updatedDoc.exists()) {
+                    throw new Error("Failed to retrieve updated document after saving");
+                }
+                savedProposal = { id: updatedDoc.id, ...updatedDoc.data() } as EventProposal;
+                setProposals(prev => prev.map(p => p.id === savedProposal.id ? savedProposal : p));
+            } catch (dbError) {
+                console.error("Database error:", dbError);
+                toast({ title: "Database Error", description: "Failed to update event in the database. Please try again.", variant: "destructive" });
+                return;
+            }
         } else {
-            const newDocRef = await addDoc(collection(db, "eventRequests"), { ...finalDataToSave, createdAt: serverTimestamp() });
-            const newDoc = await getDoc(newDocRef);
-            savedProposal = { id: newDoc.id, ...newDoc.data() } as EventProposal;
-            setCurrentProposalId(savedProposal.id);
-
-            // Update local state
-            setProposals(prev => [savedProposal, ...prev]);
+            try {
+                const newDocRef = await addDoc(collection(db, "eventRequests"), { 
+                    ...dataToSave, 
+                    createdAt: serverTimestamp() 
+                });
+                const newDoc = await getDoc(newDocRef);
+                savedProposal = { id: newDoc.id, ...newDoc.data() } as EventProposal;
+                setCurrentProposalId(savedProposal.id);
+                setProposals(prev => [savedProposal, ...prev]);
+            } catch (dbError) {
+                console.error("Database error:", dbError);
+                toast({ title: "Database Error", description: "Failed to save new event to database. Please try again.", variant: "destructive" });
+                return;
+            }
         }
-
 
         const finalFormState = {
             ...form,
             ...savedProposal,
             headerImage: null, // Clear file inputs
             eventLogo: null,
-            photoAlbumUrl: savedProposal.photoAlbumUrl, // <<-- THIS IS THE FIX
+            photoAlbumUrl: savedProposal.photoAlbumUrl,
         };
         
         setForm(finalFormState);

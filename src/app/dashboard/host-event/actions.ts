@@ -11,47 +11,59 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
     try {
         const title = formData.get('title') as string;
         let googleDriveFolderId = existingFolderId;
-        let photoAlbumUrl = formData.get('photoAlbumUrl') as string;
+        let photoAlbumUrl = formData.get('photoAlbumUrl') as string; // Keep existing URL if it's there
 
-        // Create a new folder if one doesn't already exist and a title is present.
-        // This should happen for both 'draft' and 'pending' statuses.
+        // Create a new folder for both drafts and submissions if needed
         if (!googleDriveFolderId && title) {
             try {
                 const { folderId, folderUrl } = await createFolder(title);
                 googleDriveFolderId = folderId;
                 photoAlbumUrl = folderUrl;
-            } catch (error) {
-                 console.error(`Failed to create Google Drive folder for event "${title}":`, error);
-                 throw new Error(`Failed to create the event's asset folder. Please check server logs.`);
+            } catch (folderError) {
+                console.error(`Folder creation failed for "${title}":`, folderError);
+                // Continue without failing - we'll just not have a folder
             }
         }
         
-        // Only perform file uploads if we are submitting for review, not just saving a draft.
-        if (status === 'pending' && googleDriveFolderId) {
-            // Process Header and Logo
+        // Process media files regardless of status - for both drafts and submissions
+        if (googleDriveFolderId) {
+            // Process Header Image
             const headerImageFile = formData.get('headerImage') as File;
             if (headerImageFile && headerImageFile.size > 0) {
                 try {
-                    // This is the key fix: use the 'googleDriveFolderId' variable which is guaranteed to be set.
-                    const uploadedUrl = await uploadFile(headerImageFile, googleDriveFolderId);
-                    // This is the second key fix: save the URL to the field allowed by security rules ('headerImage').
-                    formData.set('headerImage', uploadedUrl);
-                } catch (uploadError) {
+                    // Validate the file is actually a File object
+                    if (!(headerImageFile instanceof File)) {
+                        console.error("Header image is not a valid File object:", headerImageFile);
+                        throw new Error("Invalid header image file format");
+                    }
+                    
+                    const headerImageUrl = await uploadFile(headerImageFile, googleDriveFolderId);
+                    // Use a different name for the URL to avoid conflict with the File object
+                    formData.set('headerImageUrl', headerImageUrl); 
+                } catch (uploadError: any) {
                     console.error(`Header image upload failed for event "${title}":`, uploadError);
-                    throw new Error(`Failed to upload the header image. Please try again or use a different image.`);
+                    // For drafts, log but don't fail
+                    if (status === 'pending') {
+                        throw new Error(`Failed to upload the header image: ${uploadError.message}`);
+                    }
                 }
             }
-
+            
+            // Process Event Logo
             const eventLogoFile = formData.get('eventLogo') as File;
             if (eventLogoFile && eventLogoFile.size > 0) {
                  try {
-                    // Apply the same fix for the event logo.
-                    const uploadedUrl = await uploadFile(eventLogoFile, googleDriveFolderId);
-                    // This is the second key fix: save the URL to the field allowed by security rules ('eventLogo').
-                    formData.set('eventLogo', uploadedUrl);
-                } catch (uploadError) {
+                    if (!(eventLogoFile instanceof File)) {
+                        console.error("Event logo is not a valid File object:", eventLogoFile);
+                        throw new Error("Invalid event logo file format");
+                    }
+                    const eventLogoUrl = await uploadFile(eventLogoFile, googleDriveFolderId);
+                    formData.set('eventLogoUrl', eventLogoUrl);
+                } catch (uploadError: any) {
                     console.error(`Event logo upload failed for event "${title}":`, uploadError);
-                    throw new Error(`Failed to upload the event logo. Please try again or use a different image.`);
+                    if (status === 'pending') {
+                        throw new Error(`Failed to upload the event logo: ${uploadError.message}`);
+                    }
                 }
             }
         }
@@ -79,8 +91,8 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             date: formData.get('date') as string,
             time: formData.get('time') as string,
             endTime: formData.get('endTime') as string,
-            headerImage: formData.get('headerImage') as string || undefined,
-            eventLogo: formData.get('eventLogo') as string || undefined,
+            headerImage: formData.get('headerImageUrl') as string || undefined,
+            eventLogo: formData.get('eventLogoUrl') as string || undefined,
             googleDriveFolderId: googleDriveFolderId,
             photoAlbumUrl: photoAlbumUrl,
             tags: tags,

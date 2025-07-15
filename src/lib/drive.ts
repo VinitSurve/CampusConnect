@@ -71,17 +71,27 @@ export async function createFolder(name: string): Promise<{ folderId: string; fo
 
 export async function uploadFile(file: File, folderId: string): Promise<string> {
     const drive = getDriveClient();
-    const fileMetadata = {
-        name: file.name,
-        parents: [folderId],
-    };
-
-    const media = {
-        mimeType: file.type,
-        body: Readable.from(Buffer.from(await file.arrayBuffer())),
-    };
-
+    
     try {
+        // Convert File to ArrayBuffer first
+        let arrayBuffer;
+        try {
+            arrayBuffer = await file.arrayBuffer();
+        } catch (error) {
+            console.error("Error converting file to ArrayBuffer:", error);
+            throw new Error("Unable to process the file. The File object might be invalid.");
+        }
+        
+        const fileMetadata = {
+            name: file.name,
+            parents: [folderId],
+        };
+
+        const media = {
+            mimeType: file.type,
+            body: Readable.from(Buffer.from(arrayBuffer)),
+        };
+
         const uploadedFile = await drive.files.create({
             resource: fileMetadata,
             media: media,
@@ -106,6 +116,7 @@ export async function uploadFile(file: File, folderId: string): Promise<string> 
         throw new Error('Failed to upload file.');
     }
 }
+
 
 export async function deleteFolder(folderId: string): Promise<void> {
     const drive = getDriveClient();
