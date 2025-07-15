@@ -33,9 +33,12 @@ const CredentialCard = ({ role, icon, email, password }: { role: string; icon: R
 export function TestCredentials() {
     return (
         <div className="bg-white/10 backdrop-blur-lg border border-white/10 rounded-xl p-4 w-full">
-            <div className="flex justify-between items-center mb-4">
-                 <h3 className="text-xl font-bold text-white">Test Accounts</h3>
-                 <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-200 border-yellow-400/30">For Demo</Badge>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-2">
+                 <div>
+                    <h3 className="text-xl font-bold text-white">Test Accounts</h3>
+                    <p className="text-white/70 text-sm">Use these accounts to explore all features.</p>
+                 </div>
+                 <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-200 border-yellow-400/30 self-start sm:self-center">For Demo</Badge>
             </div>
             <div className="flex flex-col md:flex-row gap-4 justify-center">
                 <CredentialCard role="Student" icon={<Users />} email="test@gmail.com" password="test@123" />
