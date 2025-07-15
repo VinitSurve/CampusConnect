@@ -11,13 +11,19 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
     try {
         const title = formData.get('title') as string;
         let googleDriveFolderId = existingFolderId;
-        let photoAlbumUrl = formData.get('photoAlbumUrl') as string; // Keep existing URL if it's there
+        let photoAlbumUrl = formData.get('photoAlbumUrl') as string;
 
-        // Create a new folder only if one doesn't already exist and a title is present
+        // Create a new folder if one doesn't already exist and a title is present.
+        // This should happen for both 'draft' and 'pending' statuses.
         if (!googleDriveFolderId && title) {
-            const { folderId, folderUrl } = await createFolder(title);
-            googleDriveFolderId = folderId;
-            photoAlbumUrl = folderUrl;
+            try {
+                const { folderId, folderUrl } = await createFolder(title);
+                googleDriveFolderId = folderId;
+                photoAlbumUrl = folderUrl;
+            } catch (error) {
+                 console.error(`Failed to create Google Drive folder for event "${title}":`, error);
+                 throw new Error(`Failed to create the event's asset folder. Please check server logs.`);
+            }
         }
         
         // Only perform file uploads if we are submitting for review, not just saving a draft.
@@ -26,7 +32,9 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             const headerImageFile = formData.get('headerImage') as File;
             if (headerImageFile && headerImageFile.size > 0) {
                 try {
-                    formData.set('headerImageUrl', await uploadFile(headerImageFile, googleDriveFolderId));
+                    // This is the key fix: use the 'googleDriveFolderId' variable which is guaranteed to be set.
+                    const uploadedUrl = await uploadFile(headerImageFile, googleDriveFolderId);
+                    formData.set('headerImageUrl', uploadedUrl);
                 } catch (uploadError) {
                     console.error(`Header image upload failed for event "${title}":`, uploadError);
                     throw new Error(`Failed to upload the header image. Please try again or use a different image.`);
@@ -36,7 +44,9 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             const eventLogoFile = formData.get('eventLogo') as File;
             if (eventLogoFile && eventLogoFile.size > 0) {
                  try {
-                    formData.set('eventLogoUrl', await uploadFile(eventLogoFile, googleDriveFolderId));
+                    // Apply the same fix for the event logo.
+                    const uploadedUrl = await uploadFile(eventLogoFile, googleDriveFolderId);
+                    formData.set('eventLogoUrl', uploadedUrl);
                 } catch (uploadError) {
                     console.error(`Event logo upload failed for event "${title}":`, uploadError);
                     throw new Error(`Failed to upload the event logo. Please try again or use a different image.`);
