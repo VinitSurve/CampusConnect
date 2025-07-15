@@ -333,11 +333,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                   // The backend/functions should handle this. For now, we remove it to allow submission.
                 };
 
-                // Remove fields that should not be updated by the user
-                delete dataToSave.createdBy;
-                delete dataToSave.creatorEmail;
-                delete dataToSave.createdAt;
-
                 const docRef = doc(db, "eventRequests", currentProposalId);
                 await updateDoc(docRef, dataToSave);
 
@@ -746,5 +741,3 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     </div>
   );
 }
-
-    
