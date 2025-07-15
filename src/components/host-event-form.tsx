@@ -10,7 +10,7 @@ import AcademicCalendar from '@/components/academic-calendar';
 import type { User, EventProposal, Event, Club } from "@/types";
 import type { DateSelectArg } from "@fullcalendar/core";
 import { Textarea } from "./ui/textarea";
-import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe, Camera } from "lucide-react";
+import { Sparkles, Check, Plus, ArrowLeft, FileText, Mic, Trophy, Presentation, Hammer, Calendar, Clock, Edit, Globe } from "lucide-react";
 import { generateEventDetails } from "@/ai/flows/generate-event-details";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "./ui/button";
@@ -322,7 +322,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           return;
         }
 
-        const dataToSave = {
+        const dataToSave: Partial<EventProposal> = {
           ...uploadResult.data,
           status,
           createdBy: currentUser.uid,
@@ -334,7 +334,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         if (currentProposalId) {
             try {
                 const docRef = doc(db, "eventRequests", currentProposalId);
-                await updateDoc(docRef, { ...dataToSave, updatedAt: serverTimestamp() });
+                await updateDoc(docRef, dataToSave);
                 const updatedDoc = await getDoc(docRef);
                 if (!updatedDoc.exists()) {
                     throw new Error("Failed to retrieve updated document after saving");
@@ -661,7 +661,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                                         <Link href={form.photoAlbumUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline truncate text-sm">
                                             {form.photoAlbumUrl}
                                         </Link>
-                                        <Camera className="w-5 h-5 text-white/70 ml-4 flex-shrink-0" />
                                     </div>
                                 ) : (
                                     <p className="text-white/60 text-sm">A Google Drive folder will be automatically created when you save a draft with a title.</p>
