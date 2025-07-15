@@ -28,32 +28,25 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function getAllFaculty(): Promise<User[]> {
   if (handleDbError('getAllFaculty')) return [];
-  // For demonstration, we are returning a hardcoded list of faculty.
-  // In a real application, this would query the 'users' collection.
-  const facultyNames = [
-    "Ramchandra Patil", "Roshal Chinnu Vinu", "Rikhi Yadav", "Pawan Koul", 
-    "Rupali Taru", "Evelina Brajesh", "Alok Suresh Shah", "Archana Sakure",
-    "Ramesh Neelakantan", "Sheetal Patil", "Ujwala Kawade", "Anjali Dadhich",
-    "Ankita Jangid", "Neha Sharma", "Adveta Gharat", "Madhuri Kadam"
-  ];
+  try {
+    const q = query(collection(db, "users"), where("role", "==", "faculty"));
+    const querySnapshot = await getDocs(q);
+    const facultyList = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            uid: doc.id,
+            ...data 
+        } as User;
+    });
+    
+    facultyList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-  const facultyList: User[] = facultyNames.map(name => {
-    const emailName = name.toLowerCase().replace(/\s+/g, '');
-    const passwordName = name.split(' ')[0].toLowerCase();
-    return {
-      id: `faculty-${emailName}`,
-      uid: `faculty-${emailName}`,
-      name: name,
-      fullName: name,
-      email: `${emailName}@gmail.com`,
-      role: 'faculty',
-      department: 'Computer Science', // Default department for demo
-    };
-  });
-  
-  facultyList.sort((a, b) => a.name.localeCompare(b.name));
-
-  return Promise.resolve(facultyList);
+    return facultyList;
+  } catch (error) {
+    console.error("Error fetching faculty:", error);
+    return [];
+  }
 }
 
 export async function getStudentById(studentId: string): Promise<User | null> {
@@ -241,7 +234,6 @@ export async function getClubs(): Promise<Club[]> {
     const querySnapshot = await getDocs(q);
     const clubs = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      // This is the key fix: ensure timestamps are converted to strings
       const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null;
       const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null;
 
@@ -252,11 +244,10 @@ export async function getClubs(): Promise<Club[]> {
         image: data.image,
         tags: data.tags,
         contactEmail: data.contactEmail,
-        facultyAdvisor: data.facultyAdvisor, // Keep old field for compatibility
+        facultyAdvisor: data.facultyAdvisor,
         leadId: data.leadId,
         createdAt: createdAt,
         updatedAt: updatedAt,
-        // The new fields might not exist on old documents
         facultyAdvisorIds: data.facultyAdvisorIds || (data.facultyAdvisor ? [data.facultyAdvisor] : []),
         whatsAppGroupLink: data.whatsAppGroupLink,
         socialLinks: data.socialLinks,
@@ -493,5 +484,3 @@ export async function getDayScheduleForLocation(date: Date, locationId: string):
         return [];
     }
 }
-
-    
