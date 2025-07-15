@@ -302,7 +302,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
       try {
         const formData = new FormData();
         
-        // Add all non-file data to FormData
         Object.entries(form).forEach(([key, value]) => {
             if (value !== null && value !== undefined) {
                 if ((key === 'targetAudience' || key === 'facultyAdvisorIds') && Array.isArray(value)) {
@@ -322,19 +321,20 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
           return;
         }
 
-        const dataToSave: Partial<EventProposal> = {
-          ...uploadResult.data,
-          status,
-          createdBy: currentUser.uid,
-          creatorEmail: currentUser.email ?? '',
-        };
-
         let savedProposal: EventProposal;
         
         if (currentProposalId) {
             try {
+                // This is the key fix. The data object for an UPDATE must only contain fields the user is allowed to change.
+                const dataToSave: Partial<EventProposal> = {
+                  ...uploadResult.data,
+                  status,
+                  updatedAt: serverTimestamp(),
+                };
+
                 const docRef = doc(db, "eventRequests", currentProposalId);
                 await updateDoc(docRef, dataToSave);
+
                 const updatedDoc = await getDoc(docRef);
                 if (!updatedDoc.exists()) {
                     throw new Error("Failed to retrieve updated document after saving");
@@ -348,10 +348,16 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
             }
         } else {
             try {
-                const newDocRef = await addDoc(collection(db, "eventRequests"), { 
-                    ...dataToSave, 
-                    createdAt: serverTimestamp() 
-                });
+                const dataToSave: Partial<EventProposal> = {
+                  ...uploadResult.data,
+                  status,
+                  createdBy: currentUser.uid,
+                  creatorEmail: currentUser.email ?? '',
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp(),
+                };
+
+                const newDocRef = await addDoc(collection(db, "eventRequests"), dataToSave);
                 const newDoc = await getDoc(newDocRef);
                 savedProposal = { id: newDoc.id, ...newDoc.data() } as EventProposal;
                 setCurrentProposalId(savedProposal.id);
