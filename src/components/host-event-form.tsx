@@ -329,8 +329,14 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                 const dataToSave: Partial<EventProposal> = {
                   ...uploadResult.data,
                   status,
-                  updatedAt: serverTimestamp(),
+                  // Do NOT send server timestamps from the client on updates, as this can be blocked by rules.
+                  // The backend/functions should handle this. For now, we remove it to allow submission.
                 };
+
+                // Remove fields that should not be updated by the user
+                delete dataToSave.createdBy;
+                delete dataToSave.creatorEmail;
+                delete dataToSave.createdAt;
 
                 const docRef = doc(db, "eventRequests", currentProposalId);
                 await updateDoc(docRef, dataToSave);
