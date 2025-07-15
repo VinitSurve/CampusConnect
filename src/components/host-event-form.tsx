@@ -746,3 +746,5 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     </div>
   );
 }
+
+    
