@@ -34,7 +34,8 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                 try {
                     // This is the key fix: use the 'googleDriveFolderId' variable which is guaranteed to be set.
                     const uploadedUrl = await uploadFile(headerImageFile, googleDriveFolderId);
-                    formData.set('headerImageUrl', uploadedUrl);
+                    // This is the second key fix: save the URL to the field allowed by security rules ('headerImage').
+                    formData.set('headerImage', uploadedUrl);
                 } catch (uploadError) {
                     console.error(`Header image upload failed for event "${title}":`, uploadError);
                     throw new Error(`Failed to upload the header image. Please try again or use a different image.`);
@@ -46,7 +47,8 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
                  try {
                     // Apply the same fix for the event logo.
                     const uploadedUrl = await uploadFile(eventLogoFile, googleDriveFolderId);
-                    formData.set('eventLogoUrl', uploadedUrl);
+                    // This is the second key fix: save the URL to the field allowed by security rules ('eventLogo').
+                    formData.set('eventLogo', uploadedUrl);
                 } catch (uploadError) {
                     console.error(`Event logo upload failed for event "${title}":`, uploadError);
                     throw new Error(`Failed to upload the event logo. Please try again or use a different image.`);
@@ -77,8 +79,8 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             date: formData.get('date') as string,
             time: formData.get('time') as string,
             endTime: formData.get('endTime') as string,
-            headerImage: formData.get('headerImageUrl') as string || undefined,
-            eventLogo: formData.get('eventLogoUrl') as string || undefined,
+            headerImage: formData.get('headerImage') as string || undefined,
+            eventLogo: formData.get('eventLogo') as string || undefined,
             googleDriveFolderId: googleDriveFolderId,
             photoAlbumUrl: photoAlbumUrl,
             tags: tags,
