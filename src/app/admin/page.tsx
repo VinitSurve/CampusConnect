@@ -15,7 +15,7 @@ export default async function FacultyDashboardPage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <FacultyDashboardClient initialRequests={requests} />
+            <FacultyDashboardClient key={user.id} initialRequests={requests} />
         </div>
     );
 }

@@ -301,7 +301,8 @@ export async function getEventProposals(facultyId: string): Promise<EventProposa
     const q = query(
       collection(db, "eventRequests"),
       where("status", "==", "pending"),
-      where("facultyAdvisorIds", "array-contains", facultyId)
+      where("facultyAdvisorIds", "array-contains", facultyId),
+      orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
@@ -321,8 +322,6 @@ export async function getEventProposals(facultyId: string): Promise<EventProposa
       } as EventProposal;
     });
     
-    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
     return requests;
   } catch (error) {
     console.error("Error fetching event proposals:", error);
@@ -335,7 +334,8 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
   try {
     const q = query(
       collection(db, "eventRequests"),
-      where("createdBy", "==", userId)
+      where("createdBy", "==", userId),
+      orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
     const proposals = querySnapshot.docs.map(doc => {
@@ -354,8 +354,6 @@ export async function getUserProposals(userId: string): Promise<EventProposal[]>
         updatedAt,
       } as EventProposal;
     });
-
-    proposals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return proposals;
   } catch (error) {
