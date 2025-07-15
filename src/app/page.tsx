@@ -16,6 +16,7 @@ import Link from "next/link"
 import { getEvents } from "@/lib/data"
 import type { Event } from "@/types"
 import Image from "next/image"
+import { TestCredentials } from "@/components/test-credentials"
 
 const EventCard = ({ event }: { event: Event }) => {
   const getCategoryColor = (category: string) => {
@@ -165,6 +166,7 @@ export default function HomePage() {
                 </Button>
               </div>
             </div>
+             <TestCredentials />
           </div>
         </section>
 

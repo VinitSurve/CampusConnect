@@ -30,6 +30,7 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TestCredentials } from "./test-credentials";
 
 
 export default function AuthenticationForm() {
@@ -75,13 +76,8 @@ export default function AuthenticationForm() {
 
   const isFacultyEmail = (email: string) => {
     const facultyEmails = [
-      "ramchandrapatil@gmail.com", "roshalchinnuvinu@gmail.com",
-      "rikhiyadav@gmail.com", "pawankoul@gmail.com", "rupalitaru@gmail.com",
-      "evelinabrajesh@gmail.com", "aloksureshshah@gmail.com",
-      "archanasakure@gmail.com", "rameshneelakantan@gmail.com",
-      "sheetalpatil@gmail.com", "ujwalakawade@gmail.com",
-      "anjalidadhich@gmail.com", "ankitajangid@gmail.com",
-      "nehasharma@gmail.com", "advetagharat@gmail.com", "madhurikadam@gmail.com",
+      "ujwala@gmail.com",
+      "e.reed@university.edu"
     ];
     return facultyEmails.includes(email.toLowerCase());
   };
@@ -211,13 +207,15 @@ export default function AuthenticationForm() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float-delay"></div>
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-lg">
         <Link href="/" className="inline-flex items-center text-gray-300 hover:text-white mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Link>
+        
+        <TestCredentials />
 
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 mt-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-white" />
