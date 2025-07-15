@@ -47,7 +47,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
   const [currentProposalId, setCurrentProposalId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates | 'scratch' | null>(null);
   const [previews, setPreviews] = useState({ 
-      headerImage: null as string | null, 
       eventLogo: null as string | null,
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -145,8 +144,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         location: form.location ? (locations.find(l => l.id === form.location)?.name || form.location) : 'TBD',
         organizer: club?.name || 'CampusConnect',
         category: form.category || 'General',
-        image: previews.headerImage || 'https://placehold.co/600x400.png',
-        headerImage: previews.headerImage || 'https://placehold.co/2560x650.png',
+        image: previews.eventLogo || 'https://placehold.co/600x400.png',
         eventLogo: previews.eventLogo,
         attendees: 0,
         capacity: 100,
@@ -264,11 +262,9 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         ...proposal,
         location: draftLocation,
         tags: Array.isArray(proposal.tags) ? proposal.tags.join(', ') : (proposal.tags || ''),
-        headerImageUrl: proposal.headerImage || '',
         eventLogoUrl: proposal.eventLogo || '',
     });
     setPreviews({
-        headerImage: proposal.headerImage || null,
         eventLogo: proposal.eventLogo || null,
     });
     if (proposal.date) {
@@ -297,7 +293,7 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
     setEquipment(EMPTY_EQUIPMENT_STATE);
     setCurrentProposalId(null);
     setSelectedTemplate(null);
-    setPreviews({ headerImage: null, eventLogo: null });
+    setPreviews({ eventLogo: null });
     setSelectedDate(null);
     setView('templates');
     setStep(1);
@@ -353,10 +349,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         });
         
         // Now add file objects separately with explicit type checking
-        if (form.headerImage instanceof File) {
-            formData.append('headerImage', form.headerImage);
-        }
-        
         if (form.eventLogo instanceof File) {
             formData.append('eventLogo', form.eventLogo);
         }
@@ -414,15 +406,13 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
         const finalFormState = {
             ...form,
             ...savedProposal,
-            headerImage: null, // Clear file inputs
-            eventLogo: null,
+            eventLogo: null, // Clear file inputs
             photoAlbumUrl: savedProposal.photoAlbumUrl,
         };
         
         setForm(finalFormState);
 
         setPreviews({
-            headerImage: savedProposal.headerImage || null,
             eventLogo: savedProposal.eventLogo || null,
         });
 
@@ -679,7 +669,6 @@ export default function HostEventForm({ user, proposals: initialProposals }: Hos
                         </div>
 
                         <div className="space-y-4">
-                            <FileInput name="headerImage" label="Header Image" accepted="image/jpeg, image/png" helpText="2560 x 650 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.headerImage} />
                             <FileInput name="eventLogo" label="Event Logo (Optional)" accepted="image/jpeg, image/png" helpText="1080 x 1080 pixels. JPG or PNG." onFileChange={handleFileChange} currentPreview={previews.eventLogo} />
                         </div>
 

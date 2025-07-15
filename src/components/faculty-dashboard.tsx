@@ -147,8 +147,7 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                 organizer: proposal.clubName,
                 clubId: proposal.clubId,
                 category: proposal.category,
-                image: proposal.headerImage || 'https://placehold.co/600x400.png',
-                headerImage: proposal.headerImage,
+                image: proposal.eventLogo || 'https://placehold.co/600x400.png',
                 eventLogo: proposal.eventLogo,
                 registrationLink: proposal.registrationLink,
                 tags: [...(proposal.tags || []), proposal.category].filter(Boolean).filter((value, index, self) => self.indexOf(value) === index),
@@ -353,10 +352,6 @@ export default function FacultyDashboardClient({ initialRequests }: FacultyDashb
                  <div className="space-y-3">
                     <p className="text-sm font-medium text-white/70 flex items-center gap-2"><ImageIcon /> Submitted Media</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <p className="text-xs text-white/60 mb-1">Header Image</p>
-                            <Image src={selectedRequest.headerImage || 'https://placehold.co/600x400.png'} alt="Header Image" width={200} height={100} className="rounded-lg object-cover bg-black/20" />
-                        </div>
                         <div>
                             <p className="text-xs text-white/60 mb-1">Event Logo</p>
                             <Image src={selectedRequest.eventLogo || 'https://placehold.co/100x100.png'} alt="Event Logo" width={100} height={100} className="rounded-lg object-cover bg-black/20" />

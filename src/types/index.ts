@@ -39,7 +39,6 @@ export type Event = {
   organizer: string;
   category: string;
   image: string; // Kept for legacy, headerImage is primary now
-  headerImage?: string;
   eventLogo?: string;
   attendees: number;
   capacity: number;
@@ -117,7 +116,6 @@ export type EventProposal = {
   equipmentNeeds?: string;
   budgetDetails?: string;
   whatYouWillLearn?: string;
-  headerImage?: string;
   eventLogo?: string;
   googleDriveFolderId?: string;
   photoAlbumUrl?: string;
@@ -166,5 +164,3 @@ export type FacultyInvitation = {
   createdAt: any; // Firestore Timestamp
   used: boolean;
 };
-
-    

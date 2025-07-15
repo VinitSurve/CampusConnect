@@ -73,7 +73,7 @@ const ClubInfoCard = ({ club, leadUser }: { club: Club | null; leadUser: User | 
 
 export default function EventDetailPage({ event, club, lead }: EventDetailPageProps) {
   const { 
-      title, description, longDescription, organizer, category, image, headerImage, eventLogo,
+      title, description, longDescription, organizer, category, image, eventLogo,
       whatYouWillLearn, targetAudience, keySpeakers, tags, date, time, endTime, registrationLink, location,
       allowExternals, photoAlbumUrl
   } = event;
@@ -125,28 +125,16 @@ export default function EventDetailPage({ event, club, lead }: EventDetailPagePr
   return (
     <div className="max-w-4xl mx-auto">
         <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
-             <div className="relative h-64 md:h-80 w-full">
-                <Image 
-                  src={headerImage || image || 'https://placehold.co/2560x650.png'} 
-                  alt={title} 
-                  fill 
-                  sizes="(max-width: 896px) 100vw, 896px" 
-                  className="object-cover" 
-                  data-ai-hint="event photo" 
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-6 w-full">
-                    <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4">
-                        {eventLogo && (
-                            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-2 border-white/20 bg-black/50 overflow-hidden flex-shrink-0 mb-4 sm:mb-0">
-                                <Image src={eventLogo} alt={`${title} logo`} fill sizes="8rem" className="object-cover" />
-                            </div>
-                        )}
-                        <div className="flex flex-col items-start">
-                             <Badge variant="secondary" className="mb-2 bg-white/20 text-white">{category}</Badge>
-                             <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg">{title}</h1>
+             <div className="p-6 md:p-8 bg-black/20 border-b border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6">
+                    {eventLogo && (
+                        <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-2 border-white/20 bg-black/50 overflow-hidden flex-shrink-0 mb-4 sm:mb-0">
+                            <Image src={eventLogo} alt={`${title} logo`} fill sizes="8rem" className="object-cover" />
                         </div>
+                    )}
+                    <div className="flex flex-col items-start">
+                         <Badge variant="secondary" className="mb-2 bg-white/20 text-white">{category}</Badge>
+                         <h1 className="text-3xl md:text-4xl font-bold text-white shadow-lg">{title}</h1>
                     </div>
                 </div>
             </div>

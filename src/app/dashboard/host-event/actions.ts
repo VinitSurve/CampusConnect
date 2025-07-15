@@ -29,24 +29,6 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
         // Header and Logo images are uploaded to the shared ASSETS folder, not the event-specific gallery folder.
         const assetsFolderId = process.env.GOOGLE_DRIVE_ASSETS_FOLDER_ID;
         if (assetsFolderId) {
-            // Process Header Image
-            const headerImageFile = formData.get('headerImage') as File;
-            if (headerImageFile && headerImageFile.size > 0) {
-                try {
-                    if (!(headerImageFile instanceof File)) {
-                        console.error("Header image is not a valid File object:", headerImageFile);
-                        throw new Error("Invalid header image file format");
-                    }
-                    // Upload to the shared assets folder
-                    const headerImageUrl = await uploadFile(headerImageFile, assetsFolderId);
-                    formData.set('headerImageUrl', headerImageUrl); 
-                } catch (uploadError: any) {
-                    console.error(`Header image upload failed for event "${title}":`, uploadError);
-                    if (status === 'pending') {
-                        throw new Error(`Failed to upload the header image: ${uploadError.message}`);
-                    }
-                }
-            }
             
             // Process Event Logo
             const eventLogoFile = formData.get('eventLogo') as File;
@@ -93,7 +75,6 @@ export async function handleEventMediaUpload(formData: FormData, existingFolderI
             date: formData.get('date') as string,
             time: formData.get('time') as string,
             endTime: formData.get('endTime') as string,
-            headerImage: formData.get('headerImageUrl') as string || undefined,
             eventLogo: formData.get('eventLogoUrl') as string || undefined,
             googleDriveFolderId: googleDriveFolderId,
             photoAlbumUrl: photoAlbumUrl,
